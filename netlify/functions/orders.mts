@@ -18,11 +18,12 @@ export default async (req: Request) => {
     if (unauthorized) return unauthorized;
 
     const rows = (await db.sql`
-      SELECT id, created_at, items, total FROM orders ORDER BY created_at DESC LIMIT 200
-    `) as { id: number; created_at: string; items: unknown; total: number }[];
+      SELECT id, created_at, customer_name, items, total FROM orders ORDER BY created_at DESC LIMIT 200
+    `) as { id: number; created_at: string; customer_name: string; items: unknown; total: number }[];
     const orders = rows.map(r => ({
       id: r.id,
       createdAt: r.created_at,
+      customerName: r.customer_name,
       items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
       total: r.total,
     }));
@@ -32,6 +33,10 @@ export default async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
+  const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : '';
+  if (!customerName) return json({ error: 'customerName is required' }, 400);
+  if (customerName.length > 40) return json({ error: 'customerName is too long' }, 400);
+
   const items: CartItemInput[] = Array.isArray(body.items) ? (body.items as CartItemInput[]) : [];
   if (items.length === 0) return json({ error: 'cart is empty' }, 400);
 
@@ -48,11 +53,11 @@ export default async (req: Request) => {
 
   const total = lines.reduce((sum, l) => sum + l.linePrice, 0);
   const [order] = (await db.sql`
-    INSERT INTO orders (items, total) VALUES (${JSON.stringify(lines)}, ${total})
+    INSERT INTO orders (customer_name, items, total) VALUES (${customerName}, ${JSON.stringify(lines)}, ${total})
     RETURNING id, created_at
   `) as { id: number; created_at: string }[];
 
-  return json({ id: order.id, createdAt: order.created_at, items: lines, total }, 201);
+  return json({ id: order.id, createdAt: order.created_at, customerName, items: lines, total }, 201);
 };
 
 export const config: Config = {

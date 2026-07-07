@@ -39,7 +39,10 @@ export function OrdersView() {
           {orders?.map(order => (
             <div key={order.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 16, padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-                <div style={{ font: "600 15px 'Iansui'" }}>訂單 #{order.id}</div>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                  <div style={{ font: "600 15px 'Iansui'" }}>訂單 #{order.id}</div>
+                  <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714' }}>{order.customerName || '（未填寫姓名）'}</div>
+                </div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{formatTime(order.createdAt)}</div>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>

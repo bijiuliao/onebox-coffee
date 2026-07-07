@@ -28,11 +28,11 @@ export const api = {
     form.append('cover', file);
     return fetch(`/api/coffees/${id}/cover`, { method: 'POST', body: form }).then(res => json<Coffee>(res));
   },
-  placeOrder: (items: { id: string; temp: string; size: string; qty: number }[]) =>
+  placeOrder: (customerName: string, items: { id: string; temp: string; size: string; qty: number }[]) =>
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items }),
+      body: JSON.stringify({ customerName, items }),
     }).then(res => json<Order>(res)),
   listOrders: () => fetch('/api/orders').then(res => json<Order[]>(res)),
 };

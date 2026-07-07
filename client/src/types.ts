@@ -36,6 +36,7 @@ export interface OrderLine {
 export interface Order {
   id: number;
   createdAt: string;
+  customerName: string;
   items: OrderLine[];
   total: number;
 }

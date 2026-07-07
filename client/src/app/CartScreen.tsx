@@ -6,17 +6,23 @@ import { useCart, priceOf } from '../cart';
 import { useToast } from '../toast';
 import { api } from '../api';
 
+const NAME_STORAGE_KEY = 'onebox-customer-name';
+
 export function CartScreen() {
   const navigate = useNavigate();
   const cart = useCart();
   const { showToast } = useToast();
   const [placing, setPlacing] = useState(false);
+  const [customerName, setCustomerName] = useState(() => localStorage.getItem(NAME_STORAGE_KEY) ?? '');
 
   const checkout = async () => {
+    const name = customerName.trim();
     if (placing || cart.lines.length === 0) return;
+    if (!name) { showToast('請輸入取餐姓名 / 暱稱'); return; }
     setPlacing(true);
     try {
-      await api.placeOrder(cart.lines.map(l => ({ id: l.coffeeId, temp: l.temp, size: l.size, qty: l.qty })));
+      await api.placeOrder(name, cart.lines.map(l => ({ id: l.coffeeId, temp: l.temp, size: l.size, qty: l.qty })));
+      localStorage.setItem(NAME_STORAGE_KEY, name);
       cart.clear();
       showToast('訂單已送出，為你手沖中 ☕');
       navigate('/');
@@ -70,7 +76,18 @@ export function CartScreen() {
             </div>
           </div>
 
-          <div style={{ padding: '20px 22px 12px' }}>
+          <div style={{ padding: '20px 22px 0' }}>
+            <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 8, display: 'block' }}>取餐姓名 / 暱稱</label>
+            <input
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+              placeholder="方便店員叫號時稱呼你"
+              maxLength={40}
+              style={{ width: '100%', padding: '13px 16px', border: '1px solid #e4ddcd', borderRadius: 14, background: '#fff', font: "400 15px 'Iansui'", color: '#1a1714', outline: 'none' }}
+            />
+          </div>
+
+          <div style={{ padding: '16px 22px 12px' }}>
             <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: '#eef2ec', borderRadius: 14, padding: 14 }}>
               <span style={{ font: "600 14px 'Iansui'", color: '#3d6b4f' }}>☕</span>
               <span style={{ font: "400 12px/1.6 'Iansui'", color: '#4a5f4e' }}>現點現沖，預計 <b>8–12 分鐘</b> 完成，我們會在吧台叫號。</span>
