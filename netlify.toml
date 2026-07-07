@@ -1,0 +1,14 @@
+[build]
+  command = "npm install --prefix client && npm run build --prefix client"
+  publish = "client/dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[dev]
+  command = "npm run dev --prefix client"
+  targetPort = 5173
+  publish = "client/dist"
+  functions = "netlify/functions"
+  autoLaunch = false

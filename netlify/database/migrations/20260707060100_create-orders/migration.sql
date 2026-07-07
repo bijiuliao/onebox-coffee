@@ -1,0 +1,6 @@
+CREATE TABLE orders (
+  id SERIAL PRIMARY KEY,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  items JSONB NOT NULL,
+  total INTEGER NOT NULL
+);
