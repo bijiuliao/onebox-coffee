@@ -12,3 +12,11 @@
   publish = "client/dist"
   functions = "netlify/functions"
   autoLaunch = false
+
+# Client-side routes (e.g. /admin, /coffee/:id) have no matching static
+# file, so fall back to the SPA shell. Function paths (/api/*) are matched
+# before redirects and are unaffected by this.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
