@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Noto+Sans+TC:wght@400;500;700;900&family=Noto+Serif+TC:wght@500;600;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  body{margin:0;background:#e8e2d7;font-family:"Noto Sans TC",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:inherit}
+  .dv-turn{padding:52px 48px 44px;scroll-margin-top:16px}
+  .dv-thd{display:flex;align-items:baseline;gap:12px;margin:0 0 30px}
+  .dv-tid{font:700 10px "Space Mono",monospace;padding:4px 8px;background:#2b2018;color:#f4ede1;border-radius:5px;text-decoration:none;letter-spacing:.5px}
+  .dv-tname{font:500 14px/1.3 "Noto Sans TC",sans-serif;color:#4a3c2e}
+  .dv-tname b{font-weight:700}
+  .dv-opts{display:flex;flex-wrap:wrap;gap:44px;align-items:flex-start}
+  .dv-opt{flex:none;display:flex;flex-direction:column;gap:14px;scroll-margin-top:16px}
+  .dv-olabel{display:flex;align-items:center;gap:10px;font:400 12px/1.4 "Noto Sans TC",sans-serif;color:#6b5c4a}
+  .dv-oid{font:700 11px "Space Mono",monospace;padding:4px 8px;background:rgba(43,32,24,.1);color:#2b2018;border-radius:6px;text-decoration:none}
+  .dv-opt:target .dv-oid{background:#3d6b4f;color:#fff}
+  .dv-next{margin:34px 0 0;font:400 13px/1.7 "Noto Sans TC",sans-serif;color:#6b5c4a}
+  .dv-next a{font:700 11px "Space Mono",monospace;padding:2px 6px;background:rgba(43,32,24,.09);color:#2b2018;border-radius:5px;text-decoration:none}
+  /* phone shell */
+  .ph{width:392px;height:812px;background:#faf6ef;border-radius:46px;padding:11px;box-shadow:0 2px 0 #d9cfbe, 0 34px 60px -24px rgba(43,32,24,.5), 0 0 0 2px rgba(43,32,24,.06);position:relative}
+  .ph-scr{width:100%;height:100%;background:#faf6ef;border-radius:36px;overflow:hidden;position:relative}
+  .ph-view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-ms-overflow-style:none;scrollbar-width:none}
+  .ph-view::-webkit-scrollbar{display:none}
+  .ph-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#2b2018;border-radius:0 0 18px 18px;z-index:40}
+  .sbar{display:flex;justify-content:space-between;align-items:center;padding:14px 26px 6px;font:700 13px "Space Mono",monospace}
+  .tabbar{position:absolute;left:0;right:0;bottom:0;height:74px;display:flex;justify-content:space-around;align-items:center;padding-bottom:12px;z-index:30;backdrop-filter:blur(10px)}
+  .hoverlift{transition:transform .25s ease, box-shadow .25s ease}
+  .hoverlift:hover{transform:translateY(-3px)}
+</style>
+</helmet>
+
+<section class="dv-turn" id="t1">
+  <div class="dv-thd">
+    <a class="dv-tid" href="#t1">1</a>
+    <span class="dv-tname"><b>onebox coffee</b> · 手沖點餐首頁三種方向（手機為主）</span>
+  </div>
+  <div class="dv-opts">
+
+    <!-- ============ 1a  精品編輯風 ============ -->
+    <div class="dv-opt" id="1a">
+      <div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>精品編輯風 · 大量留白，貓當小吉祥物</div>
+      <div class="ph">
+        <div class="ph-notch"></div>
+        <div class="ph-scr">
+          <div class="ph-view" style="background:#faf6ef">
+            <div class="sbar" style="color:#2b2018"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+            <!-- header -->
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px 8px">
+              <div style="font:500 20px 'Newsreader',serif;color:#2b2018;letter-spacing:-.01em">onebox<span style="color:#c99a6a">.</span></div>
+              <div style="display:flex;gap:16px;align-items:center">
+                <span style="font:700 10px 'Space Mono';color:#8a7a68;letter-spacing:1px">MENU</span>
+                <div style="width:30px;height:30px;border-radius:50%;background:#f0e7d8;display:flex;align-items:center;justify-content:center;font:700 12px 'Space Mono';color:#7a5c3e">0</div>
+              </div>
+            </div>
+            <!-- hero -->
+            <div style="padding:26px 22px 18px">
+              <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#3d6b4f;margin-bottom:18px">SINGLE ORIGIN · HAND DRIP</div>
+              <div style="font:600 44px/1.12 'Noto Serif TC',serif;color:#2b2018;letter-spacing:.01em">一箱好豆<br>為你手沖</div>
+              <div style="margin-top:16px;font:400 14px/1.9 'Noto Sans TC';color:#6b5c4a;max-width:250px">每日限量單品，從產地到你手中的那一杯，剛剛好的溫度。</div>
+            </div>
+            <!-- cat card -->
+            <div style="margin:6px 22px 26px;border-radius:22px;overflow:hidden;background:#fff;border:1px solid #eadfce;position:relative" class="hoverlift">
+              <img src="assets/cat-box.jpg" alt="onebox 貓" style="width:100%;display:block;aspect-ratio:1/1;object-fit:cover">
+              <div style="position:absolute;left:16px;bottom:14px;font:700 10px 'Space Mono';letter-spacing:1px;color:#7a5c3e;background:rgba(250,246,239,.9);padding:6px 10px;border-radius:20px">本日新鮮到箱</div>
+            </div>
+            <!-- 本日手沖 list -->
+            <div style="padding:0 22px 6px;display:flex;justify-content:space-between;align-items:baseline">
+              <div style="font:600 19px 'Noto Serif TC';color:#2b2018">本日手沖</div>
+              <div style="font:700 10px 'Space Mono';color:#8a7a68;letter-spacing:1px">SEE ALL</div>
+            </div>
+            <div style="padding:12px 22px 96px;display:flex;flex-direction:column">
+              <!-- row -->
+              <div style="display:flex;gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid #eadfce" class="hoverlift">
+                <div style="width:52px;height:52px;border-radius:14px;background:#f3ead9;flex:none;display:flex;align-items:center;justify-content:center;font:600 20px 'Noto Serif TC';color:#a9805c">衣</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font:500 15px 'Noto Sans TC';color:#2b2018">耶加雪菲 · 淺焙</div>
+                  <div style="font:400 12px 'Space Mono';color:#8a7a68;margin-top:3px">花香 · 柑橘 · 紅茶感</div>
+                </div>
+                <div style="font:500 15px 'Newsreader',serif;color:#2b2018">$150</div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:center;padding:16px 0;border-bottom:1px solid #eadfce" class="hoverlift">
+                <div style="width:52px;height:52px;border-radius:14px;background:#ece0cd;flex:none;display:flex;align-items:center;justify-content:center;font:600 20px 'Noto Serif TC';color:#7a5c3e">哥</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font:500 15px 'Noto Sans TC';color:#2b2018">哥倫比亞 薇拉 · 中焙</div>
+                  <div style="font:400 12px 'Space Mono';color:#8a7a68;margin-top:3px">焦糖 · 堅果 · 柑橘</div>
+                </div>
+                <div style="font:500 15px 'Newsreader',serif;color:#2b2018">$140</div>
+              </div>
+              <div style="display:flex;gap:14px;align-items:center;padding:16px 0" class="hoverlift">
+                <div style="width:52px;height:52px;border-radius:14px;background:#ded0ba;flex:none;display:flex;align-items:center;justify-content:center;font:600 20px 'Noto Serif TC';color:#5a4632">瓜</div>
+                <div style="flex:1;min-width:0">
+                  <div style="font:500 15px 'Noto Sans TC';color:#2b2018">安提瓜 · 中深焙</div>
+                  <div style="font:400 12px 'Space Mono';color:#8a7a68;margin-top:3px">巧克力 · 黑糖 · 醇厚</div>
+                </div>
+                <div style="font:500 15px 'Newsreader',serif;color:#2b2018">$160</div>
+              </div>
+            </div>
+          </div>
+          <!-- tabbar -->
+          <div class="tabbar" style="background:rgba(250,246,239,.82);border-top:1px solid #eadfce">
+            <div style="font:700 10px 'Space Mono';color:#2b2018;letter-spacing:1px">首頁</div>
+            <div style="font:700 10px 'Space Mono';color:#b8a892;letter-spacing:1px">豆單</div>
+            <div style="width:44px;height:44px;border-radius:50%;background:#2b2018;color:#faf6ef;display:flex;align-items:center;justify-content:center;font:600 20px 'Noto Serif TC';margin-top:-14px">＋</div>
+            <div style="font:700 10px 'Space Mono';color:#b8a892;letter-spacing:1px">收藏</div>
+            <div style="font:700 10px 'Space Mono';color:#b8a892;letter-spacing:1px">我的</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1b  溫暖插畫風 ============ -->
+    <div class="dv-opt" id="1b">
+      <div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>溫暖插畫風 · 貓咪主視覺，圓潤療癒</div>
+      <div class="ph">
+        <div class="ph-notch"></div>
+        <div class="ph-scr">
+          <div class="ph-view" style="background:#f3e6d3">
+            <div class="sbar" style="color:#5a4632"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px 4px">
+              <div style="font:700 19px 'Noto Sans TC';color:#5a4632">onebox</div>
+              <div style="width:34px;height:34px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 3px 8px rgba(90,70,50,.14)">
+                <span style="font:600 15px 'Noto Serif TC';color:#c99a6a">☰</span>
+              </div>
+            </div>
+            <!-- warm hero block -->
+            <div style="margin:14px 16px 0;background:#c99a6a;border-radius:30px;padding:26px 24px 0;position:relative;overflow:hidden;box-shadow:0 14px 30px -12px rgba(150,110,70,.5)">
+              <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#5a3f28;opacity:.85">現場手沖 · 每日限量</div>
+              <div style="font:700 34px/1.2 'Noto Serif TC';color:#3a2a1a;margin-top:12px">躲進一箱<br>剛剛好的溫度</div>
+              <img src="assets/cat-box.jpg" alt="onebox 貓" style="width:78%;display:block;margin:8px auto -6px;filter:drop-shadow(0 8px 14px rgba(90,60,35,.28));mix-blend-mode:multiply">
+            </div>
+            <!-- rounded chips -->
+            <div style="padding:22px 20px 8px;font:700 17px 'Noto Serif TC';color:#5a4632">選你的今日心情</div>
+            <div style="display:flex;gap:12px;padding:0 20px;overflow:hidden">
+              <div style="flex:1;background:#fff;border-radius:22px;padding:16px 14px;box-shadow:0 6px 16px -8px rgba(90,70,50,.28)" class="hoverlift">
+                <div style="width:40px;height:40px;border-radius:50%;background:#fbeede;display:flex;align-items:center;justify-content:center;font:600 18px 'Noto Serif TC';color:#c99a6a">淺</div>
+                <div style="font:500 14px 'Noto Sans TC';color:#3a2a1a;margin-top:12px">明亮果酸</div>
+                <div style="font:400 11px 'Space Mono';color:#a08a70;margin-top:2px">花香 柑橘</div>
+              </div>
+              <div style="flex:1;background:#fff;border-radius:22px;padding:16px 14px;box-shadow:0 6px 16px -8px rgba(90,70,50,.28)" class="hoverlift">
+                <div style="width:40px;height:40px;border-radius:50%;background:#efe0c8;display:flex;align-items:center;justify-content:center;font:600 18px 'Noto Serif TC';color:#7a5c3e">深</div>
+                <div style="font:500 14px 'Noto Sans TC';color:#3a2a1a;margin-top:12px">醇厚濃郁</div>
+                <div style="font:400 11px 'Space Mono';color:#a08a70;margin-top:2px">可可 堅果</div>
+              </div>
+            </div>
+            <!-- featured -->
+            <div style="margin:22px 20px 100px;background:#fff;border-radius:26px;padding:18px;display:flex;gap:16px;align-items:center;box-shadow:0 8px 22px -12px rgba(90,70,50,.3)" class="hoverlift">
+              <div style="width:70px;height:70px;border-radius:20px;background:#f3e6d3;flex:none;display:flex;align-items:center;justify-content:center;font:600 26px 'Noto Serif TC';color:#c99a6a">☕</div>
+              <div style="flex:1;min-width:0">
+                <div style="font:700 9px 'Space Mono';letter-spacing:1px;color:#3d6b4f">本日主打</div>
+                <div style="font:600 16px 'Noto Serif TC';color:#3a2a1a;margin-top:4px">耶加雪菲 日曬</div>
+                <div style="font:400 11px 'Space Mono';color:#a08a70;margin-top:3px">藍莓 · 發酵感</div>
+              </div>
+              <div style="text-align:right">
+                <div style="font:500 17px 'Newsreader',serif;color:#3a2a1a">$160</div>
+                <div style="margin-top:8px;width:34px;height:34px;border-radius:50%;background:#3a2a1a;color:#fff;display:flex;align-items:center;justify-content:center;font:600 18px 'Noto Serif TC'">＋</div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar" style="background:rgba(243,230,211,.86);border-top:1px solid #e2d0b6">
+            <div style="width:44px;height:44px;border-radius:50%;background:#5a4632;color:#f3e6d3;display:flex;align-items:center;justify-content:center;font:600 16px 'Noto Serif TC'">家</div>
+            <div style="font:700 15px 'Noto Serif TC';color:#b09a7c">豆</div>
+            <div style="font:700 15px 'Noto Serif TC';color:#b09a7c">♡</div>
+            <div style="font:700 15px 'Noto Serif TC';color:#b09a7c">箱</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ============ 1c  大膽深色風 ============ -->
+    <div class="dv-opt" id="1c">
+      <div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>大膽深色風 · 高對比大字，「箱」的框線隱喻</div>
+      <div class="ph">
+        <div class="ph-notch"></div>
+        <div class="ph-scr">
+          <div class="ph-view" style="background:#2b2018">
+            <div class="sbar" style="color:#f4ede1"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 22px 8px">
+              <div style="font:500 19px 'Newsreader',serif;color:#f4ede1">onebox<span style="color:#c99a6a">.</span></div>
+              <div style="font:700 10px 'Space Mono';color:#c99a6a;letter-spacing:1px;border:1px solid rgba(201,154,106,.5);padding:6px 12px;border-radius:20px">CART · 0</div>
+            </div>
+            <!-- big type hero -->
+            <div style="padding:30px 22px 10px">
+              <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#c99a6a;margin-bottom:20px">EST. 2026 · TAIPEI ROASTERS</div>
+              <div style="font:500 58px/.98 'Newsreader',serif;color:#f4ede1;letter-spacing:-.02em">Hand<br><span style="font-style:italic;color:#c99a6a">drip</span><br>daily.</div>
+              <div style="margin-top:20px;font:400 14px/1.9 'Noto Sans TC';color:#c9bba9;max-width:260px">一次只專注一支豆，一箱一箱，慢慢烘、細細沖。</div>
+            </div>
+            <!-- boxed cat -->
+            <div style="margin:24px 22px;border:2px solid rgba(201,154,106,.55);border-radius:20px;padding:18px;position:relative">
+              <div style="position:absolute;top:-9px;left:18px;background:#2b2018;padding:0 8px;font:700 9px 'Space Mono';letter-spacing:1px;color:#c99a6a">/ ONE BOX</div>
+              <img src="assets/cat-box.jpg" alt="onebox 貓" style="width:100%;display:block;border-radius:12px;background:#faf6ef">
+            </div>
+            <!-- 產品 index -->
+            <div style="padding:6px 22px 100px">
+              <div style="font:700 10px 'Space Mono';letter-spacing:1px;color:#7a6b58;padding-bottom:8px;border-bottom:1px solid rgba(201,154,106,.22)">TODAY'S INDEX</div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid rgba(201,154,106,.16)" class="hoverlift">
+                <div><div style="font:400 11px 'Space Mono';color:#7a6b58">01 / ETHIOPIA</div><div style="font:500 19px 'Newsreader',serif;color:#f4ede1;margin-top:4px">耶加雪菲</div></div>
+                <div style="font:500 17px 'Newsreader',serif;color:#c99a6a">$150</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 0;border-bottom:1px solid rgba(201,154,106,.16)" class="hoverlift">
+                <div><div style="font:400 11px 'Space Mono';color:#7a6b58">02 / KENYA</div><div style="font:500 19px 'Newsreader',serif;color:#f4ede1;margin-top:4px">肯亞 AA</div></div>
+                <div style="font:500 17px 'Newsreader',serif;color:#c99a6a">$170</div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:18px 0" class="hoverlift">
+                <div><div style="font:400 11px 'Space Mono';color:#7a6b58">03 / BRAZIL</div><div style="font:500 19px 'Newsreader',serif;color:#f4ede1;margin-top:4px">巴西 喜拉朵</div></div>
+                <div style="font:500 17px 'Newsreader',serif;color:#c99a6a">$130</div>
+              </div>
+            </div>
+          </div>
+          <div class="tabbar" style="background:rgba(43,32,24,.86);border-top:1px solid rgba(201,154,106,.2)">
+            <div style="font:700 10px 'Space Mono';color:#f4ede1;letter-spacing:1px">HOME</div>
+            <div style="font:700 10px 'Space Mono';color:#7a6b58;letter-spacing:1px">BEANS</div>
+            <div style="width:44px;height:44px;border-radius:14px;background:#c99a6a;color:#2b2018;display:flex;align-items:center;justify-content:center;font:700 20px 'Newsreader',serif;margin-top:-12px">+</div>
+            <div style="font:700 10px 'Space Mono';color:#7a6b58;letter-spacing:1px">SAVED</div>
+            <div style="font:700 10px 'Space Mono';color:#7a6b58;letter-spacing:1px">YOU</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <p class="dv-next">試試看下一步：「用 <a href="#1a">1a</a> 的乾淨排版，但貓咪放大一點」 · 「把 <a href="#1c">1c</a> 做成完整可點擊流程：菜單→單品→購物車」 · 「<a href="#1b">1b</a> 換成綠色點綴」 · 「再給我一版更大膽的方向」</p>
+</section>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics="">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  @font-face{font-family:'Iansui';src:url('assets/fonts/Iansui-Regular.ttf') format('truetype');font-weight:100 900;font-display:swap}
+  @font-face{font-family:'Room205';src:url('assets/fonts/Room205-Regular.otf') format('opentype');font-weight:100 900;font-display:swap}
+  body{margin:0;background:#e7e2d8;font-family:"Iansui","Archivo",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  a{color:inherit}
+  .stage{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:36px;background:radial-gradient(120% 90% at 50% 0%,#efe9dd 0%,#e2dccf 60%,#d8d1c2 100%)}
+  .ph{width:400px;height:840px;background:#111;border-radius:52px;padding:11px;box-shadow:0 2px 0 #cfc6b4, 0 44px 80px -30px rgba(30,22,16,.6), 0 0 0 2px rgba(30,22,16,.08);position:relative;flex:none}
+  .ph-scr{width:100%;height:100%;border-radius:42px;overflow:hidden;position:relative;background:#f4f1ea}
+  .ph-view{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;-ms-overflow-style:none;scrollbar-width:none}
+  .ph-view::-webkit-scrollbar{display:none}
+  .ph-notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:30px;background:#111;border-radius:0 0 18px 18px;z-index:60}
+  .sbar{display:flex;justify-content:space-between;align-items:center;padding:15px 28px 4px;font:700 13px "Space Mono",monospace}
+  .screen{animation:screenIn .42s cubic-bezier(.2,.7,.2,1) both}
+  @keyframes screenIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes rise{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+  @keyframes floaty{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-10px) rotate(1deg)}}
+  @keyframes pulse{0%,100%{opacity:.4;transform:translateY(0)}50%{opacity:1;transform:translateY(3px)}}
+  @keyframes toastIn{from{opacity:0;transform:translate(-50%,12px)}to{opacity:1;transform:translate(-50%,0)}}
+  @keyframes ripple{from{transform:translate(-50%,-50%) scale(.4);opacity:.5}to{transform:translate(-50%,-50%) scale(2.4);opacity:0}}
+  .press{transition:transform .12s ease}
+  .press:active{transform:scale(.95)}
+  .lift{transition:transform .22s ease,box-shadow .22s ease}
+  .lift:hover{transform:translateY(-3px);box-shadow:0 16px 30px -18px rgba(30,22,16,.4)}
+  .catwrap:hover .catimg{transform:scale(1.04) rotate(1deg)}
+  .catimg{transition:transform .5s cubic-bezier(.2,.7,.2,1)}
+</style>
+</helmet>
+
+<div class="stage">
+  <div class="ph">
+    <div class="ph-notch"></div>
+    <div class="ph-scr">
+
+      <!-- ============ HOME / COVER (cat) ============ -->
+      <sc-if value="{{ isHome }}" hint-placeholder-val="{{ true }}">
+        <div class="ph-view screen" style="background:radial-gradient(115% 80% at 50% 12%,#fbf8f1 0%,#f1ebdd 55%,#e9e1cf 100%)">
+          <div class="sbar" style="color:#2b2018"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+          <div style="display:flex;flex-direction:column;height:100%;min-height:780px;padding:0 30px">
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 0 0">
+              <div style="font:500 21px 'Room205',serif;color:#1a1714;letter-spacing:-.01em">{{ brandName }}<span style="color:#c98a2e">.</span></div>
+              <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#8a7a68">EST. 2026 · TAIPEI</div>
+            </div>
+
+            <div style="flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:8px 0">
+              <div style="font:700 10px 'Space Mono';letter-spacing:3px;color:#3d6b4f;margin-bottom:22px;animation:rise .6s .05s ease both">SINGLE ORIGIN · HAND DRIP BAR</div>
+              <div style="font:600 46px/1.08 'Iansui',serif;color:#1a1714;letter-spacing:.01em;animation:rise .6s .16s ease both">one box&nbsp;<br>coffee</div>
+
+              <div class="catwrap press" onClick="{{ enter }}" style="position:relative;margin:30px 0 8px;cursor:pointer;width:270px;height:270px;display:flex;align-items:center;justify-content:center;animation:rise .7s .3s ease both">
+                <div style="position:absolute;top:50%;left:50%;width:210px;height:210px;border-radius:50%;background:#fff;box-shadow:0 30px 50px -22px rgba(120,90,55,.5);transform:translate(-50%,-50%)"></div>
+                <img class="catimg" src="assets/cat-box.jpg" alt="onebox 貓" style="width:250px;height:250px;object-fit:contain;position:relative;z-index:2;animation:floaty 5s ease-in-out infinite;mix-blend-mode:multiply">
+              </div>
+
+              <div style="margin-top:14px;font:500 15px 'Iansui';color:#6b5c4a;animation:rise .6s .44s ease both">點一下箱子，看看今天躲了什麼豆</div>
+              <div style="margin-top:16px;color:#c98a2e;font:700 22px 'Room205';animation:pulse 1.8s ease-in-out infinite">↓</div>
+            </div>
+
+            <div onClick="{{ enter }}" class="press" style="cursor:pointer;margin:0 0 30px;background:#1a1714;color:#f4f1ea;border-radius:20px;padding:19px;display:flex;justify-content:space-between;align-items:center;animation:rise .6s .54s ease both">
+              <span style="font:600 16px 'Iansui'">開始點餐</span>
+              <span style="font:700 11px 'Space Mono';letter-spacing:1px;color:#c98a2e">OPEN THE BOX →</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ MENU ============ -->
+      <sc-if value="{{ isMenu }}" hint-placeholder-val="{{ true }}">
+        <div class="ph-view screen" style="background:#f4f1ea">
+          <div class="sbar" style="color:#1a1714"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+          <!-- header -->
+          <div style="position:sticky;top:0;z-index:20;background:#f4f1ea;padding:8px 22px 12px;border-bottom:1px solid #e4ddcd">
+            <div style="display:flex;justify-content:space-between;align-items:center">
+              <div onClick="{{ goHome }}" class="press" style="cursor:pointer;font:500 19px 'Room205',serif;color:#1a1714">{{ brandName }}<span style="color:#c98a2e">.</span></div>
+              <div onClick="{{ goCart }}" class="press" style="cursor:pointer;position:relative;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #e4ddcd;display:flex;align-items:center;justify-content:center;font:600 16px 'Iansui';color:#1a1714">箱
+                <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#c8342b;color:#fff;font:700 11px 'Space Mono';display:flex;align-items:center;justify-content:center">{{ cartCount }}</span></sc-if>
+              </div>
+            </div>
+          </div>
+          <!-- title -->
+          <div style="padding:20px 22px 6px;animation:rise .55s .08s ease both">
+            <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#8a7a68">TODAY'S DRIP BAR · 本日手沖</div>
+            <div style="font:600 34px/1.1 'Iansui',serif;color:#1a1714;margin-top:10px">今天，<br>想喝哪一支？</div>
+          </div>
+          <!-- filter chips -->
+          <div style="display:flex;gap:8px;padding:16px 22px 6px;flex-wrap:wrap;animation:rise .55s .2s ease both">
+            <sc-for list="{{ roasts }}" as="r" hint-placeholder-count="4">
+              <div onClick="{{ r.onClick }}" class="press" style="{{ r.style }}">{{ r.label }}</div>
+            </sc-for>
+          </div>
+          <!-- cards -->
+          <div style="padding:10px 22px 40px;display:flex;flex-direction:column;gap:16px;animation:rise .55s .32s ease both">
+            <sc-for list="{{ menuList }}" as="c" hint-placeholder-count="4">
+              <div onClick="{{ c.onOpen }}" class="lift" style="cursor:pointer;background:#fff;border:1px solid #e9e2d3;border-radius:22px;overflow:hidden">
+                <div style="{{ c.headStyle }}">
+                  <span style="font:700 10px 'Space Mono';letter-spacing:1.5px">{{ c.originEN }}</span>
+                  <span style="{{ c.scoreStyle }}">{{ c.scoreLabel }}</span>
+                </div>
+                <div style="padding:16px 18px 18px">
+                  <div style="font:500 22px/1.15 'Room205',serif;color:#1a1714">{{ c.name }}</div>
+                  <div style="font:400 13px 'Space Mono';color:#9a8a76;margin-top:3px">{{ c.originEN }} · {{ c.roast }}</div>
+                  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:14px">
+                    <sc-for list="{{ c.noteChips }}" as="n" hint-placeholder-count="3">
+                      <span style="{{ n.style }}">{{ n.label }}</span>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+                    <div style="display:flex;align-items:center;gap:9px">
+                      <span style="font:700 9px 'Space Mono';color:#b0a08c;letter-spacing:1px">ROAST</span>
+                      <div style="display:flex;gap:4px">
+                        <sc-for list="{{ c.dots }}" as="d" hint-placeholder-count="5"><span style="{{ d.style }}"></span></sc-for>
+                      </div>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:12px">
+                      <span style="font:500 18px 'Room205',serif;color:#1a1714">${{ c.price }}</span>
+                      <div onClick="{{ c.onAdd }}" class="press" style="{{ c.addStyle }}">＋</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ DETAIL ============ -->
+      <sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+        <div class="ph-view screen" style="{{ detailBgStyle }}">
+          <div class="sbar" style="color:#1a1714"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 22px 6px">
+            <div onClick="{{ goMenu }}" class="press" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font:500 18px 'Room205'">←</div>
+            <div onClick="{{ goCart }}" class="press" style="cursor:pointer;position:relative;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.7);display:flex;align-items:center;justify-content:center;font:600 16px 'Iansui'">箱
+              <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ false }}"><span style="position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;background:#c8342b;color:#fff;font:700 11px 'Space Mono';display:flex;align-items:center;justify-content:center">{{ cartCount }}</span></sc-if>
+            </div>
+          </div>
+
+          <!-- cover -->
+          <div style="margin:6px 22px 2px;height:250px;border-radius:22px;overflow:hidden;position:relative;{{ detailCoverBg }}">
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ detailCoverId }}" shape="rect" fit="contain" placeholder="豆袋封面 · 後台可上傳" hint-size="100%,250px"></x-import>
+          </div>
+
+          <div style="padding:18px 24px 4px">
+            <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:{{ selColor }}">{{ selOriginEN }}</div>
+            <div style="font:500 44px/1.05 'Room205',serif;color:#1a1714;margin-top:12px">{{ selName }}</div>
+            <div style="display:flex;gap:8px;margin-top:16px">
+              <span style="{{ selScoreStyle }}">{{ selScoreLabel }}</span>
+              <span style="padding:5px 12px;border-radius:20px;background:rgba(26,23,20,.06);font:600 12px 'Iansui';color:#4a3c2e">{{ selRoast }}</span>
+            </div>
+            <div style="font:400 15px/1.9 'Iansui';color:#4a3c2e;margin-top:18px">{{ selDesc }}</div>
+          </div>
+
+          <!-- tasting notes -->
+          <div style="padding:22px 24px 4px">
+            <div style="font:700 9px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px">TASTING NOTES · 風味</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <sc-for list="{{ selNoteChips }}" as="n" hint-placeholder-count="3"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+            </div>
+          </div>
+
+          <!-- data grid -->
+          <div style="margin:20px 24px 0;background:rgba(255,255,255,.6);border-radius:18px;padding:6px 18px">
+            <sc-for list="{{ selSpecs }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:13px 0;border-bottom:1px solid rgba(26,23,20,.08)">
+                <span style="font:700 10px 'Space Mono';letter-spacing:1px;color:#9a8a76">{{ s.k }}</span>
+                <span style="font:500 14px 'Iansui';color:#1a1714">{{ s.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+
+          <!-- temp -->
+          <div style="padding:22px 24px 0">
+            <div style="font:700 9px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px">溫度</div>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ tempOpts }}" as="t" hint-placeholder-count="2"><div onClick="{{ t.onClick }}" class="press" style="{{ t.style }}">{{ t.label }}</div></sc-for>
+            </div>
+          </div>
+          <!-- size -->
+          <div style="padding:18px 24px 0">
+            <div style="font:700 9px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px">份量</div>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ sizeOpts }}" as="s" hint-placeholder-count="2"><div onClick="{{ s.onClick }}" class="press" style="{{ s.style }}">{{ s.label }}</div></sc-for>
+            </div>
+          </div>
+          <!-- qty -->
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:22px 24px 130px">
+            <span style="font:700 9px 'Space Mono';letter-spacing:1.5px;color:#9a8a76">數量</span>
+            <div style="display:flex;align-items:center;gap:18px">
+              <div onClick="{{ qtyDec }}" class="press" style="cursor:pointer;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font:500 20px 'Room205'">−</div>
+              <span style="font:500 22px 'Room205';color:#1a1714;min-width:24px;text-align:center">{{ dQty }}</span>
+              <div onClick="{{ qtyInc }}" class="press" style="cursor:pointer;width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.8);display:flex;align-items:center;justify-content:center;font:500 20px 'Room205'">＋</div>
+            </div>
+          </div>
+
+          <!-- sticky add -->
+          <div style="position:sticky;bottom:0;padding:14px 24px 24px;background:{{ detailFadeBg }}">
+            <div onClick="{{ addFromDetail }}" class="press" style="cursor:pointer;background:#1a1714;color:#f4f1ea;border-radius:20px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+              <span style="font:600 16px 'Iansui'">加入購物車</span>
+              <span style="font:500 18px 'Room205'">${{ detailTotal }}</span>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <!-- ============ CART ============ -->
+      <sc-if value="{{ isCart }}" hint-placeholder-val="{{ false }}">
+        <div class="ph-view screen" style="background:#f4f1ea">
+          <div class="sbar" style="color:#1a1714"><span>9:41</span><span style="font:400 11px 'Space Mono'">●●● ◧ 100</span></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 22px 10px;border-bottom:1px solid #e4ddcd">
+            <div onClick="{{ goMenu }}" class="press" style="cursor:pointer;width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid #e4ddcd;display:flex;align-items:center;justify-content:center;font:500 18px 'Room205'">←</div>
+            <div style="font:600 17px 'Iansui';color:#1a1714">購物車</div>
+            <div style="width:40px"></div>
+          </div>
+
+          <sc-if value="{{ hasCart }}" hint-placeholder-val="{{ true }}">
+            <div>
+              <div style="padding:16px 22px 6px;display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ cartLines }}" as="l" hint-placeholder-count="2">
+                  <div style="background:#fff;border:1px solid #e9e2d3;border-radius:18px;padding:16px;display:flex;gap:14px;align-items:center">
+                    <div style="{{ l.swatchStyle }}"></div>
+                    <div style="flex:1;min-width:0">
+                      <div style="font:500 18px 'Room205',serif;color:#1a1714">{{ l.name }}</div>
+                      <div style="font:400 11px 'Space Mono';color:#9a8a76;margin-top:3px">{{ l.opts }}</div>
+                      <div style="font:500 15px 'Room205';color:#1a1714;margin-top:6px">${{ l.linePrice }}</div>
+                    </div>
+                    <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+                      <div style="display:flex;align-items:center;gap:10px">
+                        <div onClick="{{ l.dec }}" class="press" style="cursor:pointer;width:30px;height:30px;border-radius:50%;background:#f2ece0;display:flex;align-items:center;justify-content:center;font:500 16px 'Room205'">−</div>
+                        <span style="font:500 16px 'Room205';min-width:16px;text-align:center">{{ l.qty }}</span>
+                        <div onClick="{{ l.inc }}" class="press" style="cursor:pointer;width:30px;height:30px;border-radius:50%;background:#f2ece0;display:flex;align-items:center;justify-content:center;font:500 16px 'Room205'">＋</div>
+                      </div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="margin:16px 22px 0;background:#fff;border:1px solid #e9e2d3;border-radius:18px;padding:18px">
+                <div style="display:flex;justify-content:space-between;padding-bottom:12px"><span style="font:400 14px 'Iansui';color:#6b5c4a">小計</span><span style="font:500 15px 'Room205';color:#1a1714">${{ cartTotal }}</span></div>
+                <div style="display:flex;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid #eee3d3"><span style="font:400 14px 'Iansui';color:#6b5c4a">取貨方式</span><span style="font:500 14px 'Iansui';color:#1a1714">門市自取 · 免費</span></div>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;padding-top:14px"><span style="font:600 15px 'Iansui';color:#1a1714">總計</span><span style="font:600 26px 'Room205';color:#1a1714">${{ cartTotal }}</span></div>
+              </div>
+
+              <div style="padding:20px 22px 12px">
+                <div style="display:flex;gap:9px;align-items:flex-start;background:#eef2ec;border-radius:14px;padding:14px">
+                  <span style="font:600 14px 'Iansui';color:#3d6b4f">☕</span>
+                  <span style="font:400 12px/1.6 'Iansui';color:#4a5f4e">現點現沖，預計 <b>8–12 分鐘</b> 完成，我們會在吧台叫號。</span>
+                </div>
+              </div>
+
+              <div style="padding:6px 22px 34px">
+                <div onClick="{{ checkout }}" class="press" style="cursor:pointer;background:#1a1714;color:#f4f1ea;border-radius:20px;padding:19px;display:flex;justify-content:space-between;align-items:center">
+                  <span style="font:600 16px 'Iansui'">送出訂單</span>
+                  <span style="font:700 11px 'Space Mono';letter-spacing:1px;color:#c98a2e">${{ cartTotal }} · PLACE ORDER →</span>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ cartEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:120px 40px">
+              <div style="font:600 60px 'Room205';color:#e0d7c5">∅</div>
+              <div style="font:600 20px 'Iansui';color:#1a1714;margin-top:16px">箱子還空空的</div>
+              <div style="font:400 14px 'Iansui';color:#8a7a68;margin-top:8px">挑一支今天的手沖吧</div>
+              <div onClick="{{ goMenu }}" class="press" style="cursor:pointer;margin-top:24px;background:#1a1714;color:#f4f1ea;border-radius:16px;padding:14px 28px;font:600 15px 'Iansui'">去看菜單</div>
+            </div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <!-- toast -->
+      <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;bottom:40px;left:50%;transform:translateX(-50%);z-index:80;background:#1a1714;color:#f4f1ea;padding:14px 22px;border-radius:16px;font:500 14px 'Iansui';box-shadow:0 14px 30px -12px rgba(0,0,0,.5);animation:toastIn .3s ease both;white-space:nowrap">{{ toast }}</div>
+      </sc-if>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:472,&quot;height&quot;:912},&quot;brandName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;onebox&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;品牌&quot;},&quot;defaultTemp&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;熱&quot;,&quot;冰&quot;],&quot;default&quot;:&quot;熱&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;點餐預設&quot;},&quot;showScores&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;點餐預設&quot;}}">
+class Component extends DCLogic {
+  state = { screen:'home', selectedId:null, cart:[], filter:'all', dTemp:null, dSize:'標準', dQty:1, toast:'' };
+
+  get COFFEES(){
+    return [
+      { id:'yirga', originEN:'ETHIOPIA', name:'Yirgacheffe', roast:'淺焙', level:2, notes:['茉莉花','佛手柑','紅茶感'], price:150, color:'#e8623d', soft:'#fbe6dd', score:92, process:'水洗 Washed', altitude:'1,900–2,100m', varietal:'原生種 Heirloom', roaster:'onebox roastery', desc:'明亮的花香與佛手柑，尾韻像一杯清透的紅茶，是入門單品豆的第一口驚喜。' },
+      { id:'kenya', originEN:'KENYA', name:'Nyeri AA', roast:'淺中焙', level:3, notes:['黑醋栗','番茄','明亮酸'], price:170, color:'#c8342b', soft:'#f8dedb', score:91, process:'水洗 Washed', altitude:'1,700–1,900m', varietal:'SL28 · SL34', roaster:'onebox roastery', desc:'濃郁的莓果與番茄般的酸甜，結構飽滿、層次分明，喝得到肯亞的個性。' },
+      { id:'colombia', originEN:'COLOMBIA', name:'Huila', roast:'中焙', level:3, notes:['焦糖','杏仁','柑橘'], price:140, color:'#c98a2e', soft:'#f6e9cd', score:89, process:'水洗 Washed', altitude:'1,600–1,800m', varietal:'Caturra · Castillo', roaster:'onebox roastery', desc:'圓潤的焦糖甜感，杏仁與柑橘平衡，是最耐喝、最安全的日常選擇。' },
+      { id:'guate', originEN:'GUATEMALA', name:'Antigua', roast:'中深焙', level:4, notes:['黑巧克力','黑糖','醇厚'], price:160, color:'#8f4a30', soft:'#efdacd', score:90, process:'水洗 Washed', altitude:'1,500–1,700m', varietal:'Bourbon', roaster:'onebox roastery', desc:'厚實的黑巧克力與黑糖，body 飽滿、餘韻悠長，微涼天氣裡最舒服的一杯。' },
+      { id:'brazil', originEN:'BRAZIL', name:'Cerrado', roast:'深焙', level:5, notes:['可可','榛果','奶油'], price:130, color:'#6b4a30', soft:'#e8ddce', score:87, process:'半日曬 Pulped', altitude:'1,000–1,200m', varietal:'Mundo Novo', roaster:'onebox roastery', desc:'低酸醇厚，可可與榛果的溫暖甜感，加奶也好喝，適合每天來一杯。' },
+      { id:'natural', originEN:'ETHIOPIA', name:'Guji Natural', roast:'淺焙', level:2, notes:['藍莓','發酵感','紅酒'], price:160, color:'#5a4a9e', soft:'#e5e1f3', score:93, process:'日曬 Natural', altitude:'2,000–2,200m', varietal:'原生種 Heirloom', roaster:'onebox roastery', desc:'狂野的藍莓與發酵果香，像一杯輕盈的紅酒，給想被驚豔的你。' },
+    ];
+  }
+
+  showToast(msg){ this.setState({toast:msg}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:''}),1600); }
+  go(screen){ this.setState({screen}); const v=this._root&&this._root.querySelector('.ph-view'); }
+  componentDidUpdate(){ }
+
+  addLine(id,temp,size,qty){
+    const cart=this.state.cart.slice();
+    const i=cart.findIndex(l=>l.id===id&&l.temp===temp&&l.size===size);
+    if(i>=0){ cart[i]={...cart[i],qty:cart[i].qty+qty}; } else { cart.push({id,temp,size,qty}); }
+    this.setState({cart});
+  }
+
+  dots(level,color){ return [0,1,2,3,4].map(i=>({ style:`width:7px;height:7px;border-radius:50%;background:${i<level?color:'#e2dac9'}` })); }
+
+  renderVals(){
+    const s=this.state;
+    const defTemp=this.props.defaultTemp ?? '熱';
+    const showScores=this.props.showScores ?? true;
+    const brandName=this.props.brandName ?? 'onebox';
+    const list=this.COFFEES;
+    const byId=id=>list.find(c=>c.id===id);
+    const cartCount=s.cart.reduce((a,l)=>a+l.qty,0);
+    const priceOf=(c,size)=>c.price+(size==='大杯'?20:0);
+
+    const chip=(label,color,soft)=>({ label, style:`padding:5px 11px;border-radius:20px;background:${soft};color:${color};font:600 12px 'Iansui'` });
+
+    // menu
+    const filter=s.filter;
+    const roastMap={ all:'全部', light:'淺', mid:'中', dark:'深' };
+    const inFilter=c=> filter==='all' || (filter==='light'&&c.level<=2) || (filter==='mid'&&(c.level===3)) || (filter==='dark'&&c.level>=4);
+    const roasts=Object.keys(roastMap).map(k=>({ label:roastMap[k], onClick:()=>this.setState({filter:k}),
+      style:`cursor:pointer;padding:9px 16px;border-radius:22px;font:600 13px 'Iansui';${filter===k?'background:#1a1714;color:#f4f1ea':'background:#fff;color:#4a3c2e;border:1px solid #e4ddcd'}` }));
+
+    const menuList=list.filter(inFilter).map(c=>({
+      ...c,
+      originEN:c.originEN, name:c.name, roast:c.roast, price:c.price,
+      headStyle:`display:flex;justify-content:space-between;align-items:center;padding:11px 18px;background:${c.soft};color:${c.color}`,
+      scoreStyle:`font:700 11px 'Space Mono';color:${c.color};${showScores?'':'display:none'}`,
+      scoreLabel:'⌾ '+c.score,
+      noteChips:c.notes.map(n=>chip(n,c.color,c.soft)),
+      dots:this.dots(c.level,c.color),
+      addStyle:`cursor:pointer;width:38px;height:38px;border-radius:50%;background:${c.color};color:#fff;display:flex;align-items:center;justify-content:center;font:400 22px 'Room205'`,
+      onOpen:()=>this.setState({screen:'detail',selectedId:c.id,dTemp:defTemp,dSize:'標準',dQty:1}),
+      onAdd:(e)=>{ if(e&&e.stopPropagation)e.stopPropagation(); this.addLine(c.id,defTemp,'標準',1); this.showToast('已加入 · '+c.name); },
+    }));
+
+    // detail
+    const sel=byId(s.selectedId);
+    const dTemp=s.dTemp||defTemp;
+    let detail={};
+    if(sel){
+      const specs=[ {k:'ROASTER 烘豆商',v:sel.roaster},{k:'PROCESS 處理法',v:sel.process},{k:'ALTITUDE 海拔',v:sel.altitude},{k:'VARIETAL 品種',v:sel.varietal},{k:'ROAST 烘焙',v:sel.roast} ];
+      const seg=(active,color)=>`flex:1;cursor:pointer;text-align:center;padding:13px;border-radius:14px;font:600 14px 'Iansui';${active?`background:${color};color:#fff`:'background:rgba(255,255,255,.7);color:#4a3c2e'}`;
+      detail={
+        detailBgStyle:`background:linear-gradient(180deg,${sel.soft} 0%,#f4f1ea 62%)`,
+        detailFadeBg:'linear-gradient(180deg,rgba(244,241,234,0),#f4f1ea 40%)',
+        detailCoverId:'cover-'+sel.id,
+        detailCoverBg:`background:linear-gradient(140deg,${sel.soft},#fff)`,
+        selColor:sel.color, selOriginEN:sel.originEN, selName:sel.name, selRoast:sel.roast, selDesc:sel.desc,
+        selScoreStyle:`padding:5px 12px;border-radius:20px;background:${sel.color};color:#fff;font:700 12px 'Space Mono';${showScores?'':'display:none'}`,
+        selScoreLabel:'⌾ CUP '+sel.score,
+        selNoteChips:sel.notes.map(n=>chip(n,sel.color,sel.soft)),
+        selSpecs:specs,
+        tempOpts:['熱','冰'].map(t=>({label:t==='熱'?'熱手沖':'冰手沖',onClick:()=>this.setState({dTemp:t}),style:seg(dTemp===t,sel.color)})),
+        sizeOpts:[['標準',''],['大杯','+$20']].map(([sz,ex])=>({label:sz+(ex?' '+ex:''),onClick:()=>this.setState({dSize:sz}),style:seg(s.dSize===sz,sel.color)})),
+        qtyInc:()=>this.setState({dQty:s.dQty+1}),
+        qtyDec:()=>this.setState({dQty:Math.max(1,s.dQty-1)}),
+        dQty:s.dQty,
+        detailTotal:priceOf(sel,s.dSize)*s.dQty,
+        addFromDetail:()=>{ this.addLine(sel.id,dTemp,s.dSize,s.dQty); this.showToast('已加入 · '+sel.name); this.setState({screen:'menu'}); },
+      };
+    }
+
+    // cart
+    const cartLines=s.cart.map((l,idx)=>{ const c=byId(l.id); const lp=priceOf(c,l.size)*l.qty; return {
+      name:c.name, qty:l.qty, linePrice:lp,
+      opts:`${l.temp} · ${l.size}`,
+      swatchStyle:`width:44px;height:44px;border-radius:12px;flex:none;background:${c.color}`,
+      inc:()=>{ const cart=s.cart.slice(); cart[idx]={...cart[idx],qty:cart[idx].qty+1}; this.setState({cart}); },
+      dec:()=>{ const cart=s.cart.slice(); if(cart[idx].qty<=1){cart.splice(idx,1);}else{cart[idx]={...cart[idx],qty:cart[idx].qty-1};} this.setState({cart}); },
+    }; });
+    const cartTotal=s.cart.reduce((a,l)=>a+priceOf(byId(l.id),l.size)*l.qty,0);
+
+    return {
+      brandName,
+      isHome:s.screen==='home', isMenu:s.screen==='menu', isDetail:s.screen==='detail', isCart:s.screen==='cart',
+      enter:()=>this.setState({screen:'menu'}),
+      goHome:()=>this.setState({screen:'home'}),
+      goMenu:()=>this.setState({screen:'menu'}),
+      goCart:()=>this.setState({screen:'cart'}),
+      hasCart:cartCount>0, cartEmpty:cartCount===0, cartCount,
+      roasts, menuList,
+      ...detail,
+      cartLines, cartTotal,
+      checkout:()=>{ this.setState({cart:[],screen:'home'}); this.showToast('訂單已送出，為你手沖中 ☕'); },
+      hasToast:!!s.toast, toast:s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>

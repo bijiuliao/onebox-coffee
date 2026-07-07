@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Archivo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  @font-face{font-family:'Iansui';src:url('assets/fonts/Iansui-Regular.ttf') format('truetype');font-weight:100 900;font-display:swap}
+  @font-face{font-family:'Room205';src:url('assets/fonts/Room205-Regular.otf') format('opentype');font-weight:100 900;font-display:swap}
+  body{margin:0;background:#e9e4d9;font-family:"Iansui","Archivo",system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+  *{box-sizing:border-box}
+  input,textarea,button{font-family:inherit}
+  input:focus,textarea:focus{border-color:#1a1714 !important}
+  .press{transition:transform .12s ease,background .15s ease,color .15s ease,border-color .15s}
+  .press:active{transform:scale(.97)}
+  .row{transition:background .15s ease}
+  .row:hover{background:#f2ece0}
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-thumb{background:#d8cfbd;border-radius:6px;border:3px solid #f4f1ea}
+</style>
+</helmet>
+
+<div style="min-height:100vh;background:#f4f1ea;color:#1a1714">
+  <!-- top bar -->
+  <div style="position:sticky;top:0;z-index:30;height:62px;background:#1a1714;color:#f4f1ea;display:flex;align-items:center;justify-content:space-between;padding:0 26px">
+    <div style="display:flex;align-items:center;gap:14px">
+      <div style="font:500 22px 'Room205',serif">onebox<span style="color:#c98a2e">.</span></div>
+      <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#c98a2e;border:1px solid rgba(201,154,106,.5);padding:4px 9px;border-radius:6px">ADMIN</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:18px">
+      <span style="font:700 10px 'Space Mono';letter-spacing:1px;color:#b6a48c">豆單管理 / DRIP BAR CMS</span>
+      <div style="display:flex;align-items:center;gap:9px"><div style="width:32px;height:32px;border-radius:50%;background:#c98a2e;display:flex;align-items:center;justify-content:center;font:600 14px 'Iansui';color:#1a1714">主</div><span style="font:500 13px 'Iansui'">店長</span></div>
+    </div>
+  </div>
+
+  <div style="display:flex;align-items:flex-start;max-width:1380px;min-width:1200px;margin:0 auto">
+
+    <!-- ============ SIDEBAR ============ -->
+    <div style="width:296px;flex:none;position:sticky;top:62px;height:calc(100vh - 62px);border-right:1px solid #e4ddcd;background:#faf7f0;display:flex;flex-direction:column">
+      <div style="padding:22px 20px 12px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font:600 17px 'Iansui'">豆款</span>
+          <span style="font:700 10px 'Space Mono';color:#9a8a76">{{ beanCount }} 款</span>
+        </div>
+        <div onClick="{{ addBean }}" class="press" style="cursor:pointer;margin-top:14px;background:#1a1714;color:#f4f1ea;border-radius:11px;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px;font:600 14px 'Iansui'"><span style="font:400 18px 'Room205'">＋</span> 新增豆款</div>
+      </div>
+      <div style="flex:1;overflow-y:auto;padding:6px 12px 18px">
+        <sc-for list="{{ beanList }}" as="b" hint-placeholder-count="6">
+          <div onClick="{{ b.onSelect }}" class="row press" style="{{ b.rowStyle }}">
+            <div style="{{ b.swatchStyle }}"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font:500 15px 'Room205',serif;color:#1a1714;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ b.name }}</div>
+              <div style="font:400 10px 'Space Mono';color:#9a8a76;margin-top:2px">{{ b.originEN }} · ${{ b.price }}</div>
+            </div>
+            <div style="{{ b.dotStyle }}"></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <!-- ============ MAIN EDITOR ============ -->
+    <div style="flex:1;min-width:0;padding:26px 30px 80px">
+      <!-- editor header -->
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px">
+        <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#9a8a76">編輯豆款 / EDIT PRODUCT</div>
+        <div style="display:flex;align-items:center;gap:12px">
+          <div onClick="{{ toggleActive }}" class="press" style="{{ activeBtnStyle }}">{{ activeLabel }}</div>
+          <div onClick="{{ save }}" class="press" style="cursor:pointer;background:#3d6b4f;color:#fff;border-radius:11px;padding:11px 22px;font:600 14px 'Iansui'">儲存</div>
+        </div>
+      </div>
+      <input value="{{ sel.name }}" onInput="{{ set.name }}" placeholder="Coffee name" style="width:100%;border:none;background:transparent;font:500 46px 'Room205',serif;color:#1a1714;outline:none;padding:2px 0;margin-bottom:22px">
+
+      <!-- COVER -->
+      <div style="background:#fff;border:1px solid #ece5d6;border-radius:18px;padding:22px;margin-bottom:20px">
+        <div style="font:700 11px 'Space Mono';letter-spacing:3px;color:#1a1714;white-space:nowrap;margin-bottom:16px">封面 · C O V E R</div>
+        <div style="display:flex;gap:22px;align-items:flex-start">
+          <div style="width:210px;height:262px;flex:none;border-radius:14px;overflow:hidden;border:1px dashed #d3c9b6;background:#f6f2ea">
+            <x-import component-from-global-scope="image-slot" from="./image-slot.js" id="{{ coverSlotId }}" shape="rect" fit="cover" placeholder="拖曳 / 點擊上傳豆袋照" hint-size="210px,262px"></x-import>
+          </div>
+          <div style="flex:1;padding-top:4px">
+            <div style="font:500 15px 'Iansui';color:#1a1714">上傳豆袋 / 包裝封面</div>
+            <div style="font:400 13px/1.7 'Iansui';color:#8a7a68;margin-top:6px">拖曳圖片到左側方框，或點擊選擇檔案。建議直式 <b>4:5</b>、去背或純色背景效果最佳，會直接顯示在顧客的商品頁。</div>
+            <div style="margin-top:16px">
+              <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">或貼上圖片網址</label>
+              <input placeholder="https://…" style="width:100%;max-width:420px;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 14px 'Iansui';color:#1a1714;outline:none">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PROFILE -->
+      <div style="background:#fff;border:1px solid #ece5d6;border-radius:18px;padding:22px;margin-bottom:20px">
+        <div style="font:700 11px 'Space Mono';letter-spacing:3px;color:#1a1714;white-space:nowrap;margin-bottom:18px">風味與烘焙 · P R O F I L E</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px 22px">
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">產區（英文）ORIGIN</label>
+            <input value="{{ sel.originEN }}" onInput="{{ set.originEN }}" placeholder="ETHIOPIA" style="width:100%;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:700 13px 'Space Mono';letter-spacing:1px;color:#1a1714;outline:none">
+          </div>
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">烘豆商 ROASTER</label>
+            <input value="{{ sel.roaster }}" onInput="{{ set.roaster }}" placeholder="onebox roastery" style="width:100%;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 14px 'Room205',serif;color:#1a1714;outline:none">
+          </div>
+        </div>
+
+        <div style="margin-top:20px">
+          <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:9px;display:block">風味標籤 TASTING NOTES</label>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+            <sc-for list="{{ noteChips }}" as="n" hint-placeholder-count="3">
+              <span style="{{ n.style }}">{{ n.label }}<span onClick="{{ n.remove }}" style="cursor:pointer;margin-left:7px;opacity:.6;font-weight:700">×</span></span>
+            </sc-for>
+            <input onKeyDown="{{ addNote }}" placeholder="輸入後按 Enter…" style="flex:1;min-width:150px;padding:9px 12px;border:1px dashed #d3c9b6;border-radius:20px;background:#faf7f0;font:400 13px 'Iansui';color:#1a1714;outline:none">
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1.4fr 1fr;gap:22px;margin-top:22px;align-items:start">
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px;display:block">烘焙度 ROAST LEVEL</label>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="display:flex;gap:9px">
+                <sc-for list="{{ roastDots }}" as="d" hint-placeholder-count="5"><div onClick="{{ d.onClick }}" class="press" style="{{ d.style }}"></div></sc-for>
+              </div>
+              <input value="{{ sel.roast }}" onInput="{{ set.roast }}" placeholder="淺焙" style="width:96px;padding:9px 12px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 13px 'Iansui';color:#1a1714;outline:none">
+            </div>
+          </div>
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px;display:block">CUP 評分</label>
+            <input value="{{ sel.score }}" onInput="{{ set.score }}" type="number" style="width:110px;padding:9px 12px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:500 15px 'Room205';color:#1a1714;outline:none">
+          </div>
+        </div>
+
+        <div style="margin-top:22px">
+          <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px;display:block">專屬色彩 ACCENT</label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="8"><div onClick="{{ s.onClick }}" class="press" style="{{ s.style }}"></div></sc-for>
+          </div>
+        </div>
+      </div>
+
+      <!-- ORIGIN DATA -->
+      <div style="background:#fff;border:1px solid #ece5d6;border-radius:18px;padding:22px;margin-bottom:20px">
+        <div style="font:700 11px 'Space Mono';letter-spacing:3px;color:#1a1714;white-space:nowrap;margin-bottom:18px">產地資料 · O R I G I N  D A T A</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px 22px">
+          <div><label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">處理法 PROCESS</label><input value="{{ sel.process }}" onInput="{{ set.process }}" placeholder="水洗 Washed" style="width:100%;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 14px 'Iansui';color:#1a1714;outline:none"></div>
+          <div><label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">海拔 ELEVATION</label><input value="{{ sel.altitude }}" onInput="{{ set.altitude }}" placeholder="1,900–2,100m" style="width:100%;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 14px 'Iansui';color:#1a1714;outline:none"></div>
+          <div><label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">品種 VARIETY</label><input value="{{ sel.varietal }}" onInput="{{ set.varietal }}" placeholder="原生種 Heirloom" style="width:100%;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 14px 'Iansui';color:#1a1714;outline:none"></div>
+          <div><label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:7px;display:block">採收季 HARVEST</label><input value="{{ sel.harvest }}" onInput="{{ set.harvest }}" placeholder="11–1 月" style="width:100%;padding:11px 13px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:400 14px 'Iansui';color:#1a1714;outline:none"></div>
+        </div>
+      </div>
+
+      <!-- SERVICE -->
+      <div style="background:#fff;border:1px solid #ece5d6;border-radius:18px;padding:22px;margin-bottom:20px">
+        <div style="font:700 11px 'Space Mono';letter-spacing:3px;color:#1a1714;white-space:nowrap;margin-bottom:18px">供應設定 · S E R V I C E</div>
+        <div style="display:flex;gap:40px;flex-wrap:wrap">
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px;display:block">供應溫度 SERVE</label>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ tempPills }}" as="t" hint-placeholder-count="2"><div onClick="{{ t.onClick }}" class="press" style="{{ t.style }}"><span style="font-size:16px">{{ t.icon }}</span> {{ t.label }}</div></sc-for>
+            </div>
+            <div style="font:400 11px 'Iansui';color:#b0a08c;margin-top:8px">顧客點餐時可選的冷 / 熱選項</div>
+          </div>
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px;display:block">份量 SIZE</label>
+            <div style="display:flex;gap:10px">
+              <sc-for list="{{ sizePills }}" as="s" hint-placeholder-count="2"><div onClick="{{ s.onClick }}" class="press" style="{{ s.style }}">{{ s.label }}</div></sc-for>
+            </div>
+          </div>
+          <div>
+            <label style="font:700 10px 'Space Mono';letter-spacing:1.5px;color:#9a8a76;margin-bottom:10px;display:block">價格 PRICE (NT$)</label>
+            <div style="display:flex;align-items:center;gap:8px"><span style="font:500 20px 'Room205';color:#1a1714">$</span><input value="{{ sel.price }}" onInput="{{ set.price }}" type="number" style="width:120px;padding:10px 12px;border:1px solid #e2dac9;border-radius:10px;background:#fff;font:500 17px 'Room205';color:#1a1714;outline:none"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- STORY -->
+      <div style="background:#fff;border:1px solid #ece5d6;border-radius:18px;padding:22px">
+        <div style="font:700 11px 'Space Mono';letter-spacing:3px;color:#1a1714;white-space:nowrap;margin-bottom:16px">描述 · S T O R Y</div>
+        <textarea value="{{ sel.desc }}" onInput="{{ set.desc }}" placeholder="寫下這支豆的風味與故事…" style="width:100%;min-height:110px;resize:vertical;padding:14px;border:1px solid #e2dac9;border-radius:12px;background:#fff;font:400 15px/1.8 'Iansui';color:#1a1714;outline:none"></textarea>
+      </div>
+    </div>
+
+    <!-- ============ LIVE PREVIEW ============ -->
+    <div style="width:372px;flex:none;position:sticky;top:62px;height:calc(100vh - 62px);overflow-y:auto;border-left:1px solid #e4ddcd;background:#efe9dd;padding:24px 22px">
+      <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:#9a8a76;margin-bottom:14px">即時預覽 / LIVE PREVIEW</div>
+      <div style="border-radius:22px;overflow:hidden;background:#f4f1ea;box-shadow:0 20px 40px -22px rgba(30,22,16,.45);border:1px solid #e4ddcd">
+        <div style="{{ pvHeroStyle }}">
+          <div style="font:700 10px 'Space Mono';letter-spacing:2px;color:{{ pvColor }}">{{ sel.originEN }}</div>
+          <div style="font:500 30px/1.1 'Room205',serif;color:#1a1714;margin-top:8px">{{ sel.name }}</div>
+          <div style="display:inline-flex;margin-top:12px;{{ pvScoreStyle }}">⌾ CUP {{ sel.score }}</div>
+        </div>
+        <div style="padding:18px">
+          <div style="display:flex;gap:7px;flex-wrap:wrap">
+            <sc-for list="{{ pvNotes }}" as="n" hint-placeholder-count="3"><span style="{{ n.style }}">{{ n.label }}</span></sc-for>
+          </div>
+          <div style="margin-top:16px;border-top:1px solid #e6dece">
+            <sc-for list="{{ pvStats }}" as="s" hint-placeholder-count="4">
+              <div style="display:flex;justify-content:space-between;padding:11px 0;border-bottom:1px solid #ece5d6">
+                <span style="font:700 9px 'Space Mono';letter-spacing:1px;color:#9a8a76">{{ s.k }}</span>
+                <span style="font:500 13px 'Iansui';color:#1a1714">{{ s.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:16px">
+            <sc-for list="{{ pvTemps }}" as="t" hint-placeholder-count="2"><span style="{{ t.style }}">{{ t.label }}</span></sc-for>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:18px">
+            <span style="font:600 24px 'Room205';color:#1a1714">${{ sel.price }}</span>
+            <div style="{{ pvBtnStyle }}">加入購物車</div>
+          </div>
+        </div>
+      </div>
+      <div style="{{ pvStatusStyle }}">{{ pvStatusLabel }}</div>
+    </div>
+  </div>
+
+  <sc-if value="{{ hasToast }}" hint-placeholder-val="{{ false }}">
+    <div style="position:fixed;bottom:28px;left:50%;transform:translateX(-50%);z-index:80;background:#1a1714;color:#f4f1ea;padding:14px 24px;border-radius:14px;font:500 14px 'Iansui';box-shadow:0 14px 30px -12px rgba(0,0,0,.5)">{{ toast }}</div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1360,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  state = { beans:null, selectedId:null, toast:'' };
+
+  componentDidMount(){
+    const seed=[
+      { id:'yirga', originEN:'ETHIOPIA', name:'Yirgacheffe', roast:'淺焙', level:2, notes:['茉莉花','佛手柑','紅茶感'], price:150, color:'#e8623d', score:92, process:'水洗 Washed', altitude:'1,900–2,100m', varietal:'原生種 Heirloom', harvest:'11–1 月', desc:'明亮的花香與佛手柑，尾韻像一杯清透的紅茶，是入門單品豆的第一口驚喜。', roaster:'onebox roastery', temps:{hot:true,ice:true}, sizes:{std:true,large:true}, active:true },
+      { id:'kenya', originEN:'KENYA', name:'Nyeri AA', roast:'淺中焙', level:3, notes:['黑醋栗','番茄','明亮酸'], price:170, color:'#c8342b', score:91, process:'水洗 Washed', altitude:'1,700–1,900m', varietal:'SL28 · SL34', harvest:'10–12 月', desc:'濃郁的莓果與番茄般的酸甜，結構飽滿、層次分明，喝得到肯亞的個性。', roaster:'onebox roastery', temps:{hot:true,ice:true}, sizes:{std:true,large:true}, active:true },
+      { id:'colombia', originEN:'COLOMBIA', name:'Huila', roast:'中焙', level:3, notes:['焦糖','杏仁','柑橘'], price:140, color:'#c98a2e', score:89, process:'水洗 Washed', altitude:'1,600–1,800m', varietal:'Caturra · Castillo', harvest:'4–6 月', desc:'圓潤的焦糖甜感，杏仁與柑橘平衡，是最耐喝、最安全的日常選擇。', roaster:'onebox roastery', temps:{hot:true,ice:true}, sizes:{std:true,large:false}, active:true },
+      { id:'guate', originEN:'GUATEMALA', name:'Antigua', roast:'中深焙', level:4, notes:['黑巧克力','黑糖','醇厚'], price:160, color:'#8f4a30', score:90, process:'水洗 Washed', altitude:'1,500–1,700m', varietal:'Bourbon', harvest:'1–3 月', desc:'厚實的黑巧克力與黑糖，body 飽滿、餘韻悠長，微涼天氣裡最舒服的一杯。', roaster:'onebox roastery', temps:{hot:true,ice:false}, sizes:{std:true,large:true}, active:true },
+      { id:'brazil', originEN:'BRAZIL', name:'Cerrado', roast:'深焙', level:5, notes:['可可','榛果','奶油'], price:130, color:'#6b4a30', score:87, process:'半日曬 Pulped', altitude:'1,000–1,200m', varietal:'Mundo Novo', harvest:'5–8 月', desc:'低酸醇厚，可可與榛果的溫暖甜感，加奶也好喝，適合每天來一杯。', roaster:'onebox roastery', temps:{hot:true,ice:true}, sizes:{std:true,large:true}, active:false },
+      { id:'natural', originEN:'ETHIOPIA', name:'Guji Natural', roast:'淺焙', level:2, notes:['藍莓','發酵感','紅酒'], price:160, color:'#5a4a9e', score:93, process:'日曬 Natural', altitude:'2,000–2,200m', varietal:'原生種 Heirloom', harvest:'11–1 月', desc:'狂野的藍莓與發酵果香，像一杯輕盈的紅酒，給想被驚豔的你。', roaster:'onebox roastery', temps:{hot:false,ice:true}, sizes:{std:true,large:true}, active:true },
+    ];
+    this.setState({ beans:seed, selectedId:seed[0].id });
+  }
+
+  PALETTE(){ return ['#e8623d','#c8342b','#c98a2e','#8f4a30','#6b4a30','#5a4a9e','#3d6b4f','#2b6f8a','#9a4f7d','#1a1714']; }
+  soft(c){ return c+'22'; }
+
+  patch(p){ this.setState({ beans:this.state.beans.map(b=>b.id===this.state.selectedId?{...b,...p}:b) }); }
+  showToast(m){ this.setState({toast:m}); clearTimeout(this._t); this._t=setTimeout(()=>this.setState({toast:''}),1600); }
+
+  addBean(){
+    const id='bean'+Date.now();
+    const nb={ id, originEN:'ORIGIN', name:'New Coffee', roast:'中焙', level:3, notes:[], price:150, color:'#c98a2e', score:88, process:'', altitude:'', varietal:'', harvest:'', desc:'', roaster:'onebox roastery', temps:{hot:true,ice:true}, sizes:{std:true,large:false}, active:false };
+    this.setState({ beans:[...this.state.beans, nb], selectedId:id });
+    this.showToast('已建立新豆款，記得填資料');
+  }
+
+  renderVals(){
+    const s=this.state;
+    if(!s.beans){ return { beanCount:0, beanList:[], sel:{}, set:{}, noteChips:[], roastDots:[], swatches:[], tempPills:[], sizePills:[], pvNotes:[], pvStats:[], pvTemps:[], hasToast:false }; }
+    const sel=s.beans.find(b=>b.id===s.selectedId)||s.beans[0];
+    const color=sel.color, soft=this.soft(color);
+
+    const beanList=s.beans.map(b=>({
+      name:b.name, originEN:b.originEN, price:b.price,
+      onSelect:()=>this.setState({selectedId:b.id}),
+      rowStyle:`cursor:pointer;display:flex;align-items:center;gap:12px;padding:11px 12px;border-radius:12px;margin-bottom:3px;${b.id===sel.id?'background:#efe7d8':''}`,
+      swatchStyle:`width:38px;height:38px;border-radius:10px;flex:none;background:${b.color}`,
+      dotStyle:`width:8px;height:8px;border-radius:50%;flex:none;background:${b.active?'#3d6b4f':'#d3c9b6'}`,
+    }));
+
+    const keys=['originEN','name','roast','process','altitude','varietal','harvest','roaster','desc'];
+    const set={};
+    keys.forEach(k=> set[k]=(e)=>this.patch({[k]:e.target.value}) );
+    set.score=(e)=>this.patch({score:Number(e.target.value)||0});
+    set.price=(e)=>this.patch({price:Number(e.target.value)||0});
+
+    const chipStyle=`display:inline-flex;align-items:center;padding:6px 12px;border-radius:20px;background:${soft};color:${color};font:600 13px 'Iansui'`;
+    const noteChips=sel.notes.map((n,i)=>({ label:n, style:chipStyle, remove:()=>this.patch({notes:sel.notes.filter((_,j)=>j!==i)}) }));
+    const addNote=(e)=>{ if(e.key==='Enter'){ const v=e.target.value.trim(); if(v){ this.patch({notes:[...sel.notes,v]}); e.target.value=''; } e.preventDefault(); } };
+
+    const roastDots=[1,2,3,4,5].map(n=>({ onClick:()=>this.patch({level:n}), style:`cursor:pointer;width:15px;height:15px;border-radius:50%;background:${n<=sel.level?color:'#e6dece'}` }));
+
+    const swatches=this.PALETTE().map(c=>({ onClick:()=>this.patch({color:c}), style:`cursor:pointer;width:34px;height:34px;border-radius:10px;background:${c};box-shadow:${c===color?'0 0 0 3px #f4f1ea,0 0 0 5px '+c:'none'}` }));
+
+    const pill=(active,ac)=>`cursor:pointer;display:inline-flex;align-items:center;gap:7px;padding:11px 18px;border-radius:12px;font:600 14px 'Iansui';${active?`background:${ac};color:#fff`:'background:#f4f1ea;color:#8a7a68;border:1px solid #e2dac9'}`;
+    const tempPills=[
+      { label:'熱手沖', icon:'♨', onClick:()=>this.patch({temps:{...sel.temps,hot:!sel.temps.hot}}), style:pill(sel.temps.hot,'#b5502f') },
+      { label:'冰手沖', icon:'❄', onClick:()=>this.patch({temps:{...sel.temps,ice:!sel.temps.ice}}), style:pill(sel.temps.ice,'#2b6f8a') },
+    ];
+    const sizePills=[
+      { label:'標準', onClick:()=>this.patch({sizes:{...sel.sizes,std:!sel.sizes.std}}), style:pill(sel.sizes.std,'#1a1714') },
+      { label:'大杯 +$20', onClick:()=>this.patch({sizes:{...sel.sizes,large:!sel.sizes.large}}), style:pill(sel.sizes.large,'#1a1714') },
+    ];
+
+    // preview
+    const pvNotes=sel.notes.map(n=>({label:n,style:chipStyle}));
+    const pvStats=[ {k:'ROASTER',v:sel.roaster||'—'},{k:'PROCESS',v:sel.process||'—'},{k:'ELEVATION',v:sel.altitude||'—'},{k:'VARIETY',v:sel.varietal||'—'},{k:'ROAST',v:sel.roast||'—'} ];
+    const pvTemps=[]; if(sel.temps.hot)pvTemps.push({label:'♨ 熱',style:`padding:6px 13px;border-radius:20px;background:#f4e7e1;color:#b5502f;font:600 12px 'Iansui'`}); if(sel.temps.ice)pvTemps.push({label:'❄ 冰',style:`padding:6px 13px;border-radius:20px;background:#e2eef2;color:#2b6f8a;font:600 12px 'Iansui'`});
+
+    return {
+      beanCount:s.beans.length, beanList,
+      sel, set, coverSlotId:'cover-'+sel.id,
+      noteChips, addNote, roastDots, swatches, tempPills, sizePills,
+      addBean:()=>this.addBean(),
+      save:()=>this.showToast('已儲存 · '+sel.name),
+      toggleActive:()=>this.patch({active:!sel.active}),
+      activeLabel:sel.active?'● 上架中':'○ 未上架',
+      activeBtnStyle:`cursor:pointer;white-space:nowrap;padding:11px 16px;border-radius:11px;font:600 13px 'Iansui';${sel.active?'background:#e6f0ea;color:#3d6b4f':'background:#efe7d8;color:#9a8a76'}`,
+      // preview styles
+      pvColor:color,
+      pvHeroStyle:`padding:22px;background:linear-gradient(180deg,${soft} 0%,#f4f1ea 100%)`,
+      pvScoreStyle:`padding:4px 11px;border-radius:20px;background:${color};color:#fff;font:700 11px 'Space Mono'`,
+      pvBtnStyle:`background:#1a1714;color:#f4f1ea;border-radius:12px;padding:11px 18px;font:600 13px 'Iansui'`,
+      pvStatusStyle:`margin-top:14px;text-align:center;font:600 12px 'Iansui';padding:10px;border-radius:12px;${sel.active?'background:#e6f0ea;color:#3d6b4f':'background:#f1e9db;color:#9a8a76'}`,
+      pvStatusLabel:sel.active?'顧客可在商店看到這款':'目前未上架，顧客看不到',
+      pvNotes, pvStats, pvTemps,
+      hasToast:!!s.toast, toast:s.toast,
+    };
+  }
+}
+</script>
+</body>
+</html>
