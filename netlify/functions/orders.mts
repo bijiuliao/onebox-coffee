@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { toCoffee, json, type CoffeeRow } from './lib/coffees';
+import { requireAdmin } from './lib/auth';
 
 interface CartItemInput {
   id: string;
@@ -13,6 +14,9 @@ export default async (req: Request) => {
   const db = getDb();
 
   if (req.method === 'GET') {
+    const unauthorized = requireAdmin(req);
+    if (unauthorized) return unauthorized;
+
     const rows = (await db.sql`
       SELECT id, created_at, items, total FROM orders ORDER BY created_at DESC LIMIT 200
     `) as { id: number; created_at: string; items: unknown; total: number }[];

@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { toCoffee, json, pathSegments, EDITABLE_COLUMNS, type CoffeeRow } from './lib/coffees';
+import { requireAdmin } from './lib/auth';
 
 export default async (req: Request) => {
   const db = getDb();
@@ -14,6 +15,9 @@ export default async (req: Request) => {
   }
 
   if (req.method === 'PATCH') {
+    const unauthorized = requireAdmin(req);
+    if (unauthorized) return unauthorized;
+
     const existing = (await db.sql`SELECT * FROM coffees WHERE id = ${id}`) as CoffeeRow[];
     if (existing.length === 0) return json({ error: 'not found' }, 404);
 

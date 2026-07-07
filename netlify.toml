@@ -6,6 +6,16 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Basic-Auth-gates the admin UI pages (the /api/* admin operations are
+# separately gated inside the functions themselves via ADMIN_USER/ADMIN_PASSWORD).
+[[edge_functions]]
+  path = "/admin"
+  function = "admin-auth"
+
+[[edge_functions]]
+  path = "/admin/*"
+  function = "admin-auth"
+
 [dev]
   command = "npm run dev --prefix client"
   targetPort = 5173

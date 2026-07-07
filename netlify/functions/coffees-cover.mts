@@ -2,11 +2,15 @@ import type { Config } from '@netlify/functions';
 import { getStore } from '@netlify/blobs';
 import { getDb } from './lib/db';
 import { toCoffee, json, pathSegments, type CoffeeRow } from './lib/coffees';
+import { requireAdmin } from './lib/auth';
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
 export default async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
+
+  const unauthorized = requireAdmin(req);
+  if (unauthorized) return unauthorized;
 
   const id = decodeURIComponent(pathSegments(req)[2] ?? '');
   if (!id) return json({ error: 'missing id' }, 400);
