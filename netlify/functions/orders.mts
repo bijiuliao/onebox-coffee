@@ -10,13 +10,27 @@ interface CartItemInput {
 }
 
 export default async (req: Request) => {
+  const db = getDb();
+
+  if (req.method === 'GET') {
+    const rows = (await db.sql`
+      SELECT id, created_at, items, total FROM orders ORDER BY created_at DESC LIMIT 200
+    `) as { id: number; created_at: string; items: unknown; total: number }[];
+    const orders = rows.map(r => ({
+      id: r.id,
+      createdAt: r.created_at,
+      items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
+      total: r.total,
+    }));
+    return json(orders);
+  }
+
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   const items: CartItemInput[] = Array.isArray(body.items) ? (body.items as CartItemInput[]) : [];
   if (items.length === 0) return json({ error: 'cart is empty' }, 400);
 
-  const db = getDb();
   const lines: { id: string; name: string; temp: string; size: string; qty: number; unitPrice: number; linePrice: number }[] = [];
 
   for (const item of items) {

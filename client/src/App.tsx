@@ -6,6 +6,7 @@ import { MenuScreen } from './app/MenuScreen';
 import { DetailScreen } from './app/DetailScreen';
 import { CartScreen } from './app/CartScreen';
 import { AdminPage } from './admin/AdminPage';
+import { OrdersView } from './admin/OrdersView';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
             <Route path="/coffee/:id" element={<DetailScreen />} />
             <Route path="/cart" element={<CartScreen />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/orders" element={<OrdersView />} />
           </Routes>
         </BrowserRouter>
       </CartProvider>

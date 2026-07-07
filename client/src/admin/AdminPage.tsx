@@ -3,6 +3,7 @@ import { api } from '../api';
 import type { Coffee } from '../types';
 import { ACCENT_PALETTE } from './palette';
 import { CoverUploader } from './CoverUploader';
+import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
 
 function soft(color: string) {
@@ -120,19 +121,7 @@ export function AdminPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
-      <div style={{ position: 'sticky', top: 0, zIndex: 30, height: 62, background: '#1a1714', color: '#f4f1ea', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 26px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          <div style={{ font: "500 22px 'Room205',serif" }}>onebox<span style={{ color: '#c98a2e' }}>.</span></div>
-          <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#c98a2e', border: '1px solid rgba(201,154,106,.5)', padding: '4px 9px', borderRadius: 6 }}>ADMIN</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1, color: '#b6a48c' }}>豆單管理 / DRIP BAR CMS</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#c98a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "600 14px 'Iansui'", color: '#1a1714' }}>主</div>
-            <span style={{ font: "500 13px 'Iansui'" }}>店長</span>
-          </div>
-        </div>
-      </div>
+      <AdminTopBar active="beans" />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1380, minWidth: 1200, margin: '0 auto' }}>
         <div style={{ width: 296, flex: 'none', position: 'sticky', top: 62, height: 'calc(100vh - 62px)', borderRight: '1px solid #e4ddcd', background: '#faf7f0', display: 'flex', flexDirection: 'column' }}>

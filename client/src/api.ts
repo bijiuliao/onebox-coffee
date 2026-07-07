@@ -34,4 +34,5 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ items }),
     }).then(res => json<Order>(res)),
+  listOrders: () => fetch('/api/orders').then(res => json<Order[]>(res)),
 };
