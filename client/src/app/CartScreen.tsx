@@ -5,6 +5,7 @@ import { BackButton } from '../components';
 import { useCart, priceOf } from '../cart';
 import { useToast } from '../toast';
 import { api } from '../api';
+import { unlockDing } from '../feedback';
 import type { DeliveryQuote, OrderType } from '../types';
 
 const NAME_STORAGE_KEY = 'onebox-customer-name';
@@ -62,9 +63,10 @@ export function CartScreen() {
     const name = customerName.trim();
     if (placing || cart.lines.length === 0 || !canCheckout) return;
     if (!name) { showToast('請輸入取餐姓名 / 暱稱'); return; }
+    unlockDing(); // must run synchronously in this click before any `await`, or iOS Safari blocks the sound later
     setPlacing(true);
     try {
-      await api.placeOrder({
+      const order = await api.placeOrder({
         customerName: name,
         orderType,
         items: cart.lines.map(l => ({ id: l.coffeeId, temp: l.temp, size: l.size, qty: l.qty })),
@@ -72,8 +74,7 @@ export function CartScreen() {
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
       cart.clear();
-      showToast('訂單已送出，為你手沖中 ☕');
-      navigate('/');
+      navigate('/order-success', { state: { customerName: name, total: order.total, orderType } });
     } catch (err) {
       showToast(err instanceof Error ? err.message : '送出失敗，請再試一次');
     } finally {

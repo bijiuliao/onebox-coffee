@@ -5,6 +5,7 @@ import { CoverScreen } from './app/CoverScreen';
 import { MenuScreen } from './app/MenuScreen';
 import { DetailScreen } from './app/DetailScreen';
 import { CartScreen } from './app/CartScreen';
+import { OrderSuccessScreen } from './app/OrderSuccessScreen';
 import { AdminPage } from './admin/AdminPage';
 import { OrdersView } from './admin/OrdersView';
 
@@ -18,6 +19,7 @@ function App() {
             <Route path="/menu" element={<MenuScreen />} />
             <Route path="/coffee/:id" element={<DetailScreen />} />
             <Route path="/cart" element={<CartScreen />} />
+            <Route path="/order-success" element={<OrderSuccessScreen />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/admin/orders" element={<OrdersView />} />
           </Routes>
