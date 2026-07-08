@@ -1,5 +1,6 @@
 export type Temp = '熱' | '冰';
 export type Size = '標準' | '大杯';
+export type OrderType = '自取' | '外送';
 
 export interface Coffee {
   id: string;
@@ -39,4 +40,16 @@ export interface Order {
   customerName: string;
   items: OrderLine[];
   total: number;
+  orderType: OrderType;
+  deliveryFee: number;
+  deliveryDistanceKm: number | null;
+  customerLat?: number | null;
+  customerLng?: number | null;
+}
+
+export interface DeliveryQuote {
+  distanceKm: number;
+  fee: number;
+  deliverable: boolean;
+  maxKm: number;
 }

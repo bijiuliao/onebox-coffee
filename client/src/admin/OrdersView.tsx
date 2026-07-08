@@ -42,9 +42,22 @@ export function OrdersView() {
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <div style={{ font: "600 15px 'Iansui'" }}>訂單 #{order.id}</div>
                   <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714' }}>{order.customerName || '（未填寫姓名）'}</div>
+                  <span style={{
+                    font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10,
+                    background: order.orderType === '外送' ? '#e2eef2' : '#efe7d8',
+                    color: order.orderType === '外送' ? '#2b6f8a' : '#8a7a68',
+                  }}>{order.orderType}</span>
                 </div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{formatTime(order.createdAt)}</div>
               </div>
+              {order.orderType === '外送' && (
+                <div style={{ font: "400 12px 'Iansui'", color: '#6b5c4a', marginBottom: 10 }}>
+                  距離約 {order.deliveryDistanceKm} 公里 · 運費 ${order.deliveryFee}
+                  {order.customerLat != null && order.customerLng != null && (
+                    <> · <a href={`https://www.google.com/maps?q=${order.customerLat},${order.customerLng}`} target="_blank" rel="noreferrer" style={{ color: '#2b6f8a', textDecoration: 'underline' }}>在地圖上開啟</a></>
+                  )}
+                </div>
+              )}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {order.items.map((line, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', font: "400 13px 'Iansui'", color: '#4a3c2e' }}>
@@ -52,6 +65,12 @@ export function OrdersView() {
                     <span style={{ font: "500 13px 'Room205'" }}>${line.linePrice}</span>
                   </div>
                 ))}
+                {order.orderType === '外送' && order.deliveryFee > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', font: "400 13px 'Iansui'", color: '#8a7a68' }}>
+                    <span>外送費</span>
+                    <span style={{ font: "500 13px 'Room205'" }}>${order.deliveryFee}</span>
+                  </div>
+                )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, paddingTop: 12, borderTop: '1px solid #ece5d6' }}>
                 <span style={{ font: "600 17px 'Room205'" }}>${order.total}</span>

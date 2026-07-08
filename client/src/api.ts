@@ -1,4 +1,4 @@
-import type { Coffee, Order } from './types';
+import type { Coffee, DeliveryQuote, Order, OrderType } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -28,11 +28,23 @@ export const api = {
     form.append('cover', file);
     return fetch(`/api/coffees/${id}/cover`, { method: 'POST', body: form }).then(res => json<Coffee>(res));
   },
-  placeOrder: (customerName: string, items: { id: string; temp: string; size: string; qty: number }[]) =>
+  placeOrder: (order: {
+    customerName: string;
+    orderType: OrderType;
+    items: { id: string; temp: string; size: string; qty: number }[];
+    lat?: number;
+    lng?: number;
+  }) =>
     fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ customerName, items }),
+      body: JSON.stringify(order),
     }).then(res => json<Order>(res)),
   listOrders: () => fetch('/api/orders').then(res => json<Order[]>(res)),
+  getDeliveryQuote: (lat: number, lng: number) =>
+    fetch('/api/delivery-quote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lat, lng }),
+    }).then(res => json<DeliveryQuote>(res)),
 };
