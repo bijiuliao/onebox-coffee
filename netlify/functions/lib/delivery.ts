@@ -29,7 +29,10 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number) {
 export function quoteDelivery(lat: number, lng: number): DeliveryQuote {
   const distanceKm = haversineKm(SHOP_LAT, SHOP_LNG, lat, lng);
   const deliverable = distanceKm <= MAX_KM;
-  const fee = deliverable ? Math.round(BASE_FEE + PER_KM_FEE * distanceKm) : 0;
+  // First km is covered by the base fee; every additional km (any part of
+  // one rounds up to a full km) adds PER_KM_FEE on top.
+  const extraKm = distanceKm > 1 ? Math.ceil(distanceKm - 1) : 0;
+  const fee = deliverable ? BASE_FEE + PER_KM_FEE * extraKm : 0;
   return { distanceKm: Math.round(distanceKm * 10) / 10, fee, deliverable, maxKm: MAX_KM };
 }
 
