@@ -1,3 +1,8 @@
+export interface BagOption {
+  label: string;
+  price: number;
+}
+
 export interface Coffee {
   id: string;
   name: string;
@@ -18,6 +23,8 @@ export interface Coffee {
   sizes: { std: boolean; large: boolean };
   active: boolean;
   coverUrl: string | null;
+  sellsBeans: boolean;
+  bagOptions: BagOption[];
 }
 
 export interface CoffeeRow {
@@ -43,10 +50,13 @@ export interface CoffeeRow {
   active: boolean;
   cover_url: string | null;
   sort_order: number;
+  sells_beans: boolean;
+  bag_options: BagOption[] | string;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {
   const notes = typeof row.notes === 'string' ? JSON.parse(row.notes) : row.notes;
+  const bagOptions = typeof row.bag_options === 'string' ? JSON.parse(row.bag_options) : row.bag_options;
   return {
     id: row.id,
     name: row.name,
@@ -67,6 +77,8 @@ export function toCoffee(row: CoffeeRow): Coffee {
     sizes: { std: row.std_enabled, large: row.large_enabled },
     active: row.active,
     coverUrl: row.cover_url,
+    sellsBeans: row.sells_beans,
+    bagOptions,
   };
 }
 
@@ -88,7 +100,12 @@ export const EDITABLE_COLUMNS: Record<string, string> = {
   roaster: 'roaster',
   active: 'active',
   coverUrl: 'cover_url',
+  sellsBeans: 'sells_beans',
+  bagOptions: 'bag_options',
 };
+
+// Fields whose value must be JSON.stringify'd before binding to a jsonb column.
+export const JSON_COLUMNS = new Set(['notes', 'bagOptions']);
 
 export function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {

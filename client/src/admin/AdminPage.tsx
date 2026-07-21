@@ -15,6 +15,8 @@ export function AdminPage() {
   const [beans, setBeans] = useState<Coffee[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState('');
+  const [bagLabelDraft, setBagLabelDraft] = useState('');
+  const [bagPriceDraft, setBagPriceDraft] = useState('');
 
   useEffect(() => {
     api.listCoffees(true).then(list => {
@@ -67,7 +69,7 @@ export function AdminPage() {
         name: sel.name, originEN: sel.originEN, roast: sel.roast, level: sel.level, notes: sel.notes,
         price: sel.price, color: sel.color, score: sel.score, process: sel.process, altitude: sel.altitude,
         varietal: sel.varietal, harvest: sel.harvest, desc: sel.desc, roaster: sel.roaster,
-        temps: sel.temps, sizes: sel.sizes,
+        temps: sel.temps, sizes: sel.sizes, sellsBeans: sel.sellsBeans, bagOptions: sel.bagOptions,
       });
       showToast('已儲存 · ' + sel.name);
     } catch {
@@ -94,6 +96,16 @@ export function AdminPage() {
     setNoteDraft('');
   };
   const removeNote = (i: number) => patch({ notes: sel.notes.filter((_, j) => j !== i) });
+
+  const addBag = () => {
+    const label = bagLabelDraft.trim();
+    const price = Number(bagPriceDraft);
+    if (!label || !Number.isFinite(price) || price <= 0) return;
+    patch({ bagOptions: [...sel.bagOptions, { label, price }] });
+    setBagLabelDraft('');
+    setBagPriceDraft('');
+  };
+  const removeBag = (i: number) => patch({ bagOptions: sel.bagOptions.filter((_, j) => j !== i) });
 
   const chipStyle = { display: 'inline-flex', alignItems: 'center', padding: '6px 12px', borderRadius: 20, background: soft(sel.color), color: sel.color, font: "600 13px 'Iansui'" } as const;
 
@@ -276,6 +288,49 @@ export function AdminPage() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div style={section}>
+            <div style={sectionTitle}>零售豆子 · RETAIL BEANS</div>
+            <div onClick={() => patch({ sellsBeans: !sel.sellsBeans })} className="press" style={pillStyle(sel.sellsBeans, '#8f4a30')}>
+              {sel.sellsBeans ? '✓ 開放零售' : '開放零售'}
+            </div>
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>開啟後，這支豆子會出現在顧客端「買豆子」分類</div>
+
+            {sel.sellsBeans && (
+              <div style={{ marginTop: 18 }}>
+                <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10, display: 'block' }}>重量選項 BAG OPTIONS</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                  {sel.bagOptions.map((bag, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 13px', border: '1px solid #e2dac9', borderRadius: 10, background: '#faf7f0' }}>
+                      <span style={{ flex: 1, font: "500 14px 'Iansui'", color: '#1a1714' }}>{bag.label}</span>
+                      <span style={{ font: "500 14px 'Room205'", color: '#1a1714' }}>${bag.price}</span>
+                      <span onClick={() => removeBag(i)} style={{ cursor: 'pointer', opacity: .6, fontWeight: 700 }}>×</span>
+                    </div>
+                  ))}
+                  {sel.bagOptions.length === 0 && (
+                    <div style={{ font: "400 12px 'Iansui'", color: '#b0a08c' }}>還沒有重量選項</div>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <input
+                    value={bagLabelDraft}
+                    onChange={(e) => setBagLabelDraft(e.target.value)}
+                    placeholder="半磅 227g"
+                    style={{ flex: 1, padding: '9px 12px', border: '1px dashed #d3c9b6', borderRadius: 10, background: '#fff', font: "400 13px 'Iansui'", color: '#1a1714', outline: 'none' }}
+                  />
+                  <input
+                    value={bagPriceDraft}
+                    onChange={(e) => setBagPriceDraft(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addBag(); } }}
+                    type="number"
+                    placeholder="380"
+                    style={{ width: 100, padding: '9px 12px', border: '1px dashed #d3c9b6', borderRadius: 10, background: '#fff', font: "400 13px 'Iansui'", color: '#1a1714', outline: 'none' }}
+                  />
+                  <div onClick={addBag} className="press" style={{ cursor: 'pointer', padding: '9px 16px', borderRadius: 10, background: '#1a1714', color: '#f4f1ea', font: "600 13px 'Iansui'", whiteSpace: 'nowrap' }}>新增</div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div style={section}>

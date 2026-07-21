@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import type { Coffee } from './types';
+import type { Coffee, Special } from './types';
 
 export function useCoffees(all = false) {
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
@@ -34,4 +34,20 @@ export function useCoffee(id: string | undefined) {
   }, [id]);
 
   return { coffee, error };
+}
+
+export function useSpecials(all = false) {
+  const [specials, setSpecials] = useState<Special[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.listSpecials(all).then(
+      list => { if (!cancelled) setSpecials(list); },
+      err => { if (!cancelled) setError(err.message); },
+    );
+    return () => { cancelled = true; };
+  }, [all]);
+
+  return { specials, error };
 }

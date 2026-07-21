@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton } from '../components';
-import { useCart, priceOf } from '../cart';
+import { useCart, lineDetail, lineTotal, cartLineToItemInput } from '../cart';
 import { useToast } from '../toast';
 import { api } from '../api';
 import { unlockDing } from '../feedback';
@@ -58,6 +58,7 @@ export function CartScreen() {
   const deliveryFee = orderType === '外送' && quote?.deliverable ? quote.fee : 0;
   const total = cart.total + deliveryFee;
   const canCheckout = orderType === '自取' || (!!quote?.deliverable && !locating);
+  const hasBrewedItems = cart.lines.some(l => l.kind !== 'beans');
 
   const checkout = async () => {
     const name = customerName.trim();
@@ -69,7 +70,7 @@ export function CartScreen() {
       const order = await api.placeOrder({
         customerName: name,
         orderType,
-        items: cart.lines.map(l => ({ id: l.coffeeId, temp: l.temp, size: l.size, qty: l.qty })),
+        items: cart.lines.map(cartLineToItemInput),
         ...(orderType === '外送' && location ? { lat: location.lat, lng: location.lng } : {}),
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
@@ -104,8 +105,8 @@ export function CartScreen() {
                 <div style={{ width: 44, height: 44, borderRadius: 12, flex: 'none', background: l.color }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: "500 18px 'Room205',serif", color: '#1a1714' }}>{l.name}</div>
-                  <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 3 }}>{l.temp} · {l.size}</div>
-                  <div style={{ font: "500 15px 'Room205'", color: '#1a1714', marginTop: 6 }}>${priceOf(l.basePrice, l.size) * l.qty}</div>
+                  <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 3 }}>{lineDetail(l)}</div>
+                  <div style={{ font: "500 15px 'Room205'", color: '#1a1714', marginTop: 6 }}>${lineTotal(l)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                   <div onClick={() => cart.dec(idx)} className="press" style={{ cursor: 'pointer', width: 30, height: 30, borderRadius: '50%', background: '#f2ece0', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 16px 'Room205'" }}>−</div>
@@ -165,9 +166,13 @@ export function CartScreen() {
             <div style={{ display: 'flex', gap: 9, alignItems: 'flex-start', background: '#eef2ec', borderRadius: 14, padding: 14 }}>
               <span style={{ font: "600 14px 'Iansui'", color: '#3d6b4f' }}>☕</span>
               <span style={{ font: "400 12px/1.6 'Iansui'", color: '#4a5f4e' }}>
-                {orderType === '自取'
-                  ? <>現點現沖，預計 <b>8–12 分鐘</b> 完成，我們會在吧台叫號。</>
-                  : <>現點現沖，預計 <b>8–12 分鐘</b> 沖煮完成後為你送達，請保持手機暢通。</>}
+                {hasBrewedItems
+                  ? (orderType === '自取'
+                    ? <>現點現沖，預計 <b>8–12 分鐘</b> 完成，我們會在吧台叫號。</>
+                    : <>現點現沖，預計 <b>8–12 分鐘</b> 沖煮完成後為你送達，請保持手機暢通。</>)
+                  : (orderType === '自取'
+                    ? <>豆子已包裝好，到店直接取貨即可。</>
+                    : <>豆子已包裝好，會盡快為你送達。</>)}
               </span>
             </div>
           </div>

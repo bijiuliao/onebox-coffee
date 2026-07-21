@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, NoteChip } from '../components';
 import { SHOW_SCORES } from '../constants';
-import { useCart, priceOf } from '../cart';
+import { useCart, dripPrice } from '../cart';
 import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
 import type { Size, Temp } from '../types';
@@ -31,7 +31,7 @@ export function DetailScreen() {
   }
 
   const soft = coffee.color + '22';
-  const total = priceOf(coffee.price, size) * qty;
+  const total = dripPrice(coffee.price, size) * qty;
   const tempOpts: { key: Temp; label: string }[] = [];
   if (coffee.temps.hot) tempOpts.push({ key: '熱', label: '熱手沖' });
   if (coffee.temps.ice) tempOpts.push({ key: '冰', label: '冰手沖' });
@@ -128,7 +128,7 @@ export function DetailScreen() {
       <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: 'linear-gradient(180deg,rgba(244,241,234,0),#f4f1ea 40%)' }}>
         <div
           onClick={() => {
-            cart.addLine(coffee, temp, size, qty);
+            cart.addDrip(coffee, temp, size, qty);
             showToast('已加入 · ' + coffee.name);
             navigate('/menu');
           }}

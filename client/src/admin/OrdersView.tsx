@@ -61,7 +61,7 @@ export function OrdersView() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {order.items.map((line, i) => (
                   <div key={i} style={{ display: 'flex', justifyContent: 'space-between', font: "400 13px 'Iansui'", color: '#4a3c2e' }}>
-                    <span>{line.name} × {line.qty}<span style={{ color: '#9a8a76', marginLeft: 8, font: "400 11px 'Space Mono'" }}>{line.temp} · {line.size}</span></span>
+                    <span>{line.name} × {line.qty}<span style={{ color: '#9a8a76', marginLeft: 8, font: "400 11px 'Space Mono'" }}>{line.detail}</span></span>
                     <span style={{ font: "500 13px 'Room205'" }}>${line.linePrice}</span>
                   </div>
                 ))}

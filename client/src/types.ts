@@ -1,6 +1,12 @@
 export type Temp = '熱' | '冰';
 export type Size = '標準' | '大杯';
 export type OrderType = '自取' | '外送';
+export type ItemKind = 'drip' | 'beans' | 'special';
+
+export interface BagOption {
+  label: string;
+  price: number;
+}
 
 export interface Coffee {
   id: string;
@@ -22,13 +28,25 @@ export interface Coffee {
   sizes: { std: boolean; large: boolean };
   active: boolean;
   coverUrl: string | null;
+  sellsBeans: boolean;
+  bagOptions: BagOption[];
+}
+
+export interface Special {
+  id: string;
+  name: string;
+  desc: string;
+  price: number;
+  color: string;
+  notes: string[];
+  temps: { hot: boolean; ice: boolean };
+  active: boolean;
+  coverUrl: string | null;
 }
 
 export interface OrderLine {
-  id: string;
   name: string;
-  temp: string;
-  size: string;
+  detail: string;
   qty: number;
   unitPrice: number;
   linePrice: number;

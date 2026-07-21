@@ -7,6 +7,7 @@ import { DetailScreen } from './app/DetailScreen';
 import { CartScreen } from './app/CartScreen';
 import { OrderSuccessScreen } from './app/OrderSuccessScreen';
 import { AdminPage } from './admin/AdminPage';
+import { SpecialsAdminPage } from './admin/SpecialsAdminPage';
 import { OrdersView } from './admin/OrdersView';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
             <Route path="/cart" element={<CartScreen />} />
             <Route path="/order-success" element={<OrderSuccessScreen />} />
             <Route path="/admin" element={<AdminPage />} />
+            <Route path="/admin/specials" element={<SpecialsAdminPage />} />
             <Route path="/admin/orders" element={<OrdersView />} />
           </Routes>
         </BrowserRouter>

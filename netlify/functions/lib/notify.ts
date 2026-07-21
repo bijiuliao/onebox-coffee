@@ -1,7 +1,7 @@
 interface OrderForNotify {
   id: number;
   customerName: string;
-  items: { name: string; qty: number; temp: string; size: string; linePrice: number }[];
+  items: { name: string; detail: string; qty: number; linePrice: number }[];
   total: number;
   orderType: string;
   deliveryFee: number;
@@ -25,7 +25,7 @@ export async function notifyNewOrder(order: OrderForNotify) {
   }
 
   const rows = order.items
-    .map(l => `<tr><td style="padding:4px 12px 4px 0">${escapeHtml(l.name)} × ${l.qty}</td><td style="padding:4px 0;color:#8a7a68">${escapeHtml(l.temp)} · ${escapeHtml(l.size)}</td><td style="padding:4px 0;text-align:right">$${l.linePrice}</td></tr>`)
+    .map(l => `<tr><td style="padding:4px 12px 4px 0">${escapeHtml(l.name)} × ${l.qty}</td><td style="padding:4px 0;color:#8a7a68">${escapeHtml(l.detail)}</td><td style="padding:4px 0;text-align:right">$${l.linePrice}</td></tr>`)
     .join('');
 
   const fulfillmentLine = order.orderType === '外送'

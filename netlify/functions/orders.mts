@@ -1,26 +1,76 @@
 import type { Config, Context } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { toCoffee, json, type CoffeeRow } from './lib/coffees';
+import { toSpecial, type SpecialRow } from './lib/specials';
 import { requireAdmin } from './lib/auth';
 import { notifyNewOrder } from './lib/notify';
 import { quoteDelivery, isValidLatLng } from './lib/delivery';
 
+type ItemKind = 'drip' | 'beans' | 'special';
+type OrderType = '自取' | '外送';
+
 interface CartItemInput {
+  kind: ItemKind;
   id: string;
-  temp: string;
-  size: string;
+  temp?: string;
+  size?: string;
+  bagLabel?: string;
   qty: number;
 }
 
-type OrderType = '自取' | '外送';
+interface OrderLine {
+  name: string;
+  detail: string;
+  qty: number;
+  unitPrice: number;
+  linePrice: number;
+}
 
 const RATE_LIMIT_MAX = 5;
 const RATE_LIMIT_WINDOW = '5 minutes';
 const DEDUPE_WINDOW = '30 seconds';
 
 function dedupeKeyFor(customerName: string, orderType: OrderType, items: CartItemInput[]) {
-  const itemsKey = items.map(i => `${i.id}:${i.temp}:${i.size}:${i.qty}`).sort().join(',');
+  const itemsKey = items
+    .map(i => `${i.kind}:${i.id}:${i.temp ?? ''}:${i.size ?? ''}:${i.bagLabel ?? ''}:${i.qty}`)
+    .sort()
+    .join(',');
   return `${customerName}|${orderType}|${itemsKey}`;
+}
+
+async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Promise<OrderLine | { error: string }> {
+  const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
+
+  if (item.kind === 'drip') {
+    const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
+    if (!row) return { error: `unknown coffee: ${item.id}` };
+    const coffee = toCoffee(row);
+    const size = item.size === '大杯' ? '大杯' : '標準';
+    const temp = item.temp === '冰' ? '冰' : '熱';
+    const unitPrice = coffee.price + (size === '大杯' ? 20 : 0);
+    return { name: coffee.name, detail: `${temp} · ${size}`, qty, unitPrice, linePrice: unitPrice * qty };
+  }
+
+  if (item.kind === 'beans') {
+    const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
+    if (!row) return { error: `unknown coffee: ${item.id}` };
+    const coffee = toCoffee(row);
+    if (!coffee.sellsBeans) return { error: `${coffee.name} 目前沒有開放零售` };
+    const bag = coffee.bagOptions.find(b => b.label === item.bagLabel);
+    if (!bag) return { error: `${coffee.name} 沒有這個重量選項` };
+    return { name: `${coffee.name}（豆）`, detail: bag.label, qty, unitPrice: bag.price, linePrice: bag.price * qty };
+  }
+
+  if (item.kind === 'special') {
+    const [row] = (await db.sql`SELECT * FROM specials WHERE id = ${item.id}`) as SpecialRow[];
+    if (!row) return { error: `unknown special: ${item.id}` };
+    const special = toSpecial(row);
+    if (!special.active) return { error: `${special.name} 目前未上架` };
+    const temp = item.temp === '冰' ? '冰' : '熱';
+    return { name: special.name, detail: temp, qty, unitPrice: special.price, linePrice: special.price * qty };
+  }
+
+  return { error: `unknown item kind` };
 }
 
 export default async (req: Request, context: Context) => {
@@ -101,14 +151,11 @@ export default async (req: Request, context: Context) => {
     ORDER BY created_at DESC LIMIT 1
   `) as { id: number; created_at: string; total: number; order_type: string; delivery_fee: number; delivery_distance_km: number | null }[];
 
-  const lines: { id: string; name: string; temp: string; size: string; qty: number; unitPrice: number; linePrice: number }[] = [];
+  const lines: OrderLine[] = [];
   for (const item of items) {
-    const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
-    if (!row) return json({ error: `unknown coffee: ${item.id}` }, 400);
-    const coffee = toCoffee(row);
-    const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
-    const unitPrice = coffee.price + (item.size === '大杯' ? 20 : 0);
-    lines.push({ id: coffee.id, name: coffee.name, temp: item.temp, size: item.size, qty, unitPrice, linePrice: unitPrice * qty });
+    const priced = await priceItem(db, item);
+    if ('error' in priced) return json({ error: priced.error }, 400);
+    lines.push(priced);
   }
 
   if (dup) {
