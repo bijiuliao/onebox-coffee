@@ -28,6 +28,12 @@ export const api = {
     form.append('cover', file);
     return fetch(`/api/coffees/${id}/cover`, { method: 'POST', body: form }).then(res => json<Coffee>(res));
   },
+  extractBean: (url: string) =>
+    fetch('/api/extract-bean', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    }).then(res => json<Partial<Coffee>>(res)),
 
   listSpecials: (all = false) => fetch(`/api/specials${all ? '?all=1' : ''}`).then(res => json<Special[]>(res)),
   createSpecial: (name: string) =>

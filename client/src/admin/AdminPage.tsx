@@ -17,6 +17,8 @@ export function AdminPage() {
   const [noteDraft, setNoteDraft] = useState('');
   const [bagLabelDraft, setBagLabelDraft] = useState('');
   const [bagPriceDraft, setBagPriceDraft] = useState('');
+  const [importUrl, setImportUrl] = useState('');
+  const [importing, setImporting] = useState(false);
 
   useEffect(() => {
     api.listCoffees(true).then(list => {
@@ -54,6 +56,40 @@ export function AdminPage() {
       showToast('已建立新豆款，記得填資料');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '建立失敗');
+    }
+  };
+
+  // Only apply fields the extraction actually found something for, so a
+  // partial/low-confidence result never blanks out data already on the form.
+  const applyExtraction = (fields: Partial<Coffee>): Partial<Coffee> => {
+    const next: Partial<Coffee> = {};
+    const strFields = ['name', 'originEN', 'roast', 'process', 'altitude', 'varietal', 'harvest', 'roaster', 'desc'] as const;
+    for (const f of strFields) {
+      const v = fields[f];
+      if (typeof v === 'string' && v.trim()) next[f] = v;
+    }
+    if (Array.isArray(fields.notes) && fields.notes.length > 0) next.notes = fields.notes;
+    if (typeof fields.price === 'number') next.price = fields.price;
+    return next;
+  };
+
+  const importFromUrl = async () => {
+    const url = importUrl.trim();
+    if (!url || importing) return;
+    setImporting(true);
+    try {
+      const fields = await api.extractBean(url);
+      const next = applyExtraction(fields);
+      if (Object.keys(next).length === 0) {
+        showToast('沒有抓取到可用的資訊，請改用手動輸入');
+      } else {
+        patch(next);
+        showToast('已填入抓取到的資訊，確認無誤後記得按「儲存」');
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : '抓取失敗');
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -181,6 +217,32 @@ export function AdminPage() {
             placeholder="Coffee name"
             style={{ width: '100%', border: 'none', background: 'transparent', font: "500 46px 'Room205',serif", color: '#1a1714', outline: 'none', padding: '2px 0', marginBottom: 22 }}
           />
+
+          <div style={{ ...section, border: '1px dashed #d3c9b6', background: '#faf7f0' }}>
+            <div style={sectionTitle}>由網址匯入 · I M P O R T&nbsp;&nbsp;F R O M&nbsp;&nbsp;U R L</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={importUrl}
+                onChange={(e) => setImportUrl(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); importFromUrl(); } }}
+                placeholder="貼上咖啡豆商品網址…"
+                style={{ ...textInputStyle, flex: 1 }}
+              />
+              <div
+                onClick={importFromUrl}
+                className="press"
+                style={{
+                  cursor: importing ? 'default' : 'pointer', whiteSpace: 'nowrap', padding: '11px 18px', borderRadius: 10,
+                  font: "600 13px 'Iansui'", background: '#1a1714', color: '#f4f1ea', opacity: importing || !importUrl.trim() ? .5 : 1,
+                }}
+              >
+                {importing ? '抓取中…' : '抓取並填入'}
+              </div>
+            </div>
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
+              會自動填入下方欄位（不含封面圖），請務必確認內容正確後再按「儲存」
+            </div>
+          </div>
 
           <div style={section}>
             <div style={sectionTitle}>封面 · C O V E R</div>
