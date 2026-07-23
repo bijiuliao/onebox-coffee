@@ -151,44 +151,48 @@ export function MenuScreen() {
         {category === 'beans' && (
           <>
             {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
-            {coffees?.filter(c => c.sellsBeans && inFilter(c, filter)).map(c => (
-              <div key={c.id} style={{ background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 18px', background: c.color + '22', color: c.color }}>
-                  <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5 }}>{c.originEN}</span>
-                  {SHOW_SCORES && <span style={{ font: "700 11px 'Space Mono'", color: c.color }}>⌾ {c.score}</span>}
-                </div>
-                <div style={{ padding: '16px 18px 18px' }}>
-                  <div style={{ font: "500 22px/1.15 'Room205',serif", color: '#1a1714' }}>{c.name}</div>
-                  <div style={{ font: "400 13px 'Space Mono'", color: '#9a8a76', marginTop: 3 }}>{c.originEN} · {c.roast}</div>
-                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
-                    {c.notes.map(n => <NoteChip key={n} label={n} color={c.color} soft={c.color + '22'} />)}
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
-                    {c.bagOptions.length === 0 && (
-                      <div style={{ font: "400 12px 'Iansui'", color: '#b0a08c' }}>尚未設定零售重量</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {coffees?.filter(c => c.sellsBeans && inFilter(c, filter)).map(c => (
+                <div key={c.id} style={{ background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ aspectRatio: '3 / 4', background: `linear-gradient(140deg,${c.color}22,#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {c.coverUrl ? (
+                      <img src={c.coverUrl} alt={c.name + ' 豆袋封面'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: c.color, opacity: .7, textAlign: 'center', padding: '0 10px' }}>
+                        {c.originEN}
+                      </span>
                     )}
-                    {c.bagOptions.map(bag => (
-                      <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 4px', borderTop: '1px solid #f0ebdf' }}>
-                        <span style={{ font: "500 14px 'Iansui'", color: '#4a3c2e' }}>{bag.label}</span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
-                          <div
-                            onClick={() => cart.addBeans(c, bag, 1)}
-                            className="press"
-                            style={{
-                              cursor: 'pointer', width: 32, height: 32, borderRadius: '50%', background: c.color, color: '#fff',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 18px 'Room205'",
-                            }}
-                          >
-                            ＋
+                  </div>
+                  <div style={{ padding: '12px 12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: c.color }}>{c.originEN} · {c.roast}</div>
+                    <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
+                      {c.bagOptions.length === 0 && (
+                        <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>尚未設定零售重量</div>
+                      )}
+                      {c.bagOptions.map(bag => (
+                        <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ font: "500 12px 'Iansui'", color: '#6b5c4a' }}>{bag.label}</span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
+                            <div
+                              onClick={() => cart.addBeans(c, bag, 1)}
+                              className="press"
+                              style={{
+                                cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', background: c.color, color: '#fff',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 15px 'Room205'", flex: 'none',
+                              }}
+                            >
+                              ＋
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             {coffees && coffees.filter(c => c.sellsBeans).length === 0 && (
               <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>目前沒有開放零售的豆子</div>
             )}
