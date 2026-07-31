@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, NoteChip } from '../components';
 import { SHOW_SCORES } from '../constants';
@@ -8,30 +8,43 @@ import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
 import type { Size, Temp } from '../types';
 
+type Mode = 'drip' | 'beans';
+
 export function DetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const cart = useCart();
   const { showToast } = useToast();
   const { coffee } = useCoffee(id);
 
+  const [mode, setMode] = useState<Mode | null>(null);
   const [temp, setTemp] = useState<Temp | null>(null);
   const [size, setSize] = useState<Size | null>(null);
+  const [bagLabel, setBagLabel] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
 
   useEffect(() => {
     if (!coffee) return;
+    const canDrip = coffee.temps.hot || coffee.temps.ice;
+    const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
+    const requested = (location.state as { mode?: Mode } | null)?.mode;
+    setMode(requested === 'beans' && canBeans ? 'beans' : canDrip ? 'drip' : 'beans');
     setTemp(coffee.temps.hot ? '熱' : '冰');
     setSize(coffee.sizes.std ? '標準' : '大杯');
+    setBagLabel(coffee.bagOptions[0]?.label ?? null);
     setQty(1);
-  }, [coffee]);
+  }, [coffee, location.state]);
 
-  if (!coffee || !temp || !size) {
+  if (!coffee || !mode || !temp || !size) {
     return <MobileShell><div style={{ padding: 60, textAlign: 'center', color: '#9a8a76' }}>載入中…</div></MobileShell>;
   }
 
   const soft = coffee.color + '22';
-  const total = dripPrice(coffee.price, size) * qty;
+  const canDrip = coffee.temps.hot || coffee.temps.ice;
+  const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
+  const bag = coffee.bagOptions.find(b => b.label === bagLabel) ?? coffee.bagOptions[0] ?? null;
+  const total = (mode === 'beans' ? (bag?.price ?? 0) : dripPrice(coffee.price, size)) * qty;
   const tempOpts: { key: Temp; label: string }[] = [];
   if (coffee.temps.hot) tempOpts.push({ key: '熱', label: '熱手沖' });
   if (coffee.temps.ice) tempOpts.push({ key: '冰', label: '冰手沖' });
@@ -98,23 +111,49 @@ export function DetailScreen() {
         ))}
       </div>
 
-      <div style={{ padding: '22px 24px 0' }}>
-        <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>溫度</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {tempOpts.map(t => (
-            <div key={t.key} onClick={() => setTemp(t.key)} className="press" style={seg(temp === t.key)}>{t.label}</div>
-          ))}
+      {canDrip && canBeans && (
+        <div style={{ padding: '22px 24px 0' }}>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <div onClick={() => setMode('drip')} className="press" style={seg(mode === 'drip')}>現場手沖</div>
+            <div onClick={() => setMode('beans')} className="press" style={seg(mode === 'beans')}>買豆子回家</div>
+          </div>
         </div>
-      </div>
+      )}
 
-      <div style={{ padding: '18px 24px 0' }}>
-        <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>份量</div>
-        <div style={{ display: 'flex', gap: 10 }}>
-          {sizeOpts.map(s => (
-            <div key={s.key} onClick={() => setSize(s.key)} className="press" style={seg(size === s.key)}>{s.label}</div>
-          ))}
+      {mode === 'drip' && (
+        <>
+          <div style={{ padding: '22px 24px 0' }}>
+            <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>溫度</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {tempOpts.map(t => (
+                <div key={t.key} onClick={() => setTemp(t.key)} className="press" style={seg(temp === t.key)}>{t.label}</div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ padding: '18px 24px 0' }}>
+            <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>份量</div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {sizeOpts.map(s => (
+                <div key={s.key} onClick={() => setSize(s.key)} className="press" style={seg(size === s.key)}>{s.label}</div>
+              ))}
+            </div>
+          </div>
+        </>
+      )}
+
+      {mode === 'beans' && (
+        <div style={{ padding: '22px 24px 0' }}>
+          <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>重量 WEIGHT</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {coffee.bagOptions.map(b => (
+              <div key={b.label} onClick={() => setBagLabel(b.label)} className="press" style={{ ...seg(bagLabel === b.label), flex: 'none', padding: '13px 18px' }}>
+                {b.label} · ${b.price}
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 24px 130px' }}>
         <span style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>數量</span>
@@ -128,7 +167,12 @@ export function DetailScreen() {
       <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: 'linear-gradient(180deg,rgba(244,241,234,0),#f4f1ea 40%)' }}>
         <div
           onClick={() => {
-            cart.addDrip(coffee, temp, size, qty);
+            if (mode === 'beans') {
+              if (!bag) return;
+              cart.addBeans(coffee, bag, qty);
+            } else {
+              cart.addDrip(coffee, temp, size, qty);
+            }
             showToast('已加入 · ' + coffee.name);
             navigate('/menu');
           }}

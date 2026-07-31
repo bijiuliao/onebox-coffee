@@ -153,7 +153,12 @@ export function MenuScreen() {
             {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {coffees?.filter(c => c.sellsBeans && inFilter(c, filter)).map(c => (
-                <div key={c.id} style={{ background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+                <div
+                  key={c.id}
+                  onClick={() => navigate(`/coffee/${c.id}`, { state: { mode: 'beans' } })}
+                  className="lift"
+                  style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+                >
                   <div style={{ aspectRatio: '3 / 4', background: `linear-gradient(140deg,${c.color}22,#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {c.coverUrl ? (
                       <img src={c.coverUrl} alt={c.name + ' 豆袋封面'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -176,7 +181,7 @@ export function MenuScreen() {
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                             <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
                             <div
-                              onClick={() => cart.addBeans(c, bag, 1)}
+                              onClick={(e) => { e.stopPropagation(); cart.addBeans(c, bag, 1); }}
                               className="press"
                               style={{
                                 cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', background: c.color, color: '#fff',
