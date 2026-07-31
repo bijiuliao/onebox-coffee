@@ -25,6 +25,7 @@ export interface Coffee {
   coverUrl: string | null;
   sellsBeans: boolean;
   bagOptions: BagOption[];
+  createdAt: string;
 }
 
 export interface CoffeeRow {
@@ -52,6 +53,7 @@ export interface CoffeeRow {
   sort_order: number;
   sells_beans: boolean;
   bag_options: BagOption[] | string;
+  created_at: string;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {
@@ -79,6 +81,7 @@ export function toCoffee(row: CoffeeRow): Coffee {
     coverUrl: row.cover_url,
     sellsBeans: row.sells_beans,
     bagOptions,
+    createdAt: row.created_at,
   };
 }
 

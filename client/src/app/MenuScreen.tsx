@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, NoteChip, RoastDots } from '../components';
@@ -6,6 +6,36 @@ import { BRAND_NAME, DEFAULT_TEMP, SHOW_SCORES } from '../constants';
 import { useCart } from '../cart';
 import { useCoffees, useSpecials } from '../useCoffees';
 import type { Coffee } from '../types';
+
+function PillRow<T extends string>({ label, options, value, onChange }: {
+  label: string;
+  options: readonly { key: T; label: string }[];
+  value: T;
+  onChange: (key: T) => void;
+}) {
+  return (
+    <div>
+      <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 8 }}>{label}</div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        {options.map(o => (
+          <div
+            key={o.key}
+            onClick={() => onChange(o.key)}
+            className="press"
+            style={{
+              padding: '9px 16px', borderRadius: 22, font: "600 13px 'Iansui'",
+              background: value === o.key ? '#1a1714' : '#fff',
+              color: value === o.key ? '#f4f1ea' : '#4a3c2e',
+              border: value === o.key ? 'none' : '1px solid #e4ddcd',
+            }}
+          >
+            {o.label}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 const CATEGORIES = [
   { key: 'drip', label: '手沖咖啡' },
@@ -35,6 +65,50 @@ function inFilter(c: Coffee, filter: FilterKey) {
   return c.level >= 4;
 }
 
+type SortKey = 'default' | 'newest' | 'price-asc' | 'price-desc';
+const SORT_OPTIONS: { key: SortKey; label: string }[] = [
+  { key: 'default', label: '預設' },
+  { key: 'newest', label: '最新上架' },
+  { key: 'price-asc', label: '價格低到高' },
+  { key: 'price-desc', label: '價格高到低' },
+];
+
+// Bag labels are free text like "半磅 227g" - pull the gram count back out so
+// beans with different bag sizes can be compared on a common per-10g basis.
+function gramsFromBagLabel(label: string): number | null {
+  const m = label.match(/(\d+(?:\.\d+)?)\s*g\b/i);
+  return m ? Number(m[1]) : null;
+}
+
+function cheapestPer10g(c: Coffee): number | null {
+  const rates = c.bagOptions
+    .map(b => {
+      const g = gramsFromBagLabel(b.label);
+      return g ? (b.price / g) * 10 : null;
+    })
+    .filter((v): v is number => v !== null);
+  return rates.length ? Math.min(...rates) : null;
+}
+
+function sortCoffees(list: Coffee[], sortKey: SortKey, category: CategoryKey): Coffee[] {
+  if (sortKey === 'default') return list;
+  const sorted = [...list];
+  if (sortKey === 'newest') {
+    sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return sorted;
+  }
+  const priceOf = (c: Coffee) => (category === 'beans' ? cheapestPer10g(c) : c.price);
+  sorted.sort((a, b) => {
+    const av = priceOf(a);
+    const bv = priceOf(b);
+    if (av === null && bv === null) return 0;
+    if (av === null) return 1;
+    if (bv === null) return -1;
+    return sortKey === 'price-asc' ? av - bv : bv - av;
+  });
+  return sorted;
+}
+
 export function MenuScreen() {
   const navigate = useNavigate();
   const cart = useCart();
@@ -42,8 +116,31 @@ export function MenuScreen() {
   const { specials } = useSpecials();
   const [category, setCategory] = useState<CategoryKey>('drip');
   const [filter, setFilter] = useState<FilterKey>('all');
+  const [originFilter, setOriginFilter] = useState('all');
+  const [roasterFilter, setRoasterFilter] = useState('all');
+  const [sortKey, setSortKey] = useState<SortKey>('default');
+
+  useEffect(() => {
+    setFilter('all');
+    setOriginFilter('all');
+    setRoasterFilter('all');
+    setSortKey('default');
+  }, [category]);
 
   const title = TITLES[category];
+
+  const categoryCoffees = category === 'beans' ? (coffees ?? []).filter(c => c.sellsBeans) : (coffees ?? []);
+  const origins = Array.from(new Set(categoryCoffees.map(c => c.originEN))).filter(Boolean).sort();
+  const roasters = Array.from(new Set(categoryCoffees.map(c => c.roaster))).filter(Boolean).sort();
+  const visibleCoffees = sortCoffees(
+    categoryCoffees.filter(c =>
+      inFilter(c, filter) &&
+      (originFilter === 'all' || c.originEN === originFilter) &&
+      (roasterFilter === 'all' || c.roaster === roasterFilter)
+    ),
+    sortKey,
+    category,
+  );
 
   return (
     <MobileShell>
@@ -80,22 +177,25 @@ export function MenuScreen() {
       </div>
 
       {category !== 'special' && (
-        <div className="rise" style={{ display: 'flex', gap: 8, padding: '16px 22px 6px', flexWrap: 'wrap', animationDelay: '.2s' }}>
-          {ROAST_FILTERS.map(r => (
-            <div
-              key={r.key}
-              onClick={() => setFilter(r.key)}
-              className="press"
-              style={{
-                padding: '9px 16px', borderRadius: 22, font: "600 13px 'Iansui'",
-                background: filter === r.key ? '#1a1714' : '#fff',
-                color: filter === r.key ? '#f4f1ea' : '#4a3c2e',
-                border: filter === r.key ? 'none' : '1px solid #e4ddcd',
-              }}
-            >
-              {r.label}
-            </div>
-          ))}
+        <div className="rise" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 22px 6px', animationDelay: '.2s' }}>
+          <PillRow label="烘焙度 ROAST" options={ROAST_FILTERS} value={filter} onChange={setFilter} />
+          {origins.length > 1 && (
+            <PillRow
+              label="產區 ORIGIN"
+              options={[{ key: 'all', label: '全部' }, ...origins.map(o => ({ key: o, label: o }))]}
+              value={originFilter}
+              onChange={setOriginFilter}
+            />
+          )}
+          {roasters.length > 1 && (
+            <PillRow
+              label="烘豆商 ROASTER"
+              options={[{ key: 'all', label: '全部' }, ...roasters.map(r => ({ key: r, label: r }))]}
+              value={roasterFilter}
+              onChange={setRoasterFilter}
+            />
+          )}
+          <PillRow label="排序 SORT" options={SORT_OPTIONS} value={sortKey} onChange={setSortKey} />
         </div>
       )}
 
@@ -103,7 +203,10 @@ export function MenuScreen() {
         {category === 'drip' && (
           <>
             {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
-            {coffees?.filter(c => inFilter(c, filter)).map(c => (
+            {coffees && categoryCoffees.length > 0 && visibleCoffees.length === 0 && (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>沒有符合篩選條件的咖啡，試試看調整篩選條件</div>
+            )}
+            {visibleCoffees.map(c => (
               <div
                 key={c.id}
                 onClick={() => navigate(`/coffee/${c.id}`)}
@@ -152,7 +255,7 @@ export function MenuScreen() {
           <>
             {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {coffees?.filter(c => c.sellsBeans && inFilter(c, filter)).map(c => (
+              {visibleCoffees.map(c => (
                 <div
                   key={c.id}
                   onClick={() => navigate(`/coffee/${c.id}`, { state: { mode: 'beans' } })}
@@ -198,8 +301,11 @@ export function MenuScreen() {
                 </div>
               ))}
             </div>
-            {coffees && coffees.filter(c => c.sellsBeans).length === 0 && (
+            {coffees && categoryCoffees.length === 0 && (
               <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>目前沒有開放零售的豆子</div>
+            )}
+            {coffees && categoryCoffees.length > 0 && visibleCoffees.length === 0 && (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>沒有符合篩選條件的豆子，試試看調整篩選條件</div>
             )}
           </>
         )}

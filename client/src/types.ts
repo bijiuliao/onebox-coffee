@@ -30,6 +30,7 @@ export interface Coffee {
   coverUrl: string | null;
   sellsBeans: boolean;
   bagOptions: BagOption[];
+  createdAt: string;
 }
 
 export interface Special {
