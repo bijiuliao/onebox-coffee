@@ -73,10 +73,12 @@ const SORT_OPTIONS: { key: SortKey; label: string }[] = [
   { key: 'price-desc', label: '價格高到低' },
 ];
 
-// Bag labels are free text like "半磅 227g" - pull the gram count back out so
-// beans with different bag sizes can be compared on a common per-10g basis.
+// Bag labels are free text like "半磅 227g" or "227公克" - pull the gram count
+// back out so beans with different bag sizes can be compared on a common
+// per-10g basis. Labels that don't carry a parseable weight fall back to
+// raw price further down, so sorting never silently does nothing.
 function gramsFromBagLabel(label: string): number | null {
-  const m = label.match(/(\d+(?:\.\d+)?)\s*g\b/i);
+  const m = label.match(/(\d+(?:\.\d+)?)\s*(?:g|公克|克)/i);
   return m ? Number(m[1]) : null;
 }
 
@@ -90,6 +92,17 @@ function cheapestPer10g(c: Coffee): number | null {
   return rates.length ? Math.min(...rates) : null;
 }
 
+function cheapestBagPrice(c: Coffee): number | null {
+  return c.bagOptions.length ? Math.min(...c.bagOptions.map(b => b.price)) : null;
+}
+
+// Prefer the weight-normalized rate; if no bag label had a parseable
+// weight, fall back to comparing raw bag price rather than excluding
+// the coffee from sorting entirely.
+function beansPriceMetric(c: Coffee): number | null {
+  return cheapestPer10g(c) ?? cheapestBagPrice(c);
+}
+
 function sortCoffees(list: Coffee[], sortKey: SortKey, category: CategoryKey): Coffee[] {
   if (sortKey === 'default') return list;
   const sorted = [...list];
@@ -97,7 +110,7 @@ function sortCoffees(list: Coffee[], sortKey: SortKey, category: CategoryKey): C
     sorted.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return sorted;
   }
-  const priceOf = (c: Coffee) => (category === 'beans' ? cheapestPer10g(c) : c.price);
+  const priceOf = (c: Coffee) => (category === 'beans' ? beansPriceMetric(c) : c.price);
   sorted.sort((a, b) => {
     const av = priceOf(a);
     const bv = priceOf(b);
