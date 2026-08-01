@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { playDing, vibrateSuccess } from '../feedback';
+import { useLang } from '../i18n';
 import type { OrderType } from '../types';
 
 interface SuccessState {
@@ -13,6 +14,7 @@ interface SuccessState {
 export function OrderSuccessScreen() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLang();
   const state = location.state as SuccessState | null;
 
   useEffect(() => {
@@ -50,15 +52,15 @@ export function OrderSuccessScreen() {
             style={{ strokeDasharray: 100, strokeDashoffset: 100, animation: 'successCheck .45s .32s cubic-bezier(.3,.6,.3,1) forwards' }}
           />
         </svg>
-        <div className="rise" style={{ marginTop: 26, font: "600 26px 'Iansui'", color: '#1a1714', animationDelay: '.3s' }}>已接單</div>
+        <div className="rise" style={{ marginTop: 26, font: "600 26px 'Iansui'", color: '#1a1714', animationDelay: '.3s' }}>{t('success.accepted')}</div>
         <div className="rise" style={{ marginTop: 10, font: "400 14px 'Iansui'", color: '#6b5c4a', animationDelay: '.4s' }}>
-          {state.customerName} · {state.orderType === '外送' ? '外送' : '門市自取'}
+          {state.customerName} · {state.orderType === '外送' ? t('success.delivery') : t('success.pickup')}
         </div>
         <div className="rise" style={{ marginTop: 4, font: "500 15px 'Room205'", color: '#1a1714', animationDelay: '.4s' }}>
-          總計 ${state.total}
+          {t('success.total')}{state.total}
         </div>
         <div className="rise" style={{ marginTop: 22, font: "400 13px 'Iansui'", color: '#8a7a68', animationDelay: '.5s' }}>
-          為你手沖中，預計 8–12 分鐘 ☕
+          {t('success.brewing')}
         </div>
       </div>
     </MobileShell>

@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react';
+import { useLang } from './i18n';
 
 export function NoteChip({ label, color, soft }: { label: string; color: string; soft: string }) {
   return (
@@ -19,6 +20,7 @@ export function RoastDots({ level, color }: { level: number; color: string }) {
 }
 
 export function CartButton({ count, onClick, translucent = false }: { count: number; onClick: () => void; translucent?: boolean }) {
+  const { t } = useLang();
   const style: CSSProperties = translucent
     ? { background: 'rgba(255,255,255,.7)' }
     : { background: '#fff', border: '1px solid #e4ddcd' };
@@ -27,7 +29,7 @@ export function CartButton({ count, onClick, translucent = false }: { count: num
       onClick={onClick}
       className="press"
       role="button"
-      aria-label={count > 0 ? `購物車，${count} 件商品` : '購物車'}
+      aria-label={count > 0 ? t('a11y.cartCount', { count }) : t('a11y.cartEmpty')}
       style={{
         position: 'relative', width: 40, height: 40, borderRadius: '50%',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -50,13 +52,35 @@ export function CartButton({ count, onClick, translucent = false }: { count: num
   );
 }
 
+export function LangToggle({ translucent = false }: { translucent?: boolean }) {
+  const { lang, toggleLang, t } = useLang();
+  return (
+    <div
+      onClick={toggleLang}
+      className="press"
+      role="button"
+      aria-label={t('a11y.langToggle')}
+      style={{
+        height: 40, minWidth: 40, padding: '0 12px', borderRadius: 20,
+        background: translucent ? 'rgba(255,255,255,.7)' : '#fff',
+        border: translucent ? undefined : '1px solid #e4ddcd',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        font: "700 12px 'Space Mono'", letterSpacing: 1, color: '#1a1714',
+      }}
+    >
+      {lang === 'zh' ? 'EN' : '中'}
+    </div>
+  );
+}
+
 export function BackButton({ onClick, translucent = false }: { onClick: () => void; translucent?: boolean }) {
+  const { t } = useLang();
   return (
     <div
       onClick={onClick}
       className="press"
       role="button"
-      aria-label="返回"
+      aria-label={t('a11y.back')}
       style={{
         width: 40, height: 40, borderRadius: '50%',
         background: translucent ? 'rgba(255,255,255,.7)' : '#fff',

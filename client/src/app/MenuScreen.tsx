@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
-import { CartButton, NoteChip, RoastDots } from '../components';
+import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, DEFAULT_TEMP, SHOW_SCORES } from '../constants';
 import { useCart } from '../cart';
+import { useLang } from '../i18n';
 import { useCoffees, useSpecials } from '../useCoffees';
 import type { Coffee } from '../types';
 
@@ -37,26 +38,14 @@ function PillRow<T extends string>({ label, options, value, onChange }: {
   );
 }
 
-const CATEGORIES = [
-  { key: 'drip', label: '手沖咖啡' },
-  { key: 'beans', label: '買豆子' },
-  { key: 'special', label: '特調' },
-] as const;
-type CategoryKey = typeof CATEGORIES[number]['key'];
+const CATEGORY_KEYS = ['drip', 'beans', 'special'] as const;
+type CategoryKey = typeof CATEGORY_KEYS[number];
 
-const TITLES: Record<CategoryKey, { eyebrow: string; heading: [string, string] }> = {
-  drip: { eyebrow: "TODAY'S DRIP BAR · 本日手沖", heading: ['今天，', '想喝哪一支？'] },
-  beans: { eyebrow: 'BEANS TO GO · 買豆子回家', heading: ['想帶哪支豆子', '回家？'] },
-  special: { eyebrow: "TODAY'S SPECIAL · 本日特調", heading: ['今天，', '想喝點特別的？'] },
+const ROAST_FILTER_KEYS = ['all', 'light', 'mid', 'dark'] as const;
+type FilterKey = typeof ROAST_FILTER_KEYS[number];
+const ROAST_FILTER_I18N: Record<FilterKey, string> = {
+  all: 'filter.all', light: 'filter.roastLight', mid: 'filter.roastMid', dark: 'filter.roastDark',
 };
-
-const ROAST_FILTERS = [
-  { key: 'all', label: '全部' },
-  { key: 'light', label: '淺' },
-  { key: 'mid', label: '中' },
-  { key: 'dark', label: '深' },
-] as const;
-type FilterKey = typeof ROAST_FILTERS[number]['key'];
 
 function inFilter(c: Coffee, filter: FilterKey) {
   if (filter === 'all') return true;
@@ -66,12 +55,10 @@ function inFilter(c: Coffee, filter: FilterKey) {
 }
 
 type SortKey = 'default' | 'newest' | 'price-asc' | 'price-desc';
-const SORT_OPTIONS: { key: SortKey; label: string }[] = [
-  { key: 'default', label: '預設' },
-  { key: 'newest', label: '最新上架' },
-  { key: 'price-asc', label: '價格低到高' },
-  { key: 'price-desc', label: '價格高到低' },
-];
+const SORT_KEYS: SortKey[] = ['default', 'newest', 'price-asc', 'price-desc'];
+const SORT_I18N: Record<SortKey, string> = {
+  default: 'sort.default', newest: 'sort.newest', 'price-asc': 'sort.priceAsc', 'price-desc': 'sort.priceDesc',
+};
 
 // Bag labels are free text like "半磅 227g" or "227公克" - pull the gram count
 // back out so beans with different bag sizes can be compared on a common
@@ -125,6 +112,7 @@ function sortCoffees(list: Coffee[], sortKey: SortKey, category: CategoryKey): C
 export function MenuScreen() {
   const navigate = useNavigate();
   const cart = useCart();
+  const { t } = useLang();
   const { coffees } = useCoffees();
   const { specials } = useSpecials();
   const [category, setCategory] = useState<CategoryKey>('drip');
@@ -140,7 +128,13 @@ export function MenuScreen() {
     setSortKey('default');
   }, [category]);
 
-  const title = TITLES[category];
+  const title = {
+    eyebrow: t(`title.${category}.eyebrow`),
+    heading: [t(`title.${category}.heading1`), t(`title.${category}.heading2`)] as [string, string],
+  };
+  const categories = CATEGORY_KEYS.map(k => ({ key: k, label: t(`category.${k}`) }));
+  const roastFilterOptions = ROAST_FILTER_KEYS.map(k => ({ key: k, label: t(ROAST_FILTER_I18N[k]) }));
+  const sortOptions = SORT_KEYS.map(k => ({ key: k, label: t(SORT_I18N[k]) }));
 
   const categoryCoffees = category === 'beans' ? (coffees ?? []).filter(c => c.sellsBeans) : (coffees ?? []);
   const origins = Array.from(new Set(categoryCoffees.map(c => c.originEN))).filter(Boolean).sort();
@@ -162,12 +156,15 @@ export function MenuScreen() {
           <div onClick={() => navigate('/')} className="press" style={{ cursor: 'pointer', font: "500 19px 'Room205',serif", color: '#1a1714' }}>
             {BRAND_NAME}<span style={{ color: '#c98a2e' }}>.</span>
           </div>
-          <CartButton count={cart.count} onClick={() => navigate('/cart')} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <LangToggle />
+            <CartButton count={cart.count} onClick={() => navigate('/cart')} />
+          </div>
         </div>
       </div>
 
       <div className="rise" style={{ display: 'flex', gap: 8, padding: '18px 22px 0', animationDelay: '.04s' }}>
-        {CATEGORIES.map(c => (
+        {categories.map(c => (
           <div
             key={c.key}
             onClick={() => setCategory(c.key)}
@@ -191,33 +188,33 @@ export function MenuScreen() {
 
       {category !== 'special' && (
         <div className="rise" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 22px 6px', animationDelay: '.2s' }}>
-          <PillRow label="烘焙度 ROAST" options={ROAST_FILTERS} value={filter} onChange={setFilter} />
+          <PillRow label={t('filter.roast')} options={roastFilterOptions} value={filter} onChange={setFilter} />
           {origins.length > 1 && (
             <PillRow
-              label="產區 ORIGIN"
-              options={[{ key: 'all', label: '全部' }, ...origins.map(o => ({ key: o, label: o }))]}
+              label={t('filter.origin')}
+              options={[{ key: 'all', label: t('filter.all') }, ...origins.map(o => ({ key: o, label: o }))]}
               value={originFilter}
               onChange={setOriginFilter}
             />
           )}
           {roasters.length > 1 && (
             <PillRow
-              label="烘豆商 ROASTER"
-              options={[{ key: 'all', label: '全部' }, ...roasters.map(r => ({ key: r, label: r }))]}
+              label={t('filter.roaster')}
+              options={[{ key: 'all', label: t('filter.all') }, ...roasters.map(r => ({ key: r, label: r }))]}
               value={roasterFilter}
               onChange={setRoasterFilter}
             />
           )}
-          <PillRow label="排序 SORT" options={SORT_OPTIONS} value={sortKey} onChange={setSortKey} />
+          <PillRow label={t('filter.sort')} options={sortOptions} value={sortKey} onChange={setSortKey} />
         </div>
       )}
 
       <div className="rise" style={{ padding: '10px 22px 40px', display: 'flex', flexDirection: 'column', gap: 16, animationDelay: '.32s' }}>
         {category === 'drip' && (
           <>
-            {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
+            {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div>}
             {coffees && categoryCoffees.length > 0 && visibleCoffees.length === 0 && (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>沒有符合篩選條件的咖啡，試試看調整篩選條件</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noDripMatch')}</div>
             )}
             {visibleCoffees.map(c => (
               <div
@@ -266,7 +263,7 @@ export function MenuScreen() {
 
         {category === 'beans' && (
           <>
-            {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
+            {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               {visibleCoffees.map(c => (
                 <div
@@ -277,7 +274,7 @@ export function MenuScreen() {
                 >
                   <div style={{ aspectRatio: '3 / 4', background: `linear-gradient(140deg,${c.color}22,#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {c.coverUrl ? (
-                      <img src={c.coverUrl} alt={c.name + ' 豆袋封面'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <img src={c.coverUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
                       <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: c.color, opacity: .7, textAlign: 'center', padding: '0 10px' }}>
                         {c.originEN}
@@ -289,7 +286,7 @@ export function MenuScreen() {
                     <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
                       {c.bagOptions.length === 0 && (
-                        <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>尚未設定零售重量</div>
+                        <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>{t('menu.noBagOptions')}</div>
                       )}
                       {c.bagOptions.map(bag => (
                         <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -315,24 +312,24 @@ export function MenuScreen() {
               ))}
             </div>
             {coffees && categoryCoffees.length === 0 && (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>目前沒有開放零售的豆子</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noBeansAtAll')}</div>
             )}
             {coffees && categoryCoffees.length > 0 && visibleCoffees.length === 0 && (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>沒有符合篩選條件的豆子，試試看調整篩選條件</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noBeansMatch')}</div>
             )}
           </>
         )}
 
         {category === 'special' && (
           <>
-            {specials === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>載入中…</div>}
+            {specials === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div>}
             {specials?.length === 0 && (
-              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>今天還沒有特調</div>
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noSpecialsToday')}</div>
             )}
             {specials?.map(s => (
               <div key={s.id} style={{ background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden' }}>
                 <div style={{ padding: '11px 18px', background: s.color + '22', color: s.color }}>
-                  <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5 }}>SPECIAL · 特調</span>
+                  <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5 }}>{t('menu.specialBadge')}</span>
                 </div>
                 <div style={{ padding: '16px 18px 18px' }}>
                   <div style={{ font: "500 22px/1.15 'Room205',serif", color: '#1a1714' }}>{s.name}</div>

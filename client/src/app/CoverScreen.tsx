@@ -1,9 +1,12 @@
 import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
+import { LangToggle } from '../components';
 import { BRAND_NAME } from '../constants';
+import { useLang } from '../i18n';
 
 export function CoverScreen() {
   const navigate = useNavigate();
+  const { t } = useLang();
   const enter = () => navigate('/menu');
 
   return (
@@ -13,7 +16,10 @@ export function CoverScreen() {
           <div style={{ font: "500 21px 'Room205',serif", color: '#1a1714', letterSpacing: '-.01em' }}>
             {BRAND_NAME}<span style={{ color: '#c98a2e' }}>.</span>
           </div>
-          <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#8a7a68' }}>EST. 2026 · TAIPEI</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <LangToggle />
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#8a7a68' }}>EST. 2026 · TAIPEI</div>
+          </div>
         </div>
 
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', padding: '8px 0' }}>
@@ -36,13 +42,13 @@ export function CoverScreen() {
             <img
               className="catimg"
               src="/assets/cat-box.jpg"
-              alt="onebox 貓"
+              alt={t('cover.catAlt')}
               style={{ width: 250, height: 250, objectFit: 'contain', position: 'relative', zIndex: 2, animation: 'floaty 5s ease-in-out infinite', mixBlendMode: 'multiply' }}
             />
           </div>
 
           <div className="rise" style={{ marginTop: 14, font: "500 15px 'Iansui'", color: '#6b5c4a', animationDelay: '.44s' }}>
-            點一下箱子，看看今天躲了什麼豆
+            {t('cover.tapHint')}
           </div>
           <div className="rise" style={{ marginTop: 16, color: '#c98a2e', font: "700 22px 'Room205'", animation: 'pulse 1.8s ease-in-out infinite' }}>
             ↓
@@ -57,7 +63,7 @@ export function CoverScreen() {
             padding: 19, display: 'flex', justifyContent: 'space-between', alignItems: 'center', animationDelay: '.54s',
           }}
         >
-          <span style={{ font: "600 16px 'Iansui'" }}>開始點餐</span>
+          <span style={{ font: "600 16px 'Iansui'" }}>{t('cover.cta')}</span>
           <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 1, color: '#c98a2e' }}>OPEN THE BOX →</span>
         </div>
       </div>
