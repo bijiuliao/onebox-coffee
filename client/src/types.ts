@@ -31,6 +31,7 @@ export interface Coffee {
   sellsBeans: boolean;
   bagOptions: BagOption[];
   createdAt: string;
+  archived: boolean;
 }
 
 export interface Special {

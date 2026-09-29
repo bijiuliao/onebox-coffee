@@ -14,6 +14,7 @@ export function AdminPage() {
   const { showToast } = useToast();
   const [beans, setBeans] = useState<Coffee[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [viewFilter, setViewFilter] = useState<'active' | 'archived'>('active');
   const [noteDraft, setNoteDraft] = useState('');
   const [bagLabelDraft, setBagLabelDraft] = useState('');
   const [bagPriceDraft, setBagPriceDraft] = useState('');
@@ -23,14 +24,24 @@ export function AdminPage() {
   useEffect(() => {
     api.listCoffees(true).then(list => {
       setBeans(list);
-      setSelectedId(list[0]?.id ?? null);
+      setSelectedId((list.find(b => !b.archived) ?? list[0])?.id ?? null);
     });
   }, []);
 
-  if (!beans || !selectedId) {
+  if (!beans) {
     return <div style={{ minHeight: '100vh', background: '#f4f1ea', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9a8a76' }}>載入中…</div>;
   }
-  const sel = beans.find(b => b.id === selectedId) ?? beans[0];
+
+  const switchView = (v: 'active' | 'archived') => {
+    setViewFilter(v);
+    const list = beans.filter(b => (v === 'archived' ? b.archived : !b.archived));
+    setSelectedId(list[0]?.id ?? null);
+  };
+
+  const activeBeans = beans.filter(b => !b.archived);
+  const archivedBeans = beans.filter(b => b.archived);
+  const visibleBeans = viewFilter === 'archived' ? archivedBeans : activeBeans;
+  const sel = visibleBeans.find(b => b.id === selectedId) ?? visibleBeans[0];
 
   const patch = (p: Partial<Coffee>) => {
     setBeans(prev => prev!.map(b => (b.id === selectedId ? { ...b, ...p } : b)));
@@ -52,6 +63,7 @@ export function AdminPage() {
     try {
       const created = await api.createCoffee('New Coffee');
       setBeans(prev => [...(prev ?? []), created]);
+      setViewFilter('active');
       setSelectedId(created.id);
       showToast('已建立新豆款，記得填資料');
     } catch (err) {
@@ -93,10 +105,80 @@ export function AdminPage() {
     }
   };
 
+  const sidebar = (
+    <div style={{ width: 296, flex: 'none', position: 'sticky', top: 62, height: 'calc(100vh - 62px)', borderRight: '1px solid #e4ddcd', background: '#faf7f0', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ padding: '22px 20px 12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <span style={{ font: "600 17px 'Iansui'" }}>豆款</span>
+          <span style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{beans.length} 款</span>
+        </div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
+          <div onClick={() => switchView('active')} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 10, font: "600 12px 'Iansui'", background: viewFilter === 'active' ? '#1a1714' : '#fff', color: viewFilter === 'active' ? '#f4f1ea' : '#8a7a68', border: viewFilter === 'active' ? 'none' : '1px solid #e2dac9' }}>
+            使用中 {activeBeans.length}
+          </div>
+          <div onClick={() => switchView('archived')} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 10, font: "600 12px 'Iansui'", background: viewFilter === 'archived' ? '#1a1714' : '#fff', color: viewFilter === 'archived' ? '#f4f1ea' : '#8a7a68', border: viewFilter === 'archived' ? 'none' : '1px solid #e2dac9' }}>
+            封存 {archivedBeans.length}
+          </div>
+        </div>
+        <div onClick={addBean} className="press" style={{ cursor: 'pointer', marginTop: 10, background: '#1a1714', color: '#f4f1ea', borderRadius: 11, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: "600 14px 'Iansui'" }}>
+          <span style={{ font: "400 18px 'Room205'" }}>＋</span> 新增豆款
+        </div>
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '6px 12px 18px' }}>
+        {visibleBeans.map(b => (
+          <div
+            key={b.id}
+            onClick={() => setSelectedId(b.id)}
+            className="row press"
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 12, marginBottom: 3, background: b.id === selectedId ? '#efe7d8' : undefined }}
+          >
+            <div style={{ width: 38, height: 38, borderRadius: 10, flex: 'none', background: b.color }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
+              <div style={{ font: "400 10px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{b.originEN} · ${b.price}</div>
+            </div>
+            <div style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: b.active ? '#3d6b4f' : '#d3c9b6' }} />
+          </div>
+        ))}
+        {visibleBeans.length === 0 && (
+          <div style={{ padding: '20px 10px', textAlign: 'center', font: "400 12px 'Iansui'", color: '#b0a08c' }}>
+            {viewFilter === 'archived' ? '封存區還沒有豆子' : '目前沒有使用中的豆款'}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (!sel) {
+    return (
+      <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+        <AdminTopBar active="beans" />
+        <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1380, minWidth: 1200, margin: '0 auto' }}>
+          {sidebar}
+          <div style={{ flex: 1, padding: '120px 40px', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>
+            {viewFilter === 'archived' ? '封存區還沒有豆子' : '目前沒有使用中的豆款，可以到左側「封存」查看，或新增一款'}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const toggleActive = () => {
     const next = !sel.active;
     patch({ active: next });
     persist(sel.id, { active: next }).catch(() => patch({ active: !next }));
+  };
+
+  // Archiving also takes the bean off-menu (active: false) since a sold-out
+  // bean shouldn't stay purchasable; un-archiving leaves it off-menu until
+  // the admin explicitly re-activates it, so it never pops back onto the
+  // live site by surprise.
+  const toggleArchived = () => {
+    const wasArchived = sel.archived;
+    const wasActive = sel.active;
+    const next: Partial<Coffee> = wasArchived ? { archived: false } : { archived: true, active: false };
+    patch(next);
+    persist(sel.id, next).catch(() => patch({ archived: wasArchived, active: wasActive }));
   };
 
   const save = async () => {
@@ -172,45 +254,28 @@ export function AdminPage() {
       <AdminTopBar active="beans" />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1380, minWidth: 1200, margin: '0 auto' }}>
-        <div style={{ width: 296, flex: 'none', position: 'sticky', top: 62, height: 'calc(100vh - 62px)', borderRight: '1px solid #e4ddcd', background: '#faf7f0', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ padding: '22px 20px 12px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-              <span style={{ font: "600 17px 'Iansui'" }}>豆款</span>
-              <span style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{beans.length} 款</span>
-            </div>
-            <div onClick={addBean} className="press" style={{ cursor: 'pointer', marginTop: 14, background: '#1a1714', color: '#f4f1ea', borderRadius: 11, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: "600 14px 'Iansui'" }}>
-              <span style={{ font: "400 18px 'Room205'" }}>＋</span> 新增豆款
-            </div>
-          </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '6px 12px 18px' }}>
-            {beans.map(b => (
-              <div
-                key={b.id}
-                onClick={() => setSelectedId(b.id)}
-                className="row press"
-                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 12px', borderRadius: 12, marginBottom: 3, background: b.id === sel.id ? '#efe7d8' : undefined }}
-              >
-                <div style={{ width: 38, height: 38, borderRadius: 10, flex: 'none', background: b.color }} />
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
-                  <div style={{ font: "400 10px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{b.originEN} · ${b.price}</div>
-                </div>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: b.active ? '#3d6b4f' : '#d3c9b6' }} />
-              </div>
-            ))}
-          </div>
-        </div>
+        {sidebar}
 
         <div style={{ flex: 1, minWidth: 0, padding: '26px 30px 80px' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, marginBottom: 8 }}>
             <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76' }}>編輯豆款 / EDIT PRODUCT</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <div onClick={toggleActive} className="press" style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '11px 16px', borderRadius: 11, font: "600 13px 'Iansui'", background: sel.active ? '#e6f0ea' : '#efe7d8', color: sel.active ? '#3d6b4f' : '#9a8a76' }}>
-                {sel.active ? '● 上架中' : '○ 未上架'}
+              {!sel.archived && (
+                <div onClick={toggleActive} className="press" style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '11px 16px', borderRadius: 11, font: "600 13px 'Iansui'", background: sel.active ? '#e6f0ea' : '#efe7d8', color: sel.active ? '#3d6b4f' : '#9a8a76' }}>
+                  {sel.active ? '● 上架中' : '○ 未上架'}
+                </div>
+              )}
+              <div onClick={toggleArchived} className="press" style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '11px 16px', borderRadius: 11, font: "600 13px 'Iansui'", background: sel.archived ? '#efe7d8' : '#f4f1ea', color: '#8a7a68', border: '1px solid #e2dac9' }}>
+                {sel.archived ? '↺ 取消封存' : '🗄 封存'}
               </div>
               <div onClick={save} className="press" style={{ cursor: 'pointer', background: '#3d6b4f', color: '#fff', borderRadius: 11, padding: '11px 22px', font: "600 14px 'Iansui'" }}>儲存</div>
             </div>
           </div>
+          {sel.archived && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', borderRadius: 12, background: '#f1e9db', color: '#8a7a68', font: "400 12px 'Iansui'", marginBottom: 18 }}>
+              這支豆子已封存：不會出現在「使用中」清單或顧客端，資料還在，可以隨時按「取消封存」復原。
+            </div>
+          )}
           <input
             value={sel.name}
             onChange={(e) => patch({ name: e.target.value })}
@@ -436,8 +501,8 @@ export function AdminPage() {
               </div>
             </div>
           </div>
-          <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.active ? '#e6f0ea' : '#f1e9db', color: sel.active ? '#3d6b4f' : '#9a8a76' }}>
-            {sel.active ? '顧客可在商店看到這款' : '目前未上架，顧客看不到'}
+          <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.archived ? '#efe7d8' : sel.active ? '#e6f0ea' : '#f1e9db', color: sel.archived ? '#8a7a68' : sel.active ? '#3d6b4f' : '#9a8a76' }}>
+            {sel.archived ? '已封存，顧客看不到' : sel.active ? '顧客可在商店看到這款' : '目前未上架，顧客看不到'}
           </div>
         </div>
       </div>

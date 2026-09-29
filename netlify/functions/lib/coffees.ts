@@ -26,6 +26,7 @@ export interface Coffee {
   sellsBeans: boolean;
   bagOptions: BagOption[];
   createdAt: string;
+  archived: boolean;
 }
 
 export interface CoffeeRow {
@@ -54,6 +55,7 @@ export interface CoffeeRow {
   sells_beans: boolean;
   bag_options: BagOption[] | string;
   created_at: string;
+  archived: boolean;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {
@@ -82,6 +84,7 @@ export function toCoffee(row: CoffeeRow): Coffee {
     sellsBeans: row.sells_beans,
     bagOptions,
     createdAt: row.created_at,
+    archived: row.archived,
   };
 }
 
@@ -105,6 +108,7 @@ export const EDITABLE_COLUMNS: Record<string, string> = {
   coverUrl: 'cover_url',
   sellsBeans: 'sells_beans',
   bagOptions: 'bag_options',
+  archived: 'archived',
 };
 
 // Fields whose value must be JSON.stringify'd before binding to a jsonb column.

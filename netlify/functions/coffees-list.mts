@@ -14,7 +14,7 @@ export default async (req: Request) => {
       if (unauthorized) return unauthorized;
     }
     const rows = (await db.sql`SELECT * FROM coffees ORDER BY sort_order ASC`) as CoffeeRow[];
-    const coffees = rows.map(toCoffee).filter(c => all || c.active);
+    const coffees = rows.map(toCoffee).filter(c => all || (c.active && !c.archived));
     return json(coffees);
   }
 
