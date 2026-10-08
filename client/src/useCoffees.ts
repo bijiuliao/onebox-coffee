@@ -18,6 +18,22 @@ export function useCoffees(all = false) {
   return { coffees, error };
 }
 
+export function useArchivedCoffees() {
+  const [coffees, setCoffees] = useState<Coffee[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.listArchivedCoffees().then(
+      list => { if (!cancelled) setCoffees(list); },
+      err => { if (!cancelled) setError(err.message); },
+    );
+    return () => { cancelled = true; };
+  }, []);
+
+  return { coffees, error };
+}
+
 export function useCoffee(id: string | undefined) {
   const [coffee, setCoffee] = useState<Coffee | null>(null);
   const [error, setError] = useState<string | null>(null);

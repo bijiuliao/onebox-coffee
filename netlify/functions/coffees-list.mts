@@ -13,8 +13,17 @@ export default async (req: Request) => {
       const unauthorized = requireAdmin(req);
       if (unauthorized) return unauthorized;
     }
+    // Archived beans are public read-only history (a "past lineup" customers
+    // can browse) - no admin auth needed, but never purchasable; see the
+    // `archived` check in orders.mts.
+    const archivedOnly = !all && url.searchParams.get('archived') === '1';
+
     const rows = (await db.sql`SELECT * FROM coffees ORDER BY sort_order ASC`) as CoffeeRow[];
-    const coffees = rows.map(toCoffee).filter(c => all || (c.active && !c.archived));
+    const coffees = rows.map(toCoffee).filter(c => {
+      if (all) return true;
+      if (archivedOnly) return c.archived;
+      return c.active && !c.archived;
+    });
     return json(coffees);
   }
 

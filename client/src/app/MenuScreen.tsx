@@ -5,7 +5,7 @@ import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, DEFAULT_TEMP, SHOW_SCORES } from '../constants';
 import { isSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
-import { useCoffees, useSpecials } from '../useCoffees';
+import { useArchivedCoffees, useCoffees, useSpecials } from '../useCoffees';
 import type { Coffee } from '../types';
 
 function PillRow<T extends string>({ label, options, value, onChange }: {
@@ -38,7 +38,7 @@ function PillRow<T extends string>({ label, options, value, onChange }: {
   );
 }
 
-const CATEGORY_KEYS = ['drip', 'beans', 'special'] as const;
+const CATEGORY_KEYS = ['drip', 'beans', 'special', 'history'] as const;
 type CategoryKey = typeof CATEGORY_KEYS[number];
 
 const ROAST_FILTER_KEYS = ['all', 'light', 'mid', 'dark'] as const;
@@ -115,6 +115,7 @@ export function MenuScreen() {
   const { t } = useLang();
   const { coffees } = useCoffees();
   const { specials } = useSpecials();
+  const { coffees: archivedCoffees } = useArchivedCoffees();
   const [category, setCategory] = useState<CategoryKey>('drip');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [originFilter, setOriginFilter] = useState('all');
@@ -184,9 +185,12 @@ export function MenuScreen() {
       <div className="rise" style={{ padding: '20px 22px 6px', animationDelay: '.08s' }}>
         <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#8a7a68' }}>{title.eyebrow}</div>
         <div style={{ font: "600 34px/1.1 'Iansui',serif", color: '#1a1714', marginTop: 10 }}>{title.heading[0]}<br />{title.heading[1]}</div>
+        {category === 'history' && (
+          <div style={{ font: "400 13px 'Iansui'", color: '#9a8a76', marginTop: 10 }}>{t('menu.historyHint')}</div>
+        )}
       </div>
 
-      {category !== 'special' && (
+      {category !== 'special' && category !== 'history' && (
         <div className="rise" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 22px 6px', animationDelay: '.2s' }}>
           <PillRow label={t('filter.roast')} options={roastFilterOptions} value={filter} onChange={setFilter} />
           {origins.length > 1 && (
@@ -368,6 +372,43 @@ export function MenuScreen() {
                 </div>
               </div>
             ))}
+          </>
+        )}
+
+        {category === 'history' && (
+          <>
+            {archivedCoffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div>}
+            {archivedCoffees?.length === 0 && (
+              <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noHistory')}</div>
+            )}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+              {archivedCoffees?.map(c => (
+                <div
+                  key={c.id}
+                  onClick={() => navigate(`/coffee/${c.id}`)}
+                  className="lift"
+                  style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', opacity: .75 }}
+                >
+                  <div style={{ aspectRatio: '3 / 4', position: 'relative', background: `linear-gradient(140deg,${c.color}22,#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {c.coverUrl ? (
+                      <img src={c.coverUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'grayscale(.3)' }} />
+                    ) : (
+                      <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: c.color, opacity: .7, textAlign: 'center', padding: '0 10px' }}>
+                        {c.originEN}
+                      </span>
+                    )}
+                    <span style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 12, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'" }}>{t('stock.discontinued')}</span>
+                  </div>
+                  <div style={{ padding: '12px 12px 14px' }}>
+                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: c.color }}>{c.originEN} · {c.roast}</div>
+                    <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
+                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+                      {c.notes.map(n => <NoteChip key={n} label={n} color={c.color} soft={c.color + '22'} />)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </>
         )}
       </div>

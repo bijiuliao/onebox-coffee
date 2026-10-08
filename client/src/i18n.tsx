@@ -14,6 +14,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'category.drip': { zh: '手沖咖啡', en: 'Drip Coffee' },
   'category.beans': { zh: '買豆子', en: 'Beans' },
   'category.special': { zh: '特調', en: 'Specials' },
+  'category.history': { zh: '過往豆單', en: 'Past Lineup' },
 
   'title.drip.eyebrow': { zh: "TODAY'S DRIP BAR · 本日手沖", en: "TODAY'S DRIP BAR" },
   'title.drip.heading1': { zh: '今天，', en: 'Today,' },
@@ -24,6 +25,9 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'title.special.eyebrow': { zh: "TODAY'S SPECIAL · 本日特調", en: "TODAY'S SPECIAL" },
   'title.special.heading1': { zh: '今天，', en: 'Today,' },
   'title.special.heading2': { zh: '想喝點特別的？', en: 'fancy something special?' },
+  'title.history.eyebrow': { zh: 'ARCHIVE · 過往豆單', en: 'ARCHIVE' },
+  'title.history.heading1': { zh: '回顧一下，', en: 'A look back' },
+  'title.history.heading2': { zh: '我們出過的豆子', en: 'at beans we’ve featured' },
 
   'filter.roast': { zh: '烘焙度 ROAST', en: 'ROAST' },
   'filter.origin': { zh: '產區 ORIGIN', en: 'ORIGIN' },
@@ -51,6 +55,9 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'menu.noSpecialsToday': { zh: '今天還沒有特調', en: 'No specials today' },
   'menu.specialBadge': { zh: 'SPECIAL · 特調', en: 'SPECIAL' },
   'stock.soldOut': { zh: '已售完', en: 'Sold Out' },
+  'stock.discontinued': { zh: '已下架', en: 'Discontinued' },
+  'menu.noHistory': { zh: '目前還沒有過往豆單', en: 'No past beans yet' },
+  'menu.historyHint': { zh: '這些豆款目前已下架，僅供回顧，無法下單', en: 'These beans are discontinued — for browsing only, not orderable' },
 
   'detail.tastingNotes': { zh: 'TASTING NOTES · 風味', en: 'TASTING NOTES' },
   'detail.spec.roaster': { zh: 'ROASTER 烘豆商', en: 'ROASTER' },

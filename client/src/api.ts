@@ -10,6 +10,7 @@ async function json<T>(res: Response): Promise<T> {
 
 export const api = {
   listCoffees: (all = false) => fetch(`/api/coffees${all ? '?all=1' : ''}`).then(res => json<Coffee[]>(res)),
+  listArchivedCoffees: () => fetch('/api/coffees?archived=1').then(res => json<Coffee[]>(res)),
   getCoffee: (id: string) => fetch(`/api/coffees/${id}`).then(res => json<Coffee>(res)),
   createCoffee: (name: string) =>
     fetch('/api/coffees', {

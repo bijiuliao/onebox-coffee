@@ -45,6 +45,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
     if (!row) return { error: `unknown coffee: ${item.id}` };
     const coffee = toCoffee(row);
+    if (coffee.archived) return { error: `${coffee.name} 已經下架` };
     if (coffee.stockQty !== null && coffee.stockQty <= 0) return { error: `${coffee.name} 已經賣完了` };
     const size = item.size === '大杯' ? '大杯' : '標準';
     const temp = item.temp === '冰' ? '冰' : '熱';
@@ -56,6 +57,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
     if (!row) return { error: `unknown coffee: ${item.id}` };
     const coffee = toCoffee(row);
+    if (coffee.archived) return { error: `${coffee.name} 已經下架` };
     if (!coffee.sellsBeans) return { error: `${coffee.name} 目前沒有開放零售` };
     if (coffee.stockQty !== null && coffee.stockQty <= 0) return { error: `${coffee.name} 已經賣完了` };
     const bag = coffee.bagOptions.find(b => b.label === item.bagLabel);
