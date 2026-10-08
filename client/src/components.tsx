@@ -1,5 +1,31 @@
-import type { CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLang } from './i18n';
+
+// Fades/slides a section in once it scrolls into view (and stays revealed -
+// the observer disconnects after the first trigger so it never re-hides).
+export function Reveal({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: CSSProperties }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        setInView(true);
+        obs.disconnect();
+      }
+    }, { threshold: 0.15, rootMargin: '0px 0px -60px 0px' });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
+  return (
+    <div ref={ref} className={`reveal${inView ? ' reveal-in' : ''}`} style={{ transitionDelay: `${delay}ms`, ...style }}>
+      {children}
+    </div>
+  );
+}
 
 export function NoteChip({ label, color, soft }: { label: string; color: string; soft: string }) {
   return (

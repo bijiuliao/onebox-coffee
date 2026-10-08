@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
-import { BackButton, CartButton, LangToggle, NoteChip } from '../components';
+import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
 import { SHOW_SCORES } from '../constants';
 import { isSoldOut, useCart, dripPrice } from '../cart';
 import { useLang } from '../i18n';
@@ -80,22 +80,43 @@ export function DetailScreen() {
         </div>
       </div>
 
+      {/* HERO: giant title first, then the cover photo rises in underneath it - */}
+      {/* ordering/scale borrowed from onyxcoffeelab.com's product pages. */}
+      <div style={{ padding: '28px 22px 0' }}>
+        <div key={`${coffee.id}-origin`} className="slide-in-left" style={{ font: "700 11px 'Space Mono'", letterSpacing: 3, color: coffee.color }}>{coffee.originEN}</div>
+        <div
+          key={`${coffee.id}-name`}
+          className="slide-in-left"
+          style={{ animationDelay: '.07s', font: "600 clamp(42px,15vw,80px)/.98 'Room205',serif", color: '#1a1714', marginTop: 10, wordBreak: 'break-word' }}
+        >
+          {coffee.name}
+        </div>
+        {coffee.notes.length > 0 && (
+          <div key={`${coffee.id}-notes-line`} className="slide-in-left" style={{ animationDelay: '.14s', font: "700 11px 'Space Mono'", letterSpacing: 1.5, color: '#8a7a68', marginTop: 16 }}>
+            {coffee.notes.map((n, i) => (
+              <span key={n}>
+                {n}
+                {i < coffee.notes.length - 1 && <span style={{ color: '#d3c9b6', margin: '0 9px' }}>|</span>}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+
       <div
         key={`${coffee.id}-cover`}
         className="rise-from-below"
-        style={{ animationDelay: '.16s', margin: '6px 22px 2px', height: 250, borderRadius: 22, overflow: 'hidden', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
       >
         {coffee.coverUrl ? (
-          <img src={coffee.coverUrl} alt={coffee.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          <img src={coffee.coverUrl} alt={coffee.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
         ) : (
           <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color: coffee.color, opacity: .7 }}>{coffee.originEN} · {coffee.name}</span>
         )}
       </div>
 
-      <div style={{ padding: '18px 24px 4px' }}>
-        <div key={`${coffee.id}-origin`} className="slide-in-left" style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: coffee.color }}>{coffee.originEN}</div>
-        <div key={`${coffee.id}-name`} className="slide-in-left" style={{ animationDelay: '.07s', font: "500 44px/1.05 'Room205',serif", color: '#1a1714', marginTop: 12 }}>{coffee.name}</div>
-        <div key={`${coffee.id}-badges`} className="slide-in-left" style={{ animationDelay: '.14s', display: 'flex', gap: 8, marginTop: 16 }}>
+      <Reveal style={{ padding: '20px 24px 0' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {coffee.archived ? (
             <span style={{ padding: '5px 12px', borderRadius: 20, background: '#1a1714', color: '#fff', font: "700 12px 'Space Mono'" }}>{t('stock.discontinued')}</span>
           ) : soldOut && (
@@ -109,35 +130,35 @@ export function DetailScreen() {
           <span style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(26,23,20,.06)', font: "600 12px 'Iansui'", color: '#4a3c2e' }}>{coffee.roast}</span>
         </div>
         <div style={{ font: "400 15px/1.9 'Iansui'", color: '#4a3c2e', marginTop: 18 }}>{coffee.desc}</div>
-      </div>
+      </Reveal>
 
-      <div style={{ padding: '22px 24px 4px' }}>
+      <Reveal style={{ padding: '22px 24px 4px' }}>
         <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.tastingNotes')}</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {coffee.notes.map(n => <NoteChip key={n} label={n} color={coffee.color} soft={soft} />)}
         </div>
-      </div>
+      </Reveal>
 
-      <div style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
+      <Reveal style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
         {specs.map(s => (
           <div key={s.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: '1px solid rgba(26,23,20,.08)' }}>
             <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>{s.k}</span>
             <span style={{ font: "500 14px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</span>
           </div>
         ))}
-      </div>
+      </Reveal>
 
       {canDrip && canBeans && (
-        <div style={{ padding: '22px 24px 0' }}>
+        <Reveal style={{ padding: '22px 24px 0' }}>
           <div style={{ display: 'flex', gap: 10 }}>
             <div onClick={() => setMode('drip')} className="press" style={seg(mode === 'drip')}>{t('detail.mode.drip')}</div>
             <div onClick={() => setMode('beans')} className="press" style={seg(mode === 'beans')}>{t('detail.mode.beans')}</div>
           </div>
-        </div>
+        </Reveal>
       )}
 
       {mode === 'drip' && (
-        <>
+        <Reveal>
           <div style={{ padding: '22px 24px 0' }}>
             <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.temperature')}</div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -155,11 +176,11 @@ export function DetailScreen() {
               ))}
             </div>
           </div>
-        </>
+        </Reveal>
       )}
 
       {mode === 'beans' && (
-        <div style={{ padding: '22px 24px 0' }}>
+        <Reveal style={{ padding: '22px 24px 0' }}>
           <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.weight')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {coffee.bagOptions.map(b => (
@@ -168,17 +189,19 @@ export function DetailScreen() {
               </div>
             ))}
           </div>
-        </div>
+        </Reveal>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '22px 24px 130px' }}>
-        <span style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{t('common.qty')}</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <div onClick={() => setQty(q => Math.max(1, q - 1))} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>−</div>
-          <span style={{ font: "500 22px 'Room205'", color: '#1a1714', minWidth: 24, textAlign: 'center' }}>{qty}</span>
-          <div onClick={() => setQty(q => q + 1)} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>＋</div>
+      <Reveal style={{ padding: '22px 24px 130px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{t('common.qty')}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+            <div onClick={() => setQty(q => Math.max(1, q - 1))} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>−</div>
+            <span style={{ font: "500 22px 'Room205'", color: '#1a1714', minWidth: 24, textAlign: 'center' }}>{qty}</span>
+            <div onClick={() => setQty(q => q + 1)} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>＋</div>
+          </div>
         </div>
-      </div>
+      </Reveal>
 
       <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: 'linear-gradient(180deg,rgba(244,241,234,0),#f4f1ea 40%)' }}>
         <div
