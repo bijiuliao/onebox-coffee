@@ -7,7 +7,7 @@ import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
 import { useArchivedCoffees, useCoffees, useSpecials } from '../useCoffees';
-import type { Coffee } from '../types';
+import type { BagOption, Coffee } from '../types';
 
 function PillOptions<T extends string>({ options, value, onChange }: {
   options: readonly { key: T; label: string }[];
@@ -130,6 +130,20 @@ function cheapestBagPrice(c: Coffee): number | null {
 // the coffee from sorting entirely.
 function beansPriceMetric(c: Coffee): number | null {
   return cheapestPer10g(c) ?? cheapestBagPrice(c);
+}
+
+// The listing card shows just one price (the largest bag), not every size -
+// pick by parsed weight where possible, falling back to the priciest option
+// for labels gramsFromBagLabel can't parse.
+function largestBagOption(c: Coffee): BagOption | null {
+  if (c.bagOptions.length === 0) return null;
+  const withGrams = c.bagOptions
+    .map(b => ({ b, g: gramsFromBagLabel(b.label) }))
+    .filter((x): x is { b: BagOption; g: number } => x.g !== null);
+  if (withGrams.length) {
+    return withGrams.reduce((a, b) => (b.g > a.g ? b : a)).b;
+  }
+  return c.bagOptions.reduce((a, b) => (b.price > a.price ? b : a));
 }
 
 function sortCoffees(list: Coffee[], sortKey: SortKey, category: CategoryKey): Coffee[] {
@@ -396,6 +410,7 @@ export function MenuScreen() {
             <div className="coffee-grid coffee-grid-2col">
               {visibleCoffees.map(c => {
                 const soldOut = isSoldOut(c);
+                const bag = largestBagOption(c);
                 return (
                   <div
                     key={c.id}
@@ -418,16 +433,16 @@ export function MenuScreen() {
                     <div style={{ padding: '12px 12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: c.color }}>{c.originEN} · {c.roast}</div>
                       <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
-                        {c.bagOptions.length === 0 && (
-                          <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>{t('menu.noBagOptions')}</div>
-                        )}
-                        {c.bagOptions.map(bag => (
-                          <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ font: "500 12px 'Iansui'", color: '#6b5c4a' }}>{bag.label}</span>
-                            <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
-                          </div>
-                        ))}
+                      {bag ? (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
+                          <span style={{ font: "400 11px 'Space Mono'", color: '#9a8a76' }}>{bag.label}</span>
+                          <span style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
+                        </div>
+                      ) : (
+                        <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 10 }}>{t('menu.noBagOptions')}</div>
+                      )}
+                      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                        {c.notes.map(n => <NoteChip key={n} label={n} color={c.color} soft={c.color + '22'} />)}
                       </div>
                     </div>
                   </div>
