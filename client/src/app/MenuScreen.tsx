@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
@@ -8,32 +8,40 @@ import { useLang } from '../i18n';
 import { useArchivedCoffees, useCoffees, useSpecials } from '../useCoffees';
 import type { Coffee } from '../types';
 
-function PillRow<T extends string>({ label, options, value, onChange }: {
-  label: string;
+function PillOptions<T extends string>({ options, value, onChange }: {
   options: readonly { key: T; label: string }[];
   value: T;
   onChange: (key: T) => void;
 }) {
   return (
-    <div>
-      <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 8 }}>{label}</div>
-      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {options.map(o => (
-          <div
-            key={o.key}
-            onClick={() => onChange(o.key)}
-            className="press"
-            style={{
-              padding: '9px 16px', borderRadius: 22, font: "600 13px 'Iansui'",
-              background: value === o.key ? '#1a1714' : '#fff',
-              color: value === o.key ? '#f4f1ea' : '#4a3c2e',
-              border: value === o.key ? 'none' : '1px solid #e4ddcd',
-            }}
-          >
-            {o.label}
-          </div>
-        ))}
+    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+      {options.map(o => (
+        <div
+          key={o.key}
+          onClick={() => onChange(o.key)}
+          className="press"
+          style={{
+            padding: '9px 16px', borderRadius: 22, font: "600 13px 'Iansui'",
+            background: value === o.key ? '#1a1714' : '#fff',
+            color: value === o.key ? '#f4f1ea' : '#4a3c2e',
+            border: value === o.key ? 'none' : '1px solid #e4ddcd',
+          }}
+        >
+          {o.label}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AccordionRow({ title, isOpen, onToggle, children }: { title: string; isOpen: boolean; onToggle: () => void; children: ReactNode }) {
+  return (
+    <div style={{ borderBottom: '1px solid #ece5d6' }}>
+      <div onClick={onToggle} className="press" style={{ cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '17px 2px' }}>
+        <span style={{ font: "600 15px 'Iansui'", color: '#1a1714' }}>{title}</span>
+        <span style={{ font: "400 20px 'Room205'", color: '#9a8a76', lineHeight: 1 }}>{isOpen ? '−' : '+'}</span>
       </div>
+      {isOpen && <div style={{ paddingBottom: 18 }}>{children}</div>}
     </div>
   );
 }
@@ -113,6 +121,8 @@ function isCategoryKey(v: unknown): v is CategoryKey {
   return typeof v === 'string' && (CATEGORY_KEYS as readonly string[]).includes(v);
 }
 
+type FilterSection = 'roast' | 'origin' | 'roaster' | 'sort';
+
 export function MenuScreen() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -130,13 +140,23 @@ export function MenuScreen() {
   const [originFilter, setOriginFilter] = useState('all');
   const [roasterFilter, setRoasterFilter] = useState('all');
   const [sortKey, setSortKey] = useState<SortKey>('default');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [expandedSection, setExpandedSection] = useState<FilterSection | null>('roast');
 
   useEffect(() => {
     setFilter('all');
     setOriginFilter('all');
     setRoasterFilter('all');
     setSortKey('default');
+    setFilterOpen(false);
   }, [category]);
+
+  useEffect(() => {
+    if (!filterOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [filterOpen]);
 
   const title = {
     eyebrow: t(`title.${category}.eyebrow`),
@@ -158,6 +178,13 @@ export function MenuScreen() {
     sortKey,
     category,
   );
+  const activeFilterCount = [filter !== 'all', originFilter !== 'all', roasterFilter !== 'all', sortKey !== 'default'].filter(Boolean).length;
+  const clearAllFilters = () => {
+    setFilter('all');
+    setOriginFilter('all');
+    setRoasterFilter('all');
+    setSortKey('default');
+  };
 
   return (
     <MobileShell>
@@ -200,26 +227,71 @@ export function MenuScreen() {
       </div>
 
       {category !== 'special' && category !== 'history' && (
-        <div className="rise" style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '16px 22px 6px', animationDelay: '.2s' }}>
-          <PillRow label={t('filter.roast')} options={roastFilterOptions} value={filter} onChange={setFilter} />
-          {origins.length > 1 && (
-            <PillRow
-              label={t('filter.origin')}
-              options={[{ key: 'all', label: t('filter.all') }, ...origins.map(o => ({ key: o, label: o }))]}
-              value={originFilter}
-              onChange={setOriginFilter}
-            />
-          )}
-          {roasters.length > 1 && (
-            <PillRow
-              label={t('filter.roaster')}
-              options={[{ key: 'all', label: t('filter.all') }, ...roasters.map(r => ({ key: r, label: r }))]}
-              value={roasterFilter}
-              onChange={setRoasterFilter}
-            />
-          )}
-          <PillRow label={t('filter.sort')} options={sortOptions} value={sortKey} onChange={setSortKey} />
+        <div className="rise" style={{ padding: '16px 22px 6px', animationDelay: '.2s' }}>
+          <div
+            onClick={() => setFilterOpen(true)}
+            className="press"
+            style={{
+              cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 22,
+              background: '#fff', border: '1px solid #e4ddcd', font: "700 12px 'Space Mono'", letterSpacing: 1, color: '#4a3c2e',
+            }}
+          >
+            {t('filter.button')}
+            {activeFilterCount > 0 && (
+              <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {activeFilterCount}
+              </span>
+            )}
+          </div>
         </div>
+      )}
+
+      {filterOpen && (
+        <>
+          <div onClick={() => setFilterOpen(false)} className="filter-backdrop" style={{ position: 'fixed', inset: 0, maxWidth: 480, margin: '0 auto', background: 'rgba(26,23,20,.4)', zIndex: 40 }} />
+          <div className="filter-sheet" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, maxWidth: 480, margin: '0 auto', maxHeight: '86vh', background: '#f4f1ea', borderRadius: '22px 22px 0 0', zIndex: 41, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 -20px 50px -20px rgba(30,22,16,.4)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '20px 22px 16px', borderBottom: '1px solid #e4ddcd' }}>
+              <span style={{ font: "700 18px 'Iansui'" }}>{t('filter.title')}</span>
+              <span style={{ font: "600 12px 'Space Mono'", color: '#9a8a76' }}>{t('filter.results', { count: visibleCoffees.length })}</span>
+            </div>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '2px 22px' }}>
+              <AccordionRow title={t('filter.roast')} isOpen={expandedSection === 'roast'} onToggle={() => setExpandedSection(s => s === 'roast' ? null : 'roast')}>
+                <PillOptions options={roastFilterOptions} value={filter} onChange={setFilter} />
+              </AccordionRow>
+              {origins.length > 1 && (
+                <AccordionRow title={t('filter.origin')} isOpen={expandedSection === 'origin'} onToggle={() => setExpandedSection(s => s === 'origin' ? null : 'origin')}>
+                  <PillOptions
+                    options={[{ key: 'all', label: t('filter.all') }, ...origins.map(o => ({ key: o, label: o }))]}
+                    value={originFilter}
+                    onChange={setOriginFilter}
+                  />
+                </AccordionRow>
+              )}
+              {roasters.length > 1 && (
+                <AccordionRow title={t('filter.roaster')} isOpen={expandedSection === 'roaster'} onToggle={() => setExpandedSection(s => s === 'roaster' ? null : 'roaster')}>
+                  <PillOptions
+                    options={[{ key: 'all', label: t('filter.all') }, ...roasters.map(r => ({ key: r, label: r }))]}
+                    value={roasterFilter}
+                    onChange={setRoasterFilter}
+                  />
+                </AccordionRow>
+              )}
+              <AccordionRow title={t('filter.sort')} isOpen={expandedSection === 'sort'} onToggle={() => setExpandedSection(s => s === 'sort' ? null : 'sort')}>
+                <PillOptions options={sortOptions} value={sortKey} onChange={setSortKey} />
+              </AccordionRow>
+            </div>
+            <div style={{ display: 'flex', gap: 10, padding: '14px 22px 22px', alignItems: 'center' }}>
+              {activeFilterCount > 0 && (
+                <div onClick={clearAllFilters} className="press" style={{ cursor: 'pointer', font: "600 13px 'Iansui'", color: '#8a7a68', textDecoration: 'underline', whiteSpace: 'nowrap' }}>
+                  {t('filter.clearAll')}
+                </div>
+              )}
+              <div onClick={() => setFilterOpen(false)} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', background: '#1a1714', color: '#f4f1ea', borderRadius: 16, padding: 16, font: "600 15px 'Iansui'" }}>
+                {t('filter.done')}
+              </div>
+            </div>
+          </div>
+        </>
       )}
 
       <div className="rise" style={{ padding: '10px 22px 40px', display: 'flex', flexDirection: 'column', gap: 16, animationDelay: '.32s' }}>
