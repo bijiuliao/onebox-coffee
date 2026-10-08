@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
@@ -25,6 +25,12 @@ export function DetailScreen() {
   const [size, setSize] = useState<Size | null>(null);
   const [bagLabel, setBagLabel] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
+  // Cosmetic drag-to-tilt on the cover photo (no real 360deg photos exist -
+  // this just fakes a bit of depth while dragging, borrowed from onyx
+  // coffee lab's rotating product shot).
+  const [tilt, setTilt] = useState(0);
+  const [tilting, setTilting] = useState(false);
+  const dragStartX = useRef(0);
 
   useEffect(() => {
     if (!coffee) return;
@@ -68,6 +74,19 @@ export function DetailScreen() {
     { k: t('detail.spec.varietal'), v: coffee.varietal },
     { k: t('detail.spec.roast'), v: coffee.roast },
   ];
+  // Same specs, laid out flanking the circular wheel on desktop - origin
+  // joins the set here since the wheel is self-contained (unlike the simple
+  // list, which leaves it to the eyebrow line above the title).
+  const wheelLeft = [
+    { k: t('detail.spec.roaster'), v: coffee.roaster },
+    { k: t('detail.spec.process'), v: coffee.process },
+    { k: t('detail.spec.altitude'), v: coffee.altitude },
+  ];
+  const wheelRight = [
+    { k: t('detail.spec.varietal'), v: coffee.varietal },
+    { k: t('detail.spec.roast'), v: coffee.roast },
+    { k: t('detail.spec.origin'), v: coffee.originEN },
+  ];
 
   const seg = (active: boolean) => ({
     flex: 1, cursor: 'pointer', textAlign: 'center' as const, padding: 13, borderRadius: 14, font: "600 14px 'Iansui'",
@@ -76,7 +95,7 @@ export function DetailScreen() {
   });
 
   return (
-    <MobileShell style={{ background: `linear-gradient(180deg,${soft} 0%,#f4f1ea 62%)` }}>
+    <MobileShell style={{ background: soft }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 22px 6px' }}>
         <BackButton onClick={() => navigate('/menu', backToMenu)} translucent />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -111,13 +130,32 @@ export function DetailScreen() {
       <div
         key={`${coffee.id}-cover`}
         className="rise-from-below"
-        style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', perspective: 900, cursor: 'grab', touchAction: 'pan-y' }}
+        onPointerDown={(e) => {
+          setTilting(true);
+          dragStartX.current = e.clientX;
+          e.currentTarget.setPointerCapture(e.pointerId);
+        }}
+        onPointerMove={(e) => {
+          if (!tilting) return;
+          const delta = e.clientX - dragStartX.current;
+          setTilt(Math.max(-16, Math.min(16, delta / 6)));
+        }}
+        onPointerUp={() => { setTilting(false); setTilt(0); }}
+        onPointerCancel={() => { setTilting(false); setTilt(0); }}
       >
-        {coffee.coverUrl ? (
-          <img src={coffee.coverUrl} alt={coffee.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color: coffee.color, opacity: .7 }}>{coffee.originEN} · {coffee.name}</span>
-        )}
+        <div style={{ width: '100%', height: '100%', transform: `rotateY(${tilt}deg)`, transition: tilting ? 'none' : 'transform .5s cubic-bezier(.2,.8,.2,1)' }}>
+          {coffee.coverUrl ? (
+            <img src={coffee.coverUrl} alt={coffee.name} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color: coffee.color, opacity: .7 }}>{coffee.originEN} · {coffee.name}</span>
+            </div>
+          )}
+        </div>
+        <span style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: coffee.color, opacity: .65, pointerEvents: 'none' }}>
+          ↔ {t('detail.tiltHint')}
+        </span>
       </div>
 
       <Reveal style={{ padding: '20px 24px 0' }}>
@@ -144,13 +182,53 @@ export function DetailScreen() {
         </div>
       </Reveal>
 
-      <Reveal style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
+      <Reveal className="spec-list-simple" style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
         {specs.map(s => (
           <div key={s.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: '1px solid rgba(26,23,20,.08)' }}>
             <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>{s.k}</span>
             <span style={{ font: "500 14px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</span>
           </div>
         ))}
+      </Reveal>
+
+      {/* Desktop-only: the same specs laid out around a circle, borrowed
+          from onyx coffee lab's product-page "spec wheel". */}
+      <Reveal className="spec-wheel" style={{ margin: '48px 0 0', justifyContent: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 28, margin: '0 auto', width: 'fit-content' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
+            {wheelLeft.map(s => (
+              <div key={s.k} style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', textAlign: 'right' }}>
+                <div>
+                  <div style={{ font: "500 15px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
+                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 3 }}>{s.k}</div>
+                </div>
+                <span style={{ width: 26, height: 1, background: 'rgba(26,23,20,.25)', flex: 'none' }} />
+              </div>
+            ))}
+          </div>
+
+          <div style={{
+            width: 300, height: 300, borderRadius: '50%', flex: 'none', border: `1px solid ${coffee.color}66`,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 36,
+          }}>
+            <div style={{ font: "600 34px 'Room205',serif", color: '#1a1714' }}>{coffee.roast}</div>
+            <div style={{ font: "400 13px/1.7 'Iansui'", color: '#6b5c4a', marginTop: 12, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical' }}>
+              {coffee.desc}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
+            {wheelRight.map(s => (
+              <div key={s.k} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <span style={{ width: 26, height: 1, background: 'rgba(26,23,20,.25)', flex: 'none' }} />
+                <div>
+                  <div style={{ font: "500 15px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
+                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 3 }}>{s.k}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </Reveal>
 
       {canDrip && canBeans && (
@@ -208,7 +286,7 @@ export function DetailScreen() {
         </div>
       </Reveal>
 
-      <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: 'linear-gradient(180deg,rgba(244,241,234,0),#f4f1ea 40%)' }}>
+      <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: `linear-gradient(180deg,${coffee.color}00,${soft} 40%)` }}>
         <div
           onClick={() => {
             if (unavailable) return;

@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
-import { BRAND_NAME, DEFAULT_TEMP, SHOW_SCORES } from '../constants';
+import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
 import { useArchivedCoffees, useCoffees, useSpecials } from '../useCoffees';
@@ -380,24 +380,7 @@ export function MenuScreen() {
                           <span style={{ font: "700 9px 'Space Mono'", color: '#b0a08c', letterSpacing: 1 }}>ROAST</span>
                           <RoastDots level={c.level} color={c.color} />
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ font: "500 18px 'Room205',serif", color: '#1a1714' }}>${c.price}</span>
-                          {!soldOut && (
-                            <div
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                cart.addDrip(c, DEFAULT_TEMP, '標準', 1);
-                              }}
-                              className="press"
-                              style={{
-                                cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: c.color, color: '#fff',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 22px 'Room205'",
-                              }}
-                            >
-                              ＋
-                            </div>
-                          )}
-                        </div>
+                        <span style={{ font: "500 18px 'Room205',serif", color: '#1a1714' }}>${c.price}</span>
                       </div>
                     </div>
                   </div>
@@ -442,21 +425,7 @@ export function MenuScreen() {
                         {c.bagOptions.map(bag => (
                           <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span style={{ font: "500 12px 'Iansui'", color: '#6b5c4a' }}>{bag.label}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                              <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
-                              {!soldOut && (
-                                <div
-                                  onClick={(e) => { e.stopPropagation(); cart.addBeans(c, bag, 1); }}
-                                  className="press"
-                                  style={{
-                                    cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', background: c.color, color: '#fff',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 15px 'Room205'", flex: 'none',
-                                  }}
-                                >
-                                  ＋
-                                </div>
-                              )}
-                            </div>
+                            <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
                           </div>
                         ))}
                       </div>

@@ -123,6 +123,14 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
   .mobile-shell-wide { max-width: 1800px; }
 }
 
+/* Coffee detail page specs: simple label/value list on mobile (unchanged),
+   circular "spec wheel" on desktop - borrowed from onyx coffee lab. */
+.spec-wheel { display: none; }
+@media (min-width: 800px) {
+  .spec-list-simple { display: none; }
+  .spec-wheel { display: flex; }
+}
+
 /* Coffee card grids: single column on mobile (unchanged), reflowing into
    more columns as the (now full-bleed) menu page gets wider on desktop -
    same idea as onyx coffee lab's own product grid. */

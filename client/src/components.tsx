@@ -3,7 +3,7 @@ import { useLang } from './i18n';
 
 // Fades/slides a section in once it scrolls into view (and stays revealed -
 // the observer disconnects after the first trigger so it never re-hides).
-export function Reveal({ children, delay = 0, style }: { children: ReactNode; delay?: number; style?: CSSProperties }) {
+export function Reveal({ children, delay = 0, style, className }: { children: ReactNode; delay?: number; style?: CSSProperties; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
 
@@ -21,7 +21,7 @@ export function Reveal({ children, delay = 0, style }: { children: ReactNode; de
   }, []);
 
   return (
-    <div ref={ref} className={`reveal${inView ? ' reveal-in' : ''}`} style={{ transitionDelay: `${delay}ms`, ...style }}>
+    <div ref={ref} className={`reveal${inView ? ' reveal-in' : ''}${className ? ` ${className}` : ''}`} style={{ transitionDelay: `${delay}ms`, ...style }}>
       {children}
     </div>
   );
