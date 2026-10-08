@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
@@ -246,7 +247,7 @@ export function MenuScreen() {
         </div>
       )}
 
-      {filterOpen && (
+      {filterOpen && createPortal(
         <>
           <div onClick={() => setFilterOpen(false)} className="filter-backdrop" style={{ position: 'fixed', inset: 0, maxWidth: 480, margin: '0 auto', background: 'rgba(26,23,20,.4)', zIndex: 40 }} />
           <div className="filter-sheet" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, maxWidth: 480, margin: '0 auto', maxHeight: '86vh', background: '#f4f1ea', borderRadius: '22px 22px 0 0', zIndex: 41, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 -20px 50px -20px rgba(30,22,16,.4)' }}>
@@ -291,7 +292,8 @@ export function MenuScreen() {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body,
       )}
 
       <div className="rise" style={{ padding: '10px 22px 40px', display: 'flex', flexDirection: 'column', gap: 16, animationDelay: '.32s' }}>
