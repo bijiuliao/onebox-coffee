@@ -50,6 +50,14 @@ input, textarea { font-family: inherit; }
   from { opacity: 0; transform: translateY(14px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-36px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes riseFromBelow {
+  from { opacity: 0; transform: translateY(70px); }
+  to { opacity: 1; transform: none; }
+}
 @keyframes successPop {
   0% { transform: scale(0); opacity: 0; }
   60% { transform: scale(1.08); opacity: 1; }
@@ -65,6 +73,8 @@ input, textarea { font-family: inherit; }
 
 .rise { animation: rise .6s ease both; }
 .screen-in { animation: screenIn .42s cubic-bezier(.2,.7,.2,1) both; }
+.slide-in-left { animation: slideInLeft .7s cubic-bezier(.16,.8,.2,1) both; }
+.rise-from-below { animation: riseFromBelow .75s cubic-bezier(.16,.8,.2,1) both; }
 
 .press { transition: transform .12s ease; cursor: pointer; }
 .press:active { transform: scale(.95); }

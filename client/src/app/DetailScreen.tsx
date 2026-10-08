@@ -80,7 +80,11 @@ export function DetailScreen() {
         </div>
       </div>
 
-      <div style={{ margin: '6px 22px 2px', height: 250, borderRadius: 22, overflow: 'hidden', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div
+        key={`${coffee.id}-cover`}
+        className="rise-from-below"
+        style={{ animationDelay: '.16s', margin: '6px 22px 2px', height: 250, borderRadius: 22, overflow: 'hidden', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
         {coffee.coverUrl ? (
           <img src={coffee.coverUrl} alt={coffee.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         ) : (
@@ -89,9 +93,9 @@ export function DetailScreen() {
       </div>
 
       <div style={{ padding: '18px 24px 4px' }}>
-        <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: coffee.color }}>{coffee.originEN}</div>
-        <div style={{ font: "500 44px/1.05 'Room205',serif", color: '#1a1714', marginTop: 12 }}>{coffee.name}</div>
-        <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+        <div key={`${coffee.id}-origin`} className="slide-in-left" style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: coffee.color }}>{coffee.originEN}</div>
+        <div key={`${coffee.id}-name`} className="slide-in-left" style={{ animationDelay: '.07s', font: "500 44px/1.05 'Room205',serif", color: '#1a1714', marginTop: 12 }}>{coffee.name}</div>
+        <div key={`${coffee.id}-badges`} className="slide-in-left" style={{ animationDelay: '.14s', display: 'flex', gap: 8, marginTop: 16 }}>
           {coffee.archived ? (
             <span style={{ padding: '5px 12px', borderRadius: 20, background: '#1a1714', color: '#fff', font: "700 12px 'Space Mono'" }}>{t('stock.discontinued')}</span>
           ) : soldOut && (
