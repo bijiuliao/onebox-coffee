@@ -35,6 +35,34 @@ function PillOptions<T extends string>({ options, value, onChange }: {
   );
 }
 
+// Multi-select checkbox list (round custom checkboxes), modeled on onyx
+// coffee lab's filter panel - lets a customer pick several values in the
+// same category (e.g. two origins at once) instead of just one.
+function CheckboxList<T extends string>({ options, selected, onToggle }: {
+  options: readonly { key: T; label: string }[];
+  selected: ReadonlySet<T>;
+  onToggle: (key: T) => void;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {options.map(o => {
+        const checked = selected.has(o.key);
+        return (
+          <div key={o.key} onClick={() => onToggle(o.key)} className="press" style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{
+              width: 14, height: 14, borderRadius: '50%', flex: 'none',
+              border: checked ? 'none' : '1px solid #c2b9a6',
+              background: checked ? '#1a1714' : 'transparent',
+              transition: 'background .12s ease',
+            }} />
+            <span style={{ font: "500 14px 'Iansui'", color: '#4a3c2e' }}>{o.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function AccordionRow({ title, isOpen, onToggle, children }: { title: string; isOpen: boolean; onToggle: () => void; children: ReactNode }) {
   return (
     <div style={{ borderBottom: '1px solid #ece5d6' }}>
@@ -50,17 +78,18 @@ function AccordionRow({ title, isOpen, onToggle, children }: { title: string; is
 const CATEGORY_KEYS = ['drip', 'beans', 'special', 'history'] as const;
 type CategoryKey = typeof CATEGORY_KEYS[number];
 
-const ROAST_FILTER_KEYS = ['all', 'light', 'mid', 'dark'] as const;
-type FilterKey = typeof ROAST_FILTER_KEYS[number];
-const ROAST_FILTER_I18N: Record<FilterKey, string> = {
-  all: 'filter.all', light: 'filter.roastLight', mid: 'filter.roastMid', dark: 'filter.roastDark',
+const ROAST_FILTER_KEYS = ['light', 'mid', 'dark'] as const;
+type RoastFilterKey = typeof ROAST_FILTER_KEYS[number];
+const ROAST_FILTER_I18N: Record<RoastFilterKey, string> = {
+  light: 'filter.roastLight', mid: 'filter.roastMid', dark: 'filter.roastDark',
 };
 
-function inFilter(c: Coffee, filter: FilterKey) {
-  if (filter === 'all') return true;
-  if (filter === 'light') return c.level <= 2;
-  if (filter === 'mid') return c.level === 3;
-  return c.level >= 4;
+function matchesRoastFilter(c: Coffee, selected: ReadonlySet<RoastFilterKey>) {
+  if (selected.size === 0) return true;
+  if (selected.has('light') && c.level <= 2) return true;
+  if (selected.has('mid') && c.level === 3) return true;
+  if (selected.has('dark') && c.level >= 4) return true;
+  return false;
 }
 
 type SortKey = 'default' | 'newest' | 'price-asc' | 'price-desc';
@@ -137,17 +166,19 @@ export function MenuScreen() {
   // bouncing back to 手沖咖啡.
   const initialCategory = (location.state as { category?: unknown } | null)?.category;
   const [category, setCategory] = useState<CategoryKey>(isCategoryKey(initialCategory) ? initialCategory : 'drip');
-  const [filter, setFilter] = useState<FilterKey>('all');
-  const [originFilter, setOriginFilter] = useState('all');
-  const [roasterFilter, setRoasterFilter] = useState('all');
+  // Empty set == no restriction on that category (matches every coffee),
+  // same convention onyx coffee lab's filter checkboxes use.
+  const [roastFilter, setRoastFilter] = useState<Set<RoastFilterKey>>(() => new Set());
+  const [originFilter, setOriginFilter] = useState<Set<string>>(() => new Set());
+  const [roasterFilter, setRoasterFilter] = useState<Set<string>>(() => new Set());
   const [sortKey, setSortKey] = useState<SortKey>('default');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [expandedSection, setExpandedSection] = useState<FilterSection | null>('roast');
+  const [openSections, setOpenSections] = useState<Set<FilterSection>>(() => new Set(['roast']));
 
   useEffect(() => {
-    setFilter('all');
-    setOriginFilter('all');
-    setRoasterFilter('all');
+    setRoastFilter(new Set());
+    setOriginFilter(new Set());
+    setRoasterFilter(new Set());
     setSortKey('default');
     setFilterOpen(false);
   }, [category]);
@@ -172,20 +203,34 @@ export function MenuScreen() {
   const roasters = Array.from(new Set(categoryCoffees.map(c => c.roaster))).filter(Boolean).sort();
   const visibleCoffees = sortCoffees(
     categoryCoffees.filter(c =>
-      inFilter(c, filter) &&
-      (originFilter === 'all' || c.originEN === originFilter) &&
-      (roasterFilter === 'all' || c.roaster === roasterFilter)
+      matchesRoastFilter(c, roastFilter) &&
+      (originFilter.size === 0 || originFilter.has(c.originEN)) &&
+      (roasterFilter.size === 0 || roasterFilter.has(c.roaster))
     ),
     sortKey,
     category,
   );
-  const activeFilterCount = [filter !== 'all', originFilter !== 'all', roasterFilter !== 'all', sortKey !== 'default'].filter(Boolean).length;
+  const activeFilterCount = [roastFilter.size > 0, originFilter.size > 0, roasterFilter.size > 0, sortKey !== 'default'].filter(Boolean).length;
   const clearAllFilters = () => {
-    setFilter('all');
-    setOriginFilter('all');
-    setRoasterFilter('all');
+    setRoastFilter(new Set());
+    setOriginFilter(new Set());
+    setRoasterFilter(new Set());
     setSortKey('default');
   };
+  function toggleInSet<T>(setFn: (updater: (prev: Set<T>) => Set<T>) => void, key: T) {
+    setFn(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
+  function toggleSection(key: FilterSection) {
+    setOpenSections(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   return (
     <MobileShell>
@@ -234,12 +279,13 @@ export function MenuScreen() {
             className="press"
             style={{
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 22,
-              background: '#fff', border: '1px solid #e4ddcd', font: "700 12px 'Space Mono'", letterSpacing: 1, color: '#4a3c2e',
+              background: filterOpen ? '#1a1714' : '#fff', border: filterOpen ? 'none' : '1px solid #e4ddcd',
+              font: "700 12px 'Space Mono'", letterSpacing: 1, color: filterOpen ? '#f4f1ea' : '#4a3c2e', transition: 'all .2s ease',
             }}
           >
             {t('filter.button')}
             {activeFilterCount > 0 && (
-              <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: filterOpen ? '#f4f1ea' : '#1a1714', color: filterOpen ? '#1a1714' : '#fff', font: "700 10px 'Space Mono'", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {activeFilterCount}
               </span>
             )}
@@ -248,36 +294,36 @@ export function MenuScreen() {
       )}
 
       {filterOpen && createPortal(
-        <>
-          <div onClick={() => setFilterOpen(false)} className="filter-backdrop" style={{ position: 'fixed', inset: 0, maxWidth: 480, margin: '0 auto', background: 'rgba(26,23,20,.4)', zIndex: 40 }} />
-          <div className="filter-sheet" style={{ position: 'fixed', left: 0, right: 0, bottom: 0, maxWidth: 480, margin: '0 auto', maxHeight: '86vh', background: '#f4f1ea', borderRadius: '22px 22px 0 0', zIndex: 41, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 -20px 50px -20px rgba(30,22,16,.4)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '20px 22px 16px', borderBottom: '1px solid #e4ddcd' }}>
+        <div style={{ position: 'fixed', inset: 0, maxWidth: 480, margin: '0 auto', zIndex: 40, overflow: 'hidden' }}>
+          <div onClick={() => setFilterOpen(false)} className="filter-backdrop" style={{ position: 'absolute', inset: 0, background: 'rgba(26,23,20,.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />
+          <div className="filter-drawer" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '80%', maxWidth: 360, background: '#f4f1ea', zIndex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '24px 0 50px -20px rgba(30,22,16,.4)' }}>
+            <div style={{ padding: '22px 22px 16px', borderBottom: '1px solid #e4ddcd' }}>
               <span style={{ font: "700 18px 'Iansui'" }}>{t('filter.title')}</span>
-              <span style={{ font: "600 12px 'Space Mono'", color: '#9a8a76' }}>{t('filter.results', { count: visibleCoffees.length })}</span>
+              <div style={{ font: "600 12px 'Space Mono'", color: '#9a8a76', marginTop: 6 }}>{t('filter.results', { count: visibleCoffees.length })}</div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '2px 22px' }}>
-              <AccordionRow title={t('filter.roast')} isOpen={expandedSection === 'roast'} onToggle={() => setExpandedSection(s => s === 'roast' ? null : 'roast')}>
-                <PillOptions options={roastFilterOptions} value={filter} onChange={setFilter} />
+              <AccordionRow title={t('filter.roast')} isOpen={openSections.has('roast')} onToggle={() => toggleSection('roast')}>
+                <CheckboxList options={roastFilterOptions} selected={roastFilter} onToggle={k => toggleInSet(setRoastFilter, k)} />
               </AccordionRow>
               {origins.length > 1 && (
-                <AccordionRow title={t('filter.origin')} isOpen={expandedSection === 'origin'} onToggle={() => setExpandedSection(s => s === 'origin' ? null : 'origin')}>
-                  <PillOptions
-                    options={[{ key: 'all', label: t('filter.all') }, ...origins.map(o => ({ key: o, label: o }))]}
-                    value={originFilter}
-                    onChange={setOriginFilter}
+                <AccordionRow title={t('filter.origin')} isOpen={openSections.has('origin')} onToggle={() => toggleSection('origin')}>
+                  <CheckboxList
+                    options={origins.map(o => ({ key: o, label: o }))}
+                    selected={originFilter}
+                    onToggle={k => toggleInSet(setOriginFilter, k)}
                   />
                 </AccordionRow>
               )}
               {roasters.length > 1 && (
-                <AccordionRow title={t('filter.roaster')} isOpen={expandedSection === 'roaster'} onToggle={() => setExpandedSection(s => s === 'roaster' ? null : 'roaster')}>
-                  <PillOptions
-                    options={[{ key: 'all', label: t('filter.all') }, ...roasters.map(r => ({ key: r, label: r }))]}
-                    value={roasterFilter}
-                    onChange={setRoasterFilter}
+                <AccordionRow title={t('filter.roaster')} isOpen={openSections.has('roaster')} onToggle={() => toggleSection('roaster')}>
+                  <CheckboxList
+                    options={roasters.map(r => ({ key: r, label: r }))}
+                    selected={roasterFilter}
+                    onToggle={k => toggleInSet(setRoasterFilter, k)}
                   />
                 </AccordionRow>
               )}
-              <AccordionRow title={t('filter.sort')} isOpen={expandedSection === 'sort'} onToggle={() => setExpandedSection(s => s === 'sort' ? null : 'sort')}>
+              <AccordionRow title={t('filter.sort')} isOpen={openSections.has('sort')} onToggle={() => toggleSection('sort')}>
                 <PillOptions options={sortOptions} value={sortKey} onChange={setSortKey} />
               </AccordionRow>
             </div>
@@ -292,7 +338,7 @@ export function MenuScreen() {
               </div>
             </div>
           </div>
-        </>,
+        </div>,
         document.body,
       )}
 

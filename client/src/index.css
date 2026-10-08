@@ -74,9 +74,9 @@ input, textarea { font-family: inherit; }
   from { opacity: 0; }
   to { opacity: 1; }
 }
-@keyframes sheetUp {
-  from { opacity: 0; transform: translateY(40px); }
-  to { opacity: 1; transform: none; }
+@keyframes drawerSlideIn {
+  from { transform: translateX(-100%); }
+  to { transform: none; }
 }
 
 .rise { animation: rise .6s ease both; }
@@ -92,7 +92,7 @@ input, textarea { font-family: inherit; }
 .reveal-in { opacity: 1; transform: none; }
 
 .filter-backdrop { animation: fadeIn .25s ease both; }
-.filter-sheet { animation: sheetUp .32s cubic-bezier(.2,.8,.2,1) both; }
+.filter-drawer { animation: drawerSlideIn .32s cubic-bezier(.2,.8,.2,1) both; }
 
 .press { transition: transform .12s ease; cursor: pointer; }
 .press:active { transform: scale(.95); }
