@@ -42,6 +42,11 @@ export function DetailScreen() {
     return <MobileShell><div style={{ padding: 60, textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div></MobileShell>;
   }
 
+  // Carries the tab the customer came from (手沖咖啡/買豆子/過往豆單) back to
+  // the menu, so returning lands on that tab instead of always 手沖咖啡.
+  const fromCategory = (location.state as { fromCategory?: string } | null)?.fromCategory;
+  const backToMenu = fromCategory ? { state: { category: fromCategory } } : undefined;
+
   const soft = coffee.color + '22';
   const soldOut = isSoldOut(coffee);
   const unavailable = coffee.archived || soldOut;
@@ -73,7 +78,7 @@ export function DetailScreen() {
   return (
     <MobileShell style={{ background: `linear-gradient(180deg,${soft} 0%,#f4f1ea 62%)` }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 22px 6px' }}>
-        <BackButton onClick={() => navigate('/menu')} translucent />
+        <BackButton onClick={() => navigate('/menu', backToMenu)} translucent />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <LangToggle translucent />
           <CartButton count={cart.count} onClick={() => navigate('/cart')} translucent />
@@ -214,7 +219,7 @@ export function DetailScreen() {
               cart.addDrip(coffee, temp, size, qty);
             }
             showToast(t('detail.addedToast') + coffee.name);
-            navigate('/menu');
+            navigate('/menu', backToMenu);
           }}
           className="press"
           style={{

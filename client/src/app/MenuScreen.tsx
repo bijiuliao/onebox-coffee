@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, DEFAULT_TEMP, SHOW_SCORES } from '../constants';
@@ -109,14 +109,23 @@ function sortCoffees(list: Coffee[], sortKey: SortKey, category: CategoryKey): C
   return sorted;
 }
 
+function isCategoryKey(v: unknown): v is CategoryKey {
+  return typeof v === 'string' && (CATEGORY_KEYS as readonly string[]).includes(v);
+}
+
 export function MenuScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
   const cart = useCart();
   const { t } = useLang();
   const { coffees } = useCoffees();
   const { specials } = useSpecials();
   const { coffees: archivedCoffees } = useArchivedCoffees();
-  const [category, setCategory] = useState<CategoryKey>('drip');
+  // Returning from a coffee's detail page (via its back button) restores
+  // whichever tab the customer actually came from, instead of always
+  // bouncing back to 手沖咖啡.
+  const initialCategory = (location.state as { category?: unknown } | null)?.category;
+  const [category, setCategory] = useState<CategoryKey>(isCategoryKey(initialCategory) ? initialCategory : 'drip');
   const [filter, setFilter] = useState<FilterKey>('all');
   const [originFilter, setOriginFilter] = useState('all');
   const [roasterFilter, setRoasterFilter] = useState('all');
@@ -225,7 +234,7 @@ export function MenuScreen() {
               return (
                 <div
                   key={c.id}
-                  onClick={() => navigate(`/coffee/${c.id}`)}
+                  onClick={() => navigate(`/coffee/${c.id}`, { state: { fromCategory: 'drip' } })}
                   className="lift"
                   style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden', opacity: soldOut ? .6 : 1 }}
                 >
@@ -281,7 +290,7 @@ export function MenuScreen() {
                 return (
                   <div
                     key={c.id}
-                    onClick={() => navigate(`/coffee/${c.id}`, { state: { mode: 'beans' } })}
+                    onClick={() => navigate(`/coffee/${c.id}`, { state: { mode: 'beans', fromCategory: 'beans' } })}
                     className="lift"
                     style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', opacity: soldOut ? .6 : 1 }}
                   >
@@ -385,7 +394,7 @@ export function MenuScreen() {
               {archivedCoffees?.map(c => (
                 <div
                   key={c.id}
-                  onClick={() => navigate(`/coffee/${c.id}`)}
+                  onClick={() => navigate(`/coffee/${c.id}`, { state: { fromCategory: 'history' } })}
                   className="lift"
                   style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', opacity: .75 }}
                 >
