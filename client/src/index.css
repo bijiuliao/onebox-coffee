@@ -110,3 +110,29 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #d8cfbd; border-radius: 6px; border: 3px solid #f4f1ea; }
+
+/* Mobile (<800px): every screen stays the same narrow phone-width column
+   it always has. Desktop (>=800px): the single-item/form screens (cover,
+   detail, cart, success) widen to a comfortable reading column instead of
+   sitting as a tiny island in a sea of background; the grid/listing screen
+   (menu, via the `wide` prop) drops the cap almost entirely and bleeds to
+   the edges like onyx coffee lab's own product grid. */
+.mobile-shell { max-width: 480px; }
+@media (min-width: 800px) {
+  .mobile-shell { max-width: 900px; }
+  .mobile-shell-wide { max-width: 1800px; }
+}
+
+/* Coffee card grids: single column on mobile (unchanged), reflowing into
+   more columns as the (now full-bleed) menu page gets wider on desktop -
+   same idea as onyx coffee lab's own product grid. */
+.coffee-grid-1col { display: flex; flex-direction: column; gap: 16px; }
+.coffee-grid-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (min-width: 800px) {
+  .coffee-grid-1col { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+  .coffee-grid-2col { grid-template-columns: repeat(3, 1fr); gap: 20px; }
+}
+@media (min-width: 1200px) {
+  .coffee-grid-1col { grid-template-columns: repeat(3, 1fr); }
+  .coffee-grid-2col { grid-template-columns: repeat(4, 1fr); }
+}
