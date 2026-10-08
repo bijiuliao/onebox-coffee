@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, DEFAULT_TEMP, SHOW_SCORES } from '../constants';
-import { useCart } from '../cart';
+import { isSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
 import { useCoffees, useSpecials } from '../useCoffees';
 import type { Coffee } from '../types';
@@ -216,48 +216,55 @@ export function MenuScreen() {
             {coffees && categoryCoffees.length > 0 && visibleCoffees.length === 0 && (
               <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noDripMatch')}</div>
             )}
-            {visibleCoffees.map(c => (
-              <div
-                key={c.id}
-                onClick={() => navigate(`/coffee/${c.id}`)}
-                className="lift"
-                style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden' }}
-              >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 18px', background: c.color + '22', color: c.color }}>
-                  <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5 }}>{c.originEN}</span>
-                  {SHOW_SCORES && <span style={{ font: "700 11px 'Space Mono'", color: c.color }}>⌾ {c.score}</span>}
-                </div>
-                <div style={{ padding: '16px 18px 18px' }}>
-                  <div style={{ font: "500 22px/1.15 'Room205',serif", color: '#1a1714' }}>{c.name}</div>
-                  <div style={{ font: "400 13px 'Space Mono'", color: '#9a8a76', marginTop: 3 }}>{c.originEN} · {c.roast}</div>
-                  <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
-                    {c.notes.map(n => <NoteChip key={n} label={n} color={c.color} soft={c.color + '22'} />)}
+            {visibleCoffees.map(c => {
+              const soldOut = isSoldOut(c);
+              return (
+                <div
+                  key={c.id}
+                  onClick={() => navigate(`/coffee/${c.id}`)}
+                  className="lift"
+                  style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden', opacity: soldOut ? .6 : 1 }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 18px', background: c.color + '22', color: c.color }}>
+                    <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5 }}>{c.originEN}</span>
+                    {soldOut ? (
+                      <span style={{ padding: '4px 10px', borderRadius: 12, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'" }}>{t('stock.soldOut')}</span>
+                    ) : SHOW_SCORES && <span style={{ font: "700 11px 'Space Mono'", color: c.color }}>⌾ {c.score}</span>}
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-                      <span style={{ font: "700 9px 'Space Mono'", color: '#b0a08c', letterSpacing: 1 }}>ROAST</span>
-                      <RoastDots level={c.level} color={c.color} />
+                  <div style={{ padding: '16px 18px 18px' }}>
+                    <div style={{ font: "500 22px/1.15 'Room205',serif", color: '#1a1714' }}>{c.name}</div>
+                    <div style={{ font: "400 13px 'Space Mono'", color: '#9a8a76', marginTop: 3 }}>{c.originEN} · {c.roast}</div>
+                    <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 14 }}>
+                      {c.notes.map(n => <NoteChip key={n} label={n} color={c.color} soft={c.color + '22'} />)}
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ font: "500 18px 'Room205',serif", color: '#1a1714' }}>${c.price}</span>
-                      <div
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          cart.addDrip(c, DEFAULT_TEMP, '標準', 1);
-                        }}
-                        className="press"
-                        style={{
-                          cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: c.color, color: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 22px 'Room205'",
-                        }}
-                      >
-                        ＋
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+                        <span style={{ font: "700 9px 'Space Mono'", color: '#b0a08c', letterSpacing: 1 }}>ROAST</span>
+                        <RoastDots level={c.level} color={c.color} />
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <span style={{ font: "500 18px 'Room205',serif", color: '#1a1714' }}>${c.price}</span>
+                        {!soldOut && (
+                          <div
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cart.addDrip(c, DEFAULT_TEMP, '標準', 1);
+                            }}
+                            className="press"
+                            style={{
+                              cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: c.color, color: '#fff',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 22px 'Room205'",
+                            }}
+                          >
+                            ＋
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </>
         )}
 
@@ -265,51 +272,59 @@ export function MenuScreen() {
           <>
             {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div>}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              {visibleCoffees.map(c => (
-                <div
-                  key={c.id}
-                  onClick={() => navigate(`/coffee/${c.id}`, { state: { mode: 'beans' } })}
-                  className="lift"
-                  style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
-                >
-                  <div style={{ aspectRatio: '3 / 4', background: `linear-gradient(140deg,${c.color}22,#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    {c.coverUrl ? (
-                      <img src={c.coverUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: c.color, opacity: .7, textAlign: 'center', padding: '0 10px' }}>
-                        {c.originEN}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ padding: '12px 12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
-                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: c.color }}>{c.originEN} · {c.roast}</div>
-                    <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
-                      {c.bagOptions.length === 0 && (
-                        <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>{t('menu.noBagOptions')}</div>
+              {visibleCoffees.map(c => {
+                const soldOut = isSoldOut(c);
+                return (
+                  <div
+                    key={c.id}
+                    onClick={() => navigate(`/coffee/${c.id}`, { state: { mode: 'beans' } })}
+                    className="lift"
+                    style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, overflow: 'hidden', display: 'flex', flexDirection: 'column', opacity: soldOut ? .6 : 1 }}
+                  >
+                    <div style={{ aspectRatio: '3 / 4', position: 'relative', background: `linear-gradient(140deg,${c.color}22,#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {c.coverUrl ? (
+                        <img src={c.coverUrl} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: c.color, opacity: .7, textAlign: 'center', padding: '0 10px' }}>
+                          {c.originEN}
+                        </span>
                       )}
-                      {c.bagOptions.map(bag => (
-                        <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ font: "500 12px 'Iansui'", color: '#6b5c4a' }}>{bag.label}</span>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                            <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
-                            <div
-                              onClick={(e) => { e.stopPropagation(); cart.addBeans(c, bag, 1); }}
-                              className="press"
-                              style={{
-                                cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', background: c.color, color: '#fff',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 15px 'Room205'", flex: 'none',
-                              }}
-                            >
-                              ＋
+                      {soldOut && (
+                        <span style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 12, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'" }}>{t('stock.soldOut')}</span>
+                      )}
+                    </div>
+                    <div style={{ padding: '12px 12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: c.color }}>{c.originEN} · {c.roast}</div>
+                      <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
+                        {c.bagOptions.length === 0 && (
+                          <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>{t('menu.noBagOptions')}</div>
+                        )}
+                        {c.bagOptions.map(bag => (
+                          <div key={bag.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ font: "500 12px 'Iansui'", color: '#6b5c4a' }}>{bag.label}</span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                              <span style={{ font: "500 14px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
+                              {!soldOut && (
+                                <div
+                                  onClick={(e) => { e.stopPropagation(); cart.addBeans(c, bag, 1); }}
+                                  className="press"
+                                  style={{
+                                    cursor: 'pointer', width: 26, height: 26, borderRadius: '50%', background: c.color, color: '#fff',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center', font: "400 15px 'Room205'", flex: 'none',
+                                  }}
+                                >
+                                  ＋
+                                </div>
+                              )}
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             {coffees && categoryCoffees.length === 0 && (
               <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76', font: "400 14px 'Iansui'" }}>{t('menu.noBeansAtAll')}</div>

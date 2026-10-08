@@ -29,6 +29,12 @@ export default async (req: Request) => {
       }
     }
 
+    if ('stockQty' in body && body.stockQty !== null) {
+      if (typeof body.stockQty !== 'number' || !Number.isInteger(body.stockQty) || body.stockQty < 0) {
+        return json({ error: 'stockQty must be a non-negative integer or null' }, 400);
+      }
+    }
+
     const sets: string[] = [];
     const values: unknown[] = [];
     let i = 1;

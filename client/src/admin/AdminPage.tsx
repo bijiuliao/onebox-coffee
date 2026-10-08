@@ -135,7 +135,9 @@ export function AdminPage() {
             <div style={{ width: 38, height: 38, borderRadius: 10, flex: 'none', background: b.color }} />
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
-              <div style={{ font: "400 10px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{b.originEN} · ${b.price}</div>
+              <div style={{ font: "400 10px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>
+                {b.originEN} · ${b.price}{b.stockQty !== null && (b.stockQty > 0 ? ` · 庫存${b.stockQty}` : ' · 已售完')}
+              </div>
             </div>
             <div style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: b.active ? '#3d6b4f' : '#d3c9b6' }} />
           </div>
@@ -188,6 +190,7 @@ export function AdminPage() {
         price: sel.price, color: sel.color, score: sel.score, process: sel.process, altitude: sel.altitude,
         varietal: sel.varietal, harvest: sel.harvest, desc: sel.desc, roaster: sel.roaster,
         temps: sel.temps, sizes: sel.sizes, sellsBeans: sel.sellsBeans, bagOptions: sel.bagOptions,
+        stockQty: sel.stockQty,
       });
       showToast('已儲存 · ' + sel.name);
     } catch {
@@ -418,6 +421,32 @@ export function AdminPage() {
           </div>
 
           <div style={section}>
+            <div style={sectionTitle}>存貨量 · S T O C K</div>
+            <div onClick={() => patch({ stockQty: sel.stockQty === null ? 0 : null })} className="press" style={pillStyle(sel.stockQty !== null, '#5a4a9e')}>
+              {sel.stockQty !== null ? '✓ 追蹤庫存' : '追蹤庫存'}
+            </div>
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
+              開啟後，手沖和買豆子共用同一個庫存量；客人下單會自動扣庫存，歸零會在顧客端自動顯示「已售完」並停止加購
+            </div>
+            {sel.stockQty !== null && (
+              <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div>
+                  {label('目前庫存')}
+                  <input
+                    type="number"
+                    value={sel.stockQty}
+                    onChange={(e) => patch({ stockQty: Math.max(0, Math.floor(Number(e.target.value) || 0)) })}
+                    style={{ width: 110, padding: '10px 12px', border: '1px solid #e2dac9', borderRadius: 10, background: '#fff', font: "500 17px 'Room205'", color: '#1a1714', outline: 'none' }}
+                  />
+                </div>
+                {sel.stockQty <= 0 && (
+                  <span style={{ padding: '6px 13px', borderRadius: 20, background: '#efe7d8', color: '#8a7a68', font: "600 12px 'Iansui'" }}>已售完</span>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={section}>
             <div style={sectionTitle}>零售豆子 · RETAIL BEANS</div>
             <div onClick={() => patch({ sellsBeans: !sel.sellsBeans })} className="press" style={pillStyle(sel.sellsBeans, '#8f4a30')}>
               {sel.sellsBeans ? '✓ 開放零售' : '開放零售'}
@@ -497,12 +526,14 @@ export function AdminPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
                 <span style={{ font: "600 24px 'Room205'", color: '#1a1714' }}>${sel.price}</span>
-                <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>加入購物車</div>
+                <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'", opacity: sel.stockQty === 0 ? .5 : 1 }}>
+                  {sel.stockQty === 0 ? '已售完' : '加入購物車'}
+                </div>
               </div>
             </div>
           </div>
-          <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.archived ? '#efe7d8' : sel.active ? '#e6f0ea' : '#f1e9db', color: sel.archived ? '#8a7a68' : sel.active ? '#3d6b4f' : '#9a8a76' }}>
-            {sel.archived ? '已封存，顧客看不到' : sel.active ? '顧客可在商店看到這款' : '目前未上架，顧客看不到'}
+          <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.archived ? '#efe7d8' : (sel.active && sel.stockQty === 0) ? '#f1e9db' : sel.active ? '#e6f0ea' : '#f1e9db', color: sel.archived ? '#8a7a68' : (sel.active && sel.stockQty === 0) ? '#9a8a76' : sel.active ? '#3d6b4f' : '#9a8a76' }}>
+            {sel.archived ? '已封存，顧客看不到' : sel.active && sel.stockQty === 0 ? '顧客看得到，但顯示已售完、無法下單' : sel.active ? '顧客可在商店看到這款' : '目前未上架，顧客看不到'}
           </div>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip } from '../components';
 import { SHOW_SCORES } from '../constants';
-import { useCart, dripPrice } from '../cart';
+import { isSoldOut, useCart, dripPrice } from '../cart';
 import { useLang } from '../i18n';
 import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
@@ -43,6 +43,7 @@ export function DetailScreen() {
   }
 
   const soft = coffee.color + '22';
+  const soldOut = isSoldOut(coffee);
   const canDrip = coffee.temps.hot || coffee.temps.ice;
   const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
   const bag = coffee.bagOptions.find(b => b.label === bagLabel) ?? coffee.bagOptions[0] ?? null;
@@ -90,6 +91,9 @@ export function DetailScreen() {
         <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: coffee.color }}>{coffee.originEN}</div>
         <div style={{ font: "500 44px/1.05 'Room205',serif", color: '#1a1714', marginTop: 12 }}>{coffee.name}</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+          {soldOut && (
+            <span style={{ padding: '5px 12px', borderRadius: 20, background: '#1a1714', color: '#fff', font: "700 12px 'Space Mono'" }}>{t('stock.soldOut')}</span>
+          )}
           {SHOW_SCORES && (
             <span style={{ padding: '5px 12px', borderRadius: 20, background: coffee.color, color: '#fff', font: "700 12px 'Space Mono'" }}>
               ⌾ CUP {coffee.score}
@@ -172,6 +176,7 @@ export function DetailScreen() {
       <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: 'linear-gradient(180deg,rgba(244,241,234,0),#f4f1ea 40%)' }}>
         <div
           onClick={() => {
+            if (soldOut) return;
             if (mode === 'beans') {
               if (!bag) return;
               cart.addBeans(coffee, bag, qty);
@@ -182,9 +187,13 @@ export function DetailScreen() {
             navigate('/menu');
           }}
           className="press"
-          style={{ cursor: 'pointer', background: '#1a1714', color: '#f4f1ea', borderRadius: 20, padding: '18px 22px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+          style={{
+            cursor: soldOut ? 'default' : 'pointer', opacity: soldOut ? .5 : 1,
+            background: '#1a1714', color: '#f4f1ea', borderRadius: 20, padding: '18px 22px',
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          }}
         >
-          <span style={{ font: "600 16px 'Iansui'" }}>{t('detail.addToCart')}</span>
+          <span style={{ font: "600 16px 'Iansui'" }}>{soldOut ? t('stock.soldOut') : t('detail.addToCart')}</span>
           <span style={{ font: "500 18px 'Room205'" }}>${total}</span>
         </div>
       </div>

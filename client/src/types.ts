@@ -32,6 +32,7 @@ export interface Coffee {
   bagOptions: BagOption[];
   createdAt: string;
   archived: boolean;
+  stockQty: number | null;
 }
 
 export interface Special {

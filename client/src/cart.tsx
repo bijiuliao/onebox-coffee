@@ -36,6 +36,12 @@ export function dripPrice(basePrice: number, size: Size): number {
   return basePrice + (size === '大杯' ? 20 : 0);
 }
 
+// Stock is shared between a coffee's hand-drip cups and retail bags; null
+// means untracked/unlimited.
+export function isSoldOut(coffee: Coffee): boolean {
+  return coffee.stockQty !== null && coffee.stockQty <= 0;
+}
+
 export function lineUnitPrice(line: CartLine): number {
   if (line.kind === 'drip') return dripPrice(line.basePrice, line.size);
   return line.unitPrice;

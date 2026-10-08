@@ -45,6 +45,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
     if (!row) return { error: `unknown coffee: ${item.id}` };
     const coffee = toCoffee(row);
+    if (coffee.stockQty !== null && coffee.stockQty <= 0) return { error: `${coffee.name} 已經賣完了` };
     const size = item.size === '大杯' ? '大杯' : '標準';
     const temp = item.temp === '冰' ? '冰' : '熱';
     const unitPrice = coffee.price + (size === '大杯' ? 20 : 0);
@@ -56,6 +57,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     if (!row) return { error: `unknown coffee: ${item.id}` };
     const coffee = toCoffee(row);
     if (!coffee.sellsBeans) return { error: `${coffee.name} 目前沒有開放零售` };
+    if (coffee.stockQty !== null && coffee.stockQty <= 0) return { error: `${coffee.name} 已經賣完了` };
     const bag = coffee.bagOptions.find(b => b.label === item.bagLabel);
     if (!bag) return { error: `${coffee.name} 沒有這個重量選項` };
     return { name: `${coffee.name}（豆）`, detail: bag.label, qty, unitPrice: bag.price, linePrice: bag.price * qty };
@@ -168,11 +170,55 @@ export default async (req: Request, context: Context) => {
   }
 
   const total = lines.reduce((sum, l) => sum + l.linePrice, 0) + deliveryFee;
-  const [order] = (await db.sql`
-    INSERT INTO orders (customer_name, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng)
-    VALUES (${customerName}, ${JSON.stringify(lines)}, ${total}, ${ip}, ${dedupeKey}, ${orderType}, ${deliveryFee}, ${deliveryDistanceKm}, ${customerLat}, ${customerLng})
-    RETURNING id, created_at
-  `) as { id: number; created_at: string }[];
+
+  // Hand-drip cups and retail bags of the same coffee draw from one shared
+  // stock count, so aggregate qty per coffee id before touching the DB.
+  const stockNeeded = new Map<string, number>();
+  for (const item of items) {
+    if (item.kind === 'drip' || item.kind === 'beans') {
+      const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
+      stockNeeded.set(item.id, (stockNeeded.get(item.id) ?? 0) + qty);
+    }
+  }
+
+  const client = await db.pool.connect();
+  let order: { id: number; created_at: string };
+  try {
+    await client.query('BEGIN');
+
+    for (const [coffeeId, qtyNeeded] of stockNeeded) {
+      // FOR UPDATE locks the row for the rest of this transaction, so a
+      // concurrent order on the same coffee waits here instead of both
+      // reading the same stock count and overselling it.
+      const { rows } = await client.query<{ name: string; stock_qty: number | null }>(
+        'SELECT name, stock_qty FROM coffees WHERE id = $1 FOR UPDATE',
+        [coffeeId],
+      );
+      const row = rows[0];
+      if (row && row.stock_qty !== null) {
+        if (row.stock_qty < qtyNeeded) {
+          await client.query('ROLLBACK');
+          return json({ error: `${row.name} 剛好賣完了，請重新整理頁面再試一次` }, 409);
+        }
+        await client.query('UPDATE coffees SET stock_qty = stock_qty - $1 WHERE id = $2', [qtyNeeded, coffeeId]);
+      }
+    }
+
+    const insert = await client.query<{ id: number; created_at: string }>(
+      `INSERT INTO orders (customer_name, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+       RETURNING id, created_at`,
+      [customerName, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng],
+    );
+    order = insert.rows[0];
+
+    await client.query('COMMIT');
+  } catch (err) {
+    await client.query('ROLLBACK').catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 
   await notifyNewOrder({
     id: order.id, customerName, items: lines, total,

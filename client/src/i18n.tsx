@@ -50,6 +50,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'menu.noBeansMatch': { zh: '沒有符合篩選條件的豆子，試試看調整篩選條件', en: 'No beans match your filters — try adjusting them' },
   'menu.noSpecialsToday': { zh: '今天還沒有特調', en: 'No specials today' },
   'menu.specialBadge': { zh: 'SPECIAL · 特調', en: 'SPECIAL' },
+  'stock.soldOut': { zh: '已售完', en: 'Sold Out' },
 
   'detail.tastingNotes': { zh: 'TASTING NOTES · 風味', en: 'TASTING NOTES' },
   'detail.spec.roaster': { zh: 'ROASTER 烘豆商', en: 'ROASTER' },
