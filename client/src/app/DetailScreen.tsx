@@ -11,6 +11,71 @@ import type { Size, Temp } from '../types';
 
 type Mode = 'drip' | 'beans';
 
+// A real rotating 3D box (not a photo sequence - onyx renders theirs from an
+// actual 360deg photo shoot per product, which onebox doesn't have). The box
+// shape/geometry is the same for every coffee; only the front-face image
+// (the coffee's own cover photo) changes, so dragging actually spins a real
+// cuboid rather than faking a tilt on a flat photo.
+function RotatingBox({ src, alt, placeholderLabel, color }: { src: string | null; alt: string; placeholderLabel: string; color: string }) {
+  const sceneRef = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const [rotation, setRotation] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const rotationAtDragStart = useRef(0);
+
+  useEffect(() => {
+    const el = sceneRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+
+  const depth = width * 0.16;
+
+  const face = src ? (
+    <img src={src} alt={alt} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+  ) : (
+    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(140deg,${color}22,#fff)` }}>
+      <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color, opacity: .7 }}>{placeholderLabel}</span>
+    </div>
+  );
+
+  return (
+    <div
+      ref={sceneRef}
+      onPointerDown={(e) => {
+        setDragging(true);
+        dragStartX.current = e.clientX;
+        rotationAtDragStart.current = rotation;
+        e.currentTarget.setPointerCapture(e.pointerId);
+      }}
+      onPointerMove={(e) => {
+        if (!dragging) return;
+        setRotation(rotationAtDragStart.current + (e.clientX - dragStartX.current) / 2.4);
+      }}
+      onPointerUp={() => setDragging(false)}
+      onPointerCancel={() => setDragging(false)}
+      style={{ width: '100%', height: '100%', perspective: 1400, cursor: 'grab', touchAction: 'pan-y' }}
+    >
+      <div style={{
+        position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d',
+        transform: `rotateY(${rotation}deg)`, transition: dragging ? 'none' : 'transform .4s cubic-bezier(.2,.8,.2,1)',
+      }}>
+        {/* Front sits at z=0 - the hinge plane the left/right walls pivot off of. */}
+        <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', overflow: 'hidden' }}>
+          {face}
+        </div>
+        {/* Back sits depth behind the front, connected by the two side walls. */}
+        <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: `translateZ(${-depth}px)`, background: `linear-gradient(160deg,${color}33,${color}11)` }} />
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: depth, transformOrigin: 'left', transform: 'rotateY(-90deg)', backfaceVisibility: 'hidden', background: color, opacity: .85 }} />
+        <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: depth, transformOrigin: 'right', transform: 'rotateY(90deg)', backfaceVisibility: 'hidden', background: color, opacity: .7 }} />
+      </div>
+    </div>
+  );
+}
+
 export function DetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -25,12 +90,6 @@ export function DetailScreen() {
   const [size, setSize] = useState<Size | null>(null);
   const [bagLabel, setBagLabel] = useState<string | null>(null);
   const [qty, setQty] = useState(1);
-  // Cosmetic drag-to-tilt on the cover photo (no real 360deg photos exist -
-  // this just fakes a bit of depth while dragging, borrowed from onyx
-  // coffee lab's rotating product shot).
-  const [tilt, setTilt] = useState(0);
-  const [tilting, setTilting] = useState(false);
-  const dragStartX = useRef(0);
 
   useEffect(() => {
     if (!coffee) return;
@@ -130,29 +189,9 @@ export function DetailScreen() {
       <div
         key={`${coffee.id}-cover`}
         className="rise-from-below"
-        style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative', background: `linear-gradient(140deg,${soft},#fff)`, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', perspective: 900, cursor: 'grab', touchAction: 'pan-y' }}
-        onPointerDown={(e) => {
-          setTilting(true);
-          dragStartX.current = e.clientX;
-          e.currentTarget.setPointerCapture(e.pointerId);
-        }}
-        onPointerMove={(e) => {
-          if (!tilting) return;
-          const delta = e.clientX - dragStartX.current;
-          setTilt(Math.max(-16, Math.min(16, delta / 6)));
-        }}
-        onPointerUp={() => { setTilting(false); setTilt(0); }}
-        onPointerCancel={() => { setTilting(false); setTilt(0); }}
+        style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative' }}
       >
-        <div style={{ width: '100%', height: '100%', transform: `rotateY(${tilt}deg)`, transition: tilting ? 'none' : 'transform .5s cubic-bezier(.2,.8,.2,1)' }}>
-          {coffee.coverUrl ? (
-            <img src={coffee.coverUrl} alt={coffee.name} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-          ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color: coffee.color, opacity: .7 }}>{coffee.originEN} · {coffee.name}</span>
-            </div>
-          )}
-        </div>
+        <RotatingBox src={coffee.coverUrl} alt={coffee.name} placeholderLabel={`${coffee.originEN} · ${coffee.name}`} color={coffee.color} />
         <span style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: coffee.color, opacity: .65, pointerEvents: 'none' }}>
           ↔ {t('detail.tiltHint')}
         </span>
