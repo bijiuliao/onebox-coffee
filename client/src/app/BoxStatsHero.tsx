@@ -4,23 +4,31 @@ import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 // screen that actually renders the 3D box, not on every page load.
 const RotatingBox3D = lazy(() => import('./RotatingBox3D').then(m => ({ default: m.RotatingBox3D })));
 
+type SpecItem = { k: string; v: string };
+
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 // Remaps `v` from the range [a,b] onto [0,1], clamped - lets each visual
 // property run its fade/grow over its own slice of the overall scroll
 // progress instead of all moving in lockstep.
 const remap = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
 
-// Sized off the stage's own rendered box, not window.innerWidth - on a wide
-// desktop monitor the hero still sits inside MobileShell's capped column
-// (max 900px), so sizing against the full window left the box tiny and lost
-// in empty space. Capped against stage height too so a short, wide viewport
-// doesn't get a box taller than the stage has room for.
+// Sized off the stage's own rendered box, not window.innerWidth - the hero
+// sits inside MobileShell's column, which is much narrower than the full
+// browser window, so sizing against the raw viewport left the box tiny on
+// wide monitors. The hard caps below dominate once the stage is roomy
+// (desktop), the ratios dominate on a narrow phone-width stage.
 function computeSizes(stageWidth: number, stageHeight: number) {
   return {
-    boxWidthPx: Math.max(170, Math.min(stageWidth * 0.5, stageHeight * 0.34, 340)),
-    circleMaxPx: Math.max(190, Math.min(stageWidth * 0.56, stageHeight * 0.46, 380)),
+    stageWidth,
+    boxWidthPx: Math.max(170, Math.min(stageWidth * 0.55, stageHeight * 0.44, 440)),
+    circleMaxPx: Math.max(190, Math.min(stageWidth * 0.6, stageHeight * 0.58, 480)),
   };
 }
+
+// Flanking stat columns (onyx's "spec wheel" layout) only fit beside the
+// circle once the stage itself is roomy enough; below that it reflows into
+// a compact grid under the circle instead, inside the same element.
+const WIDE_BREAKPOINT = 760;
 
 // Onyx coffee lab's product pages render the rotating box and the big
 // circular "spec wheel" as ONE element: scrolling continuously morphs the
@@ -31,7 +39,7 @@ function computeSizes(stageWidth: number, stageHeight: number) {
 // it, where every visual property is driven by scroll progress (0-1)
 // computed from the track's position in the viewport.
 export function BoxStatsHero({
-  src, color, placeholderLabel, tiltHint, roastLabel, desc,
+  src, color, placeholderLabel, tiltHint, roastLabel, desc, left, right,
 }: {
   src: string | null;
   color: string;
@@ -39,6 +47,8 @@ export function BoxStatsHero({
   tiltHint: string;
   roastLabel: string;
   desc: string;
+  left: SpecItem[];
+  right: SpecItem[];
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [progress, setProgress] = useState(0);
@@ -47,10 +57,11 @@ export function BoxStatsHero({
   const [sizes, setSizes] = useState(() => computeSizes(400, 800));
 
   useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
     let raf = 0;
     function update() {
       raf = 0;
-      const el = trackRef.current;
       if (!el) return;
       const rect = el.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
@@ -58,21 +69,29 @@ export function BoxStatsHero({
       setProgress(p);
       setSizes(computeSizes(rect.width, window.innerHeight));
     }
-    function onScrollOrResize() {
+    function schedule() {
       if (!raf) raf = requestAnimationFrame(update);
     }
     update();
-    window.addEventListener('scroll', onScrollOrResize, { passive: true });
-    window.addEventListener('resize', onScrollOrResize);
+    // A plain resize listener only catches the window itself changing size -
+    // it misses the stage's own width shifting from a font/layout settle
+    // (webfonts loading in, etc.), which a ResizeObserver on the element
+    // picks up directly.
+    const ro = new ResizeObserver(schedule);
+    ro.observe(el);
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
     return () => {
-      window.removeEventListener('scroll', onScrollOrResize);
-      window.removeEventListener('resize', onScrollOrResize);
+      ro.disconnect();
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
       if (raf) cancelAnimationFrame(raf);
     };
   }, []);
 
-  const { boxWidthPx, circleMaxPx } = sizes;
+  const { boxWidthPx, circleMaxPx, stageWidth } = sizes;
   const boxHeightPx = boxWidthPx * 1.25;
+  const isWide = stageWidth >= WIDE_BREAKPOINT;
 
   // The box container itself never resizes or moves - only the box *visual*
   // inside it scales/fades. That keeps the container's center a fixed
@@ -80,6 +99,11 @@ export function BoxStatsHero({
   const boxScale = lerp(1, 0.46, remap(progress, 0, 0.55));
   const boxOpacity = lerp(1, 0.16, remap(progress, 0, 0.6));
   const hintOpacity = boxReady ? lerp(0.65, 0, remap(progress, 0, 0.12)) : 0;
+  // Once the ring has clearly become the stat circle, dragging it to "spin"
+  // no longer makes sense - stop reacting to pointer input and let the dot
+  // fade out along with it, rather than leaving a dead control on screen.
+  const boxInteractive = progress < 0.5;
+  const dotOpacity = 1 - remap(progress, 0.5, 0.72);
 
   const ringT = remap(progress, 0.15, 0.8);
   const startRingW = boxWidthPx * 0.4;
@@ -93,6 +117,7 @@ export function BoxStatsHero({
   const whiteBorderOpacity = 1 - remap(progress, 0.5, 0.85);
   const colorBorderOpacity = remap(progress, 0.5, 0.85);
   const textOpacity = remap(progress, 0.55, 0.88);
+  const infoOpacity = remap(progress, 0.62, 0.92);
 
   // rotationY=PI is RotatingBox3D's resting orientation (the labeled face
   // turned toward the camera) - offset the dot's angle so that resting state
@@ -101,17 +126,29 @@ export function BoxStatsHero({
   const dotLeft = 50 + 50 * Math.cos(dotAngle);
   const dotTop = 50 + 50 * Math.sin(dotAngle);
 
+  const specRow = (s: SpecItem, align: 'left' | 'right') => (
+    <div key={s.k} style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: align === 'right' ? 'flex-end' : 'flex-start', textAlign: align, flexDirection: align === 'right' ? 'row' : 'row-reverse' }}>
+      <div>
+        <div style={{ font: "500 15px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
+        <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 3 }}>{s.k}</div>
+      </div>
+      <span style={{ width: 22, height: 1, background: 'rgba(26,23,20,.25)', flex: 'none' }} />
+    </div>
+  );
+
+  const sideColGap = ringW / 2 + 30;
+
   return (
     <>
       <div ref={trackRef} style={{ height: '170vh', position: 'relative' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100vh', overflow: 'hidden' }}>
+        <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
           <div
             style={{
               position: 'absolute', left: '50%', top: '42%', width: boxWidthPx, height: boxHeightPx,
               transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
-            <div style={{ width: '100%', height: '100%', position: 'relative', transform: `scale(${boxScale})`, opacity: boxOpacity, transformOrigin: 'center center' }}>
+            <div style={{ width: '100%', height: '100%', position: 'relative', transform: `scale(${boxScale})`, opacity: boxOpacity, transformOrigin: 'center center', pointerEvents: boxInteractive ? 'auto' : 'none' }}>
               <Suspense fallback={<div style={{ width: '100%', height: '100%', background: `linear-gradient(140deg,${color}22,#fff)` }} />}>
                 <RotatingBox3D
                   src={src}
@@ -135,7 +172,7 @@ export function BoxStatsHero({
               <div style={{ position: 'absolute', inset: '-40%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.22) 0%, rgba(26,23,20,0) 70%)', opacity: shadowOpacity }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity }} />
-              <div style={{ position: 'absolute', width: 9, height: 9, left: `${dotLeft}%`, top: `${dotTop}%`, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#1a1714' }} />
+              <div style={{ position: 'absolute', width: 9, height: 9, left: `${dotLeft}%`, top: `${dotTop}%`, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#1a1714', opacity: dotOpacity }} />
               <div
                 style={{
                   position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: ringW * 0.74,
@@ -143,11 +180,38 @@ export function BoxStatsHero({
                 }}
               >
                 <div style={{ font: "600 clamp(22px,7vw,34px)/1 'Room205',serif", color: '#1a1714' }}>{roastLabel}</div>
-                <div style={{ font: "400 13px/1.6 'Iansui'", color: '#6b5c4a', marginTop: 10, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 4, WebkitBoxOrient: 'vertical' }}>
+                <div style={{ font: "400 13px/1.6 'Iansui'", color: '#6b5c4a', marginTop: 10, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 6, WebkitBoxOrient: 'vertical' }}>
                   {desc}
                 </div>
               </div>
             </div>
+
+            {isWide ? (
+              <>
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 190, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 26, opacity: infoOpacity, pointerEvents: 'none' }}>
+                  {left.map(s => specRow(s, 'right'))}
+                </div>
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 190, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 26, opacity: infoOpacity, pointerEvents: 'none' }}>
+                  {right.map(s => specRow(s, 'left'))}
+                </div>
+              </>
+            ) : (
+              <div
+                style={{
+                  position: 'absolute', left: '50%', top: '50%',
+                  transform: `translate(-50%, calc(-50% + ${ringCenterY}px + ${ringH / 2}px + 26px))`,
+                  width: Math.min(stageWidth * 0.86, 340), opacity: infoOpacity, pointerEvents: 'none',
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 18, rowGap: 14,
+                }}
+              >
+                {[...left, ...right].map(s => (
+                  <div key={s.k}>
+                    <div style={{ font: "500 13px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
+                    <div style={{ font: "700 8px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 2 }}>{s.k}</div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

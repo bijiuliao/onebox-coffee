@@ -70,6 +70,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'detail.spec.altitude': { zh: 'ALTITUDE 海拔', en: 'ALTITUDE' },
   'detail.spec.varietal': { zh: 'VARIETAL 品種', en: 'VARIETAL' },
   'detail.spec.roast': { zh: 'ROAST 烘焙', en: 'ROAST' },
+  'detail.spec.origin': { zh: 'ORIGIN 產區', en: 'ORIGIN' },
   'detail.tiltHint': { zh: '拖曳看看', en: 'Drag to peek' },
   'detail.mode.drip': { zh: '現場手沖', en: 'Brew Here' },
   'detail.mode.beans': { zh: '買豆子回家', en: 'Beans to Go' },

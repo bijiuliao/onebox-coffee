@@ -62,12 +62,15 @@ export function DetailScreen() {
   if (coffee.sizes.std) sizeOpts.push({ key: '標準', label: t('detail.sizeStd') });
   if (coffee.sizes.large) sizeOpts.push({ key: '大杯', label: t('detail.sizeLarge') });
 
-  const specs = [
+  const wheelLeft = [
     { k: t('detail.spec.roaster'), v: coffee.roaster },
     { k: t('detail.spec.process'), v: coffee.process },
     { k: t('detail.spec.altitude'), v: coffee.altitude },
+  ];
+  const wheelRight = [
     { k: t('detail.spec.varietal'), v: coffee.varietal },
     { k: t('detail.spec.roast'), v: coffee.roast },
+    { k: t('detail.spec.origin'), v: coffee.originEN },
   ];
 
   const seg = (active: boolean) => ({
@@ -77,7 +80,7 @@ export function DetailScreen() {
   });
 
   return (
-    <MobileShell style={{ background: soft }}>
+    <MobileShell wide style={{ background: soft }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 22px 6px' }}>
         <BackButton onClick={() => navigate('/menu', backToMenu)} translucent />
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -116,6 +119,8 @@ export function DetailScreen() {
         tiltHint={t('detail.tiltHint')}
         roastLabel={coffee.roast}
         desc={coffee.desc}
+        left={wheelLeft}
+        right={wheelRight}
       />
 
       <Reveal style={{ padding: '20px 24px 0' }}>
@@ -140,15 +145,6 @@ export function DetailScreen() {
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {coffee.notes.map(n => <NoteChip key={n} label={n} color={coffee.color} soft={soft} />)}
         </div>
-      </Reveal>
-
-      <Reveal style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
-        {specs.map(s => (
-          <div key={s.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: '1px solid rgba(26,23,20,.08)' }}>
-            <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>{s.k}</span>
-            <span style={{ font: "500 14px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</span>
-          </div>
-        ))}
       </Reveal>
 
       {canDrip && canBeans && (
