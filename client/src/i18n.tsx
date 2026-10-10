@@ -7,6 +7,11 @@ const STORAGE_KEY = 'onebox-lang';
 // descriptions, tasting notes, roast labels, bag labels) is never translated
 // here; it's shown exactly as entered regardless of language.
 const DICT: Record<string, { zh: string; en: string }> = {
+  'ticker.msg1': { zh: '每週二三新鮮烘焙到貨', en: 'Freshly roasted, delivered Tue & Wed' },
+  'ticker.msg2': { zh: '單一產區，誠實標示', en: 'Single origin, honestly labeled' },
+  'ticker.msg3': { zh: '手沖吧現場供應中', en: 'Hand-drip bar open now' },
+  'ticker.msg4': { zh: '滿 $500 全台免運', en: 'Free shipping over $500' },
+
   'cover.tapHint': { zh: '點一下箱子，看看今天躲了什麼豆', en: 'Tap the box to see today’s beans' },
   'cover.cta': { zh: '開始點餐', en: 'Start Order' },
   'cover.catAlt': { zh: 'onebox 貓', en: 'onebox cat' },

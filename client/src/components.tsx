@@ -27,6 +27,34 @@ export function Reveal({ children, delay = 0, style, className }: { children: Re
   );
 }
 
+const TICKER_KEYS = ['ticker.msg1', 'ticker.msg2', 'ticker.msg3', 'ticker.msg4'] as const;
+
+// Black promo marquee above the header - scrolls on a CSS loop (pauses on
+// hover), always rendered twice back-to-back so a 50% translateX wraps
+// seamlessly regardless of how long the translated copy ends up being.
+export function Ticker() {
+  const { t } = useLang();
+  const items = TICKER_KEYS.map(k => t(k));
+  const segment = (
+    <div className="ticker-seg">
+      {items.map((msg, i) => (
+        <span key={i}>
+          {msg}
+          <span style={{ margin: '0 28px', opacity: .45 }}>✦</span>
+        </span>
+      ))}
+    </div>
+  );
+  return (
+    <div className="ticker" aria-hidden="true">
+      <div className="ticker-track">
+        {segment}
+        {segment}
+      </div>
+    </div>
+  );
+}
+
 export function NoteChip({ label, color, soft }: { label: string; color: string; soft: string }) {
   return (
     <span style={{ padding: '5px 11px', borderRadius: 20, background: soft, color, font: "600 12px 'Iansui'" }}>

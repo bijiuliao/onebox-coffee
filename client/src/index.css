@@ -111,6 +111,18 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: #d8cfbd; border-radius: 6px; border: 3px solid #f4f1ea; }
 
+/* Promo marquee above the header - two identical copies back-to-back inside
+   .ticker-track so translateX(-50%) always wraps seamlessly, however long
+   the translated copy turns out to be. */
+.ticker { background: #1a1714; overflow: hidden; }
+.ticker-track { display: flex; width: max-content; animation: ticker-scroll 24s linear infinite; }
+.ticker:hover .ticker-track { animation-play-state: paused; }
+.ticker-seg { display: flex; align-items: center; flex: none; padding: 10px 0; white-space: nowrap; font: 700 10px 'Space Mono', monospace; letter-spacing: 1.5px; color: #f4f1ea; text-transform: uppercase; }
+@keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track { animation: none; }
+}
+
 /* Mobile (<800px): every screen stays the same narrow phone-width column
    it always has. Desktop (>=800px): the single-item/form screens (cover,
    detail, cart, success) widen to a comfortable reading column instead of
