@@ -1,4 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 // Three.js is a big chunk (~140KB gzip) - only worth paying for on the one
 // screen that actually renders the 3D box, not on every page load.
@@ -55,6 +56,7 @@ export function BoxStatsHero({
   const [rotationY, setRotationY] = useState(Math.PI);
   const [boxReady, setBoxReady] = useState(false);
   const [sizes, setSizes] = useState(() => computeSizes(400, 800));
+  const [openItem, setOpenItem] = useState<SpecItem | null>(null);
 
   useEffect(() => {
     const el = trackRef.current;
@@ -126,14 +128,25 @@ export function BoxStatsHero({
   const dotLeft = 50 + 50 * Math.cos(dotAngle);
   const dotTop = 50 + 50 * Math.sin(dotAngle);
 
-  const specRow = (s: SpecItem, align: 'left' | 'right') => (
-    <div key={s.k} style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: align === 'right' ? 'flex-end' : 'flex-start', textAlign: align, flexDirection: align === 'right' ? 'row' : 'row-reverse' }}>
-      <div>
-        <div style={{ font: "500 15px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
-        <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 3 }}>{s.k}</div>
-      </div>
-      <span style={{ width: 22, height: 1, background: 'rgba(26,23,20,.25)', flex: 'none' }} />
-    </div>
+  // Onyx reveals each stat as its own click-to-open card rather than
+  // printing every value inline around the circle - these are just the
+  // trigger points (label + a small dot), the actual value only shows once
+  // tapped, via the modal below.
+  const specTrigger = (s: SpecItem, align: 'left' | 'right') => (
+    <button
+      key={s.k}
+      type="button"
+      onClick={() => setOpenItem(s)}
+      style={{
+        pointerEvents: 'auto', cursor: 'pointer', background: 'none', border: 'none', padding: '4px 0',
+        display: 'flex', alignItems: 'center', gap: 10,
+        justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
+        flexDirection: align === 'right' ? 'row' : 'row-reverse',
+      }}
+    >
+      <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{s.k}</span>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flex: 'none' }} />
+    </button>
   );
 
   const sideColGap = ringW / 2 + 30;
@@ -194,11 +207,11 @@ export function BoxStatsHero({
 
             {isWide ? (
               <>
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 190, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 26, opacity: infoOpacity, pointerEvents: 'none' }}>
-                  {left.map(s => specRow(s, 'right'))}
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 170, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 4, opacity: infoOpacity }}>
+                  {left.map(s => specTrigger(s, 'right'))}
                 </div>
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 190, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 26, opacity: infoOpacity, pointerEvents: 'none' }}>
-                  {right.map(s => specRow(s, 'left'))}
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 170, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 4, opacity: infoOpacity }}>
+                  {right.map(s => specTrigger(s, 'left'))}
                 </div>
               </>
             ) : (
@@ -206,16 +219,11 @@ export function BoxStatsHero({
                 style={{
                   position: 'absolute', left: '50%', top: '50%',
                   transform: `translate(-50%, calc(-50% + ${ringCenterY}px + ${ringH / 2}px + 26px))`,
-                  width: Math.min(stageWidth * 0.86, 340), opacity: infoOpacity, pointerEvents: 'none',
-                  display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 18, rowGap: 14,
+                  width: Math.min(stageWidth * 0.8, 300), opacity: infoOpacity,
+                  display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 10, rowGap: 2,
                 }}
               >
-                {[...left, ...right].map(s => (
-                  <div key={s.k}>
-                    <div style={{ font: "500 13px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
-                    <div style={{ font: "700 8px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 2 }}>{s.k}</div>
-                  </div>
-                ))}
+                {[...left, ...right].map(s => specTrigger(s, 'left'))}
               </div>
             )}
           </div>
@@ -232,6 +240,40 @@ export function BoxStatsHero({
           3D model by _simone.rizzi (CC-BY)
         </a>
       </div>
+
+      {openItem && createPortal(
+        <div
+          onClick={() => setOpenItem(null)}
+          style={{
+            position: 'fixed', inset: 0, background: 'rgba(26,23,20,.4)', zIndex: 80,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24,
+          }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{
+              position: 'relative', background: '#f4f1ea', borderRadius: 22, padding: '34px 40px',
+              minWidth: 220, maxWidth: 320, textAlign: 'center',
+            }}
+          >
+            <button
+              type="button"
+              onClick={() => setOpenItem(null)}
+              aria-label="close"
+              style={{
+                position: 'absolute', top: 12, right: 12, width: 30, height: 30, borderRadius: '50%',
+                border: 'none', background: 'rgba(26,23,20,.06)', cursor: 'pointer',
+                font: "400 15px 'Space Mono'", color: '#6b5c4a', lineHeight: '30px',
+              }}
+            >
+              ×
+            </button>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{openItem.k}</div>
+            <div style={{ font: "600 28px 'Room205',serif", color: '#1a1714', marginTop: 10 }}>{openItem.v || '—'}</div>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }
