@@ -137,6 +137,7 @@ export function BoxStatsHero({
   );
 
   const sideColGap = ringW / 2 + 30;
+  const ringTransform = `translate(-50%, calc(-50% + ${ringCenterY}px))`;
 
   return (
     <>
@@ -148,6 +149,16 @@ export function BoxStatsHero({
               transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
+            {/* The ring's far half is painted *before* the box so the box
+                visually occludes it, like a ring laid flat on the ground
+                with the box standing in front of its back edge - without
+                this split the ring reads as floating through the box
+                instead of sitting under it. */}
+            <div style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none', clipPath: 'inset(0 0 50% 0)' }}>
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity }} />
+            </div>
+
             <div style={{ width: '100%', height: '100%', position: 'relative', transform: `scale(${boxScale})`, opacity: boxOpacity, transformOrigin: 'center center', pointerEvents: boxInteractive ? 'auto' : 'none' }}>
               <Suspense fallback={<div style={{ width: '100%', height: '100%', background: `linear-gradient(140deg,${color}22,#fff)` }} />}>
                 <RotatingBox3D
@@ -163,15 +174,10 @@ export function BoxStatsHero({
               </span>
             </div>
 
-            <div
-              style={{
-                position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH,
-                transform: `translate(-50%, calc(-50% + ${ringCenterY}px))`, borderRadius: '50%', pointerEvents: 'none',
-              }}
-            >
+            <div style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
               <div style={{ position: 'absolute', inset: '-40%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.22) 0%, rgba(26,23,20,0) 70%)', opacity: shadowOpacity }} />
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity }} />
-              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
+              <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               <div style={{ position: 'absolute', width: 9, height: 9, left: `${dotLeft}%`, top: `${dotTop}%`, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#1a1714', opacity: dotOpacity }} />
               <div
                 style={{
