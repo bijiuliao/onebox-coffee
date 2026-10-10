@@ -12,6 +12,16 @@ const BOX_MODEL_URL = '/assets/package-box.glb';
 const TEXTURE_SIZE = 2048;
 const LABEL_RECT = { x: 1075, y: 733, width: 519, height: 790 };
 
+// The model's labeled face sits opposite the camera by default (its own
+// authored orientation, unrelated to the label's position within the
+// texture) - rest rotated to face it so customers see the label immediately
+// instead of having to drag first.
+const REST_ROTATION = Math.PI;
+// Onyx's own hero box doesn't spin freely - dragging only swings it a
+// limited amount each way before stopping, so you're peeking at the side
+// panels rather than spinning all the way around to the blank back.
+const MAX_SWING = Math.PI / 3;
+
 interface BoxAssets {
   geometry: THREE.BufferGeometry;
   baseImage: HTMLImageElement;
@@ -198,13 +208,8 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
       render();
     }
 
-    // The model's labeled face sits opposite the camera by default (its
-    // own authored orientation, unrelated to the label's position within
-    // the texture) - start rotated to face it so customers see the label
-    // immediately instead of having to drag first.
-    const INITIAL_ROTATION = Math.PI;
-    boxGroup.rotation.y = INITIAL_ROTATION;
-    stateRef.current = { renderer, scene, camera, boxGroup, material, labelCanvas, labelCtx, baseImage: null, rotationY: INITIAL_ROTATION, render, paintLabel };
+    boxGroup.rotation.y = REST_ROTATION;
+    stateRef.current = { renderer, scene, camera, boxGroup, material, labelCanvas, labelCtx, baseImage: null, rotationY: REST_ROTATION, render, paintLabel };
 
     loadBoxAssets()
       .then(({ geometry, baseImage }) => {
@@ -229,7 +234,7 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
         paintLabel(null, color);
         setReady(true);
         onReady?.();
-        onRotationChange?.(INITIAL_ROTATION);
+        onRotationChange?.(REST_ROTATION);
 
         // Rise up out of the ring, like the box is being lifted into view
         // rather than just appearing. The ring/shadow themselves now live in
@@ -315,7 +320,8 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
         onPointerMove={(e) => {
           const st = stateRef.current;
           if (!st || !dragging.current) return;
-          st.rotationY = rotationAtDragStart.current + (e.clientX - dragStartX.current) / 140;
+          const raw = rotationAtDragStart.current + (e.clientX - dragStartX.current) / 140;
+          st.rotationY = Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, raw));
           st.boxGroup.rotation.y = st.rotationY;
           st.render();
           onRotationChange?.(st.rotationY);
