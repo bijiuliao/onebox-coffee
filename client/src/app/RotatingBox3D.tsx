@@ -223,7 +223,7 @@ export function RotatingBox3D({ src, color, placeholderLabel }: { src: string | 
         const center = new THREE.Vector3();
         bb.getCenter(center);
         const maxDim = Math.max(size.x, size.y, size.z) || 1;
-        const scale = 2.8 / maxDim;
+        const scale = 2.05 / maxDim;
 
         const mesh = new THREE.Mesh(geometry, material);
         mesh.position.set(-center.x, -center.y, -center.z);
@@ -339,8 +339,8 @@ export function RotatingBox3D({ src, color, placeholderLabel }: { src: string | 
       <div
         ref={shadowRef}
         style={{
-          position: 'absolute', left: '50%', bottom: '9%', transform: 'translateX(-50%)',
-          width: '58%', aspectRatio: '5 / 1', pointerEvents: 'none', opacity: 0,
+          position: 'absolute', left: '50%', bottom: '13%', transform: 'translateX(-50%)',
+          width: '40%', aspectRatio: '4.2 / 1', pointerEvents: 'none', opacity: 0,
         }}
       >
         <div style={{ position: 'absolute', inset: '-40%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.22) 0%, rgba(26,23,20,0) 70%)' }} />
