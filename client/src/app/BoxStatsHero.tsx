@@ -220,14 +220,20 @@ export function BoxStatsHero({
                 onPointerUp={() => { dragging.current = false; setGrabbing(false); }}
                 onPointerCancel={() => { dragging.current = false; setGrabbing(false); }}
                 style={{
-                  position: 'absolute', width: 36, height: 36, left: `${dotLeft}%`, top: `${dotTop}%`,
-                  marginLeft: -18, marginTop: -18, borderRadius: '50%',
+                  position: 'absolute', width: 44, height: 44, left: `${dotLeft}%`, top: `${dotTop}%`,
+                  marginLeft: -22, marginTop: -22, borderRadius: '50%',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   opacity: dotOpacity, pointerEvents: dotInteractive ? 'auto' : 'none',
                   cursor: grabbing ? 'grabbing' : 'grab', touchAction: 'none',
                 }}
               >
-                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#1a1714' }} />
+                <span style={{
+                  width: 24, height: 24, borderRadius: '50%', background: '#1a1714',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  font: "700 9px 'Space Mono'", color: '#f4f1ea', letterSpacing: -1,
+                }}>
+                  &lt;&gt;
+                </span>
               </div>
               <div
                 style={{
