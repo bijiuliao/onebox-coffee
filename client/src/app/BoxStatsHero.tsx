@@ -127,10 +127,13 @@ export function BoxStatsHero({
   const textOpacity = remap(progress, 0.55, 0.88);
   const infoOpacity = remap(progress, 0.62, 0.92);
 
-  // rotationY=PI is RotatingBox3D's resting orientation (the labeled face
-  // turned toward the camera) - offset the dot's angle so that resting state
-  // reads as sitting front-and-center on the ring, not off at its left edge.
-  const dotAngle = rotationY - Math.PI / 2;
+  // rotationY=REST_ROTATION is RotatingBox3D's resting orientation (the
+  // labeled face turned toward the camera) - offset the dot's angle so that
+  // resting state reads as sitting front-and-center on the ring, not off at
+  // its left edge. The minus sign (rather than a plus) matches Three.js's
+  // rotation.y handedness to the screen: without it, dragging the dot right
+  // turned the box the opposite way from how it visibly moved.
+  const dotAngle = Math.PI / 2 - (rotationY - REST_ROTATION);
   const dotLeft = 50 + 50 * Math.cos(dotAngle);
   const dotTop = 50 + 50 * Math.sin(dotAngle);
 
@@ -215,7 +218,7 @@ export function BoxStatsHero({
                   const nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
                   const ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
                   const angle = Math.atan2(ny, nx);
-                  setRotationY(clampRotation(angle + Math.PI / 2));
+                  setRotationY(clampRotation(REST_ROTATION + Math.PI / 2 - angle));
                 }}
                 onPointerUp={() => { dragging.current = false; setGrabbing(false); }}
                 onPointerCancel={() => { dragging.current = false; setGrabbing(false); }}
