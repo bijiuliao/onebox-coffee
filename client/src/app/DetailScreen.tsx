@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
@@ -8,10 +8,7 @@ import { useLang } from '../i18n';
 import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
 import type { Size, Temp } from '../types';
-
-// Three.js is a big chunk (~140KB gzip) - only worth paying for on the one
-// screen that actually renders the 3D box, not on every page load.
-const RotatingBox3D = lazy(() => import('./RotatingBox3D').then(m => ({ default: m.RotatingBox3D })));
+import { BoxStatsHero } from './BoxStatsHero';
 
 type Mode = 'drip' | 'beans';
 
@@ -72,19 +69,6 @@ export function DetailScreen() {
     { k: t('detail.spec.varietal'), v: coffee.varietal },
     { k: t('detail.spec.roast'), v: coffee.roast },
   ];
-  // Same specs, laid out flanking the circular wheel on desktop - origin
-  // joins the set here since the wheel is self-contained (unlike the simple
-  // list, which leaves it to the eyebrow line above the title).
-  const wheelLeft = [
-    { k: t('detail.spec.roaster'), v: coffee.roaster },
-    { k: t('detail.spec.process'), v: coffee.process },
-    { k: t('detail.spec.altitude'), v: coffee.altitude },
-  ];
-  const wheelRight = [
-    { k: t('detail.spec.varietal'), v: coffee.varietal },
-    { k: t('detail.spec.roast'), v: coffee.roast },
-    { k: t('detail.spec.origin'), v: coffee.originEN },
-  ];
 
   const seg = (active: boolean) => ({
     flex: 1, cursor: 'pointer', textAlign: 'center' as const, padding: 13, borderRadius: 14, font: "600 14px 'Iansui'",
@@ -125,29 +109,14 @@ export function DetailScreen() {
         )}
       </div>
 
-      <div
-        key={`${coffee.id}-cover`}
-        className="rise-from-below"
-        style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative' }}
-      >
-        <Suspense fallback={<div style={{ width: '100%', height: '100%', background: `linear-gradient(140deg,${soft},#fff)` }} />}>
-          <RotatingBox3D src={coffee.coverUrl} color={coffee.color} placeholderLabel={`${coffee.originEN} · ${coffee.name}`} />
-        </Suspense>
-        <span style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: coffee.color, opacity: .65, pointerEvents: 'none' }}>
-          ↔ {t('detail.tiltHint')}
-        </span>
-      </div>
-      {/* "Package box mockup" by _simone.rizzi, CC-BY-4.0 - attribution
-          required by the license. */}
-      <div style={{ padding: '4px 24px 0', textAlign: 'right' }}>
-        <a
-          href="https://sketchfab.com/3d-models/package-box-mockup-3b68aaab1d7d4bce889a2803b131a375"
-          target="_blank" rel="noopener noreferrer"
-          style={{ font: "400 9px 'Space Mono'", color: '#b0a08c' }}
-        >
-          3D model by _simone.rizzi (CC-BY)
-        </a>
-      </div>
+      <BoxStatsHero
+        src={coffee.coverUrl}
+        color={coffee.color}
+        placeholderLabel={`${coffee.originEN} · ${coffee.name}`}
+        tiltHint={t('detail.tiltHint')}
+        roastLabel={coffee.roast}
+        desc={coffee.desc}
+      />
 
       <Reveal style={{ padding: '20px 24px 0' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -173,53 +142,13 @@ export function DetailScreen() {
         </div>
       </Reveal>
 
-      <Reveal className="spec-list-simple" style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
+      <Reveal style={{ margin: '20px 24px 0', background: 'rgba(255,255,255,.6)', borderRadius: 18, padding: '6px 18px' }}>
         {specs.map(s => (
           <div key={s.k} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 0', borderBottom: '1px solid rgba(26,23,20,.08)' }}>
             <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>{s.k}</span>
             <span style={{ font: "500 14px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</span>
           </div>
         ))}
-      </Reveal>
-
-      {/* Desktop-only: the same specs laid out around a circle, borrowed
-          from onyx coffee lab's product-page "spec wheel". */}
-      <Reveal className="spec-wheel" style={{ margin: '48px 0 0', justifyContent: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 28, margin: '0 auto', width: 'fit-content' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
-            {wheelLeft.map(s => (
-              <div key={s.k} style={{ display: 'flex', alignItems: 'center', gap: 12, justifyContent: 'flex-end', textAlign: 'right' }}>
-                <div>
-                  <div style={{ font: "500 15px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
-                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 3 }}>{s.k}</div>
-                </div>
-                <span style={{ width: 26, height: 1, background: 'rgba(26,23,20,.25)', flex: 'none' }} />
-              </div>
-            ))}
-          </div>
-
-          <div style={{
-            width: 300, height: 300, borderRadius: '50%', flex: 'none', border: `1px solid ${coffee.color}66`,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: 36,
-          }}>
-            <div style={{ font: "600 34px 'Room205',serif", color: '#1a1714' }}>{coffee.roast}</div>
-            <div style={{ font: "400 13px/1.7 'Iansui'", color: '#6b5c4a', marginTop: 12, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical' }}>
-              {coffee.desc}
-            </div>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 34 }}>
-            {wheelRight.map(s => (
-              <div key={s.k} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ width: 26, height: 1, background: 'rgba(26,23,20,.25)', flex: 'none' }} />
-                <div>
-                  <div style={{ font: "500 15px 'Iansui'", color: '#1a1714' }}>{s.v || '—'}</div>
-                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76', marginTop: 3 }}>{s.k}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </Reveal>
 
       {canDrip && canBeans && (

@@ -100,21 +100,14 @@ interface SceneState {
   paintLabel: (img: HTMLImageElement | null, color: string) => void;
 }
 
-// The ring sits at a fixed spot under the box; the dot traces its ellipse in
-// sync with rotationY so it reads as "the dot you'd nudge to spin the box",
-// even though the whole box is the actual drag target.
-function placeDot(el: HTMLDivElement | null, angle: number) {
-  if (!el) return;
-  el.style.left = `${50 + 50 * Math.cos(angle)}%`;
-  el.style.top = `${50 + 50 * Math.sin(angle)}%`;
-}
-
-export function RotatingBox3D({ src, color, placeholderLabel }: { src: string | null; color: string; placeholderLabel: string }) {
+export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, onReady }: {
+  src: string | null; color: string; placeholderLabel: string;
+  onRotationChange?: (rotationY: number) => void;
+  onReady?: () => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<SceneState | null>(null);
-  const dotRef = useRef<HTMLDivElement>(null);
-  const shadowRef = useRef<HTMLDivElement>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
   // Rendering here is all imperative (direct Three.js calls), so `dragging`
@@ -234,14 +227,16 @@ export function RotatingBox3D({ src, color, placeholderLabel }: { src: string | 
 
         stateRef.current.baseImage = baseImage;
         paintLabel(null, color);
-        placeDot(dotRef.current, INITIAL_ROTATION);
         setReady(true);
+        onReady?.();
+        onRotationChange?.(INITIAL_ROTATION);
 
-        // Rise up out of the ring with a shadow fading in underneath, like
-        // the box is being lifted into view rather than just appearing.
+        // Rise up out of the ring, like the box is being lifted into view
+        // rather than just appearing. The ring/shadow themselves now live in
+        // the external wrapper, which reads `ready` via onReady to time its
+        // own entrance.
         const RISE_START_Y = -1.6;
         boxGroup.position.y = RISE_START_Y;
-        if (shadowRef.current) shadowRef.current.style.opacity = '0';
         const start = performance.now();
         const DURATION = 700;
         function tick(now: number) {
@@ -249,7 +244,6 @@ export function RotatingBox3D({ src, color, placeholderLabel }: { src: string | 
           const t = Math.min(1, (now - start) / DURATION);
           const eased = 1 - Math.pow(1 - t, 3);
           boxGroup.position.y = RISE_START_Y * (1 - eased);
-          if (shadowRef.current) shadowRef.current.style.opacity = String(eased);
           render();
           if (t < 1) requestAnimationFrame(tick);
         }
@@ -324,28 +318,13 @@ export function RotatingBox3D({ src, color, placeholderLabel }: { src: string | 
           st.rotationY = rotationAtDragStart.current + (e.clientX - dragStartX.current) / 140;
           st.boxGroup.rotation.y = st.rotationY;
           st.render();
-          placeDot(dotRef.current, st.rotationY);
+          onRotationChange?.(st.rotationY);
         }}
         onPointerUp={() => { dragging.current = false; }}
         onPointerCancel={() => { dragging.current = false; }}
         style={{ position: 'relative', width: '100%', height: '100%', cursor: 'grab', touchAction: 'pan-y', opacity: ready ? 1 : 0, transition: 'opacity .4s ease' }}
       >
         <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
-      </div>
-      {/* Ring + orbiting dot "turntable" under the box - the dot traces the
-          ring in sync with rotationY, reading as the control for the spin
-          even though dragging anywhere on the box does the same thing. Also
-          doubles as the shadow the box rises out of on entrance. */}
-      <div
-        ref={shadowRef}
-        style={{
-          position: 'absolute', left: '50%', bottom: '13%', transform: 'translateX(-50%)',
-          width: '40%', aspectRatio: '4.2 / 1', pointerEvents: 'none', opacity: 0,
-        }}
-      >
-        <div style={{ position: 'absolute', inset: '-40%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.22) 0%, rgba(26,23,20,0) 70%)' }} />
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)' }} />
-        <div ref={dotRef} style={{ position: 'absolute', width: 9, height: 9, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#1a1714' }} />
       </div>
     </div>
   );
