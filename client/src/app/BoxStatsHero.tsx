@@ -21,10 +21,10 @@ const remap = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - 
 function computeSizes(stageWidth: number, stageHeight: number) {
   return {
     stageWidth,
-    boxWidthPx: Math.max(180, Math.min(stageWidth * 0.58, stageHeight * 0.46, 480)),
-    // Noticeably bigger than the box, not just a hair more - this is the
+    boxWidthPx: Math.max(190, Math.min(stageWidth * 0.66, stageHeight * 0.52, 560)),
+    // Clearly bigger than the box, not just a hair more - this is the
     // dominant element once it's fully grown into the stat circle.
-    circleMaxPx: Math.max(220, Math.min(stageWidth * 0.78, stageHeight * 0.68, 620)),
+    circleMaxPx: Math.max(240, Math.min(stageWidth * 0.85, stageHeight * 0.8, 760)),
   };
 }
 
@@ -42,6 +42,11 @@ const WIDE_BREAKPOINT = 760;
 // it, where every visual property is driven by scroll progress (0-1)
 // computed from the track's position in the viewport.
 const clampRotation = (r: number) => Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, r));
+// The mouse-angle range that maps onto the clamped rotation range (see
+// clampRotation) - independent of REST_ROTATION, since rotationY = REST +
+// PI/2 - angle, so REST cancels out when solving for angle's own bounds.
+const ANGLE_MIN = Math.PI / 2 - MAX_SWING;
+const ANGLE_MAX = Math.PI / 2 + MAX_SWING;
 
 export function BoxStatsHero({
   src, color, placeholderLabel, roastLabel, desc, left, right,
@@ -57,6 +62,15 @@ export function BoxStatsHero({
   const trackRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
+  // atan2 wraps at ±π - if we fed its raw result straight into rotationY,
+  // dragging the dot past the ellipse's leftmost point would see the angle
+  // jump from near +π to near -π in one pointermove, snapping the box to
+  // the opposite swing limit instead of stopping at the near one. Tracking
+  // the continuous (unwrapped) angle via per-move deltas, then clamping
+  // that instead of the raw angle, keeps the drag smooth right up to the
+  // limit from either direction.
+  const continuousAngle = useRef(Math.PI / 2);
+  const lastRawAngle = useRef(Math.PI / 2);
   const [progress, setProgress] = useState(0);
   const [rotationY, setRotationY] = useState(REST_ROTATION);
   const [grabbing, setGrabbing] = useState(false);
@@ -122,6 +136,13 @@ export function BoxStatsHero({
   const ringH = lerp(startRingH, circleMaxPx, ringT);
   const ringCenterY = lerp(startRingCenterY, 0, ringT);
 
+  // The box needs to sit low enough early on to clear the fixed bottom buy
+  // bar while it's still draggable (see the anchor div below), but once
+  // that interactive phase is over and it's settled into the big stat
+  // circle, pinning it down there just makes the circle look off-center in
+  // the viewport. Drift the anchor back toward true center as that happens.
+  const anchorTopPct = lerp(28, 50, remap(progress, 0.2, 0.75));
+
   const shadowOpacity = 1 - remap(progress, 0.2, 0.55);
   const whiteBorderOpacity = 1 - remap(progress, 0.5, 0.85);
   const colorBorderOpacity = remap(progress, 0.5, 0.85);
@@ -176,11 +197,12 @@ export function BoxStatsHero({
         <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
           <div
             style={{
-              // Lower than this and the ring/dot collide with the fixed
+              // Lower than 28% and the ring/dot collide with the fixed
               // bottom buy bar before the sticky stage has even finished
               // pinning (it still sits in normal flow, lower than its final
-              // position, until scroll passes the hero text above it).
-              position: 'absolute', left: '50%', top: '28%', width: boxWidthPx, height: boxHeightPx,
+              // position, until scroll passes the hero text above it) -
+              // anchorTopPct drifts back up to 50% once that phase is over.
+              position: 'absolute', left: '50%', top: `${anchorTopPct}%`, width: boxWidthPx, height: boxHeightPx,
               transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -207,7 +229,7 @@ export function BoxStatsHero({
             </div>
 
             <div ref={ringRef} style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
-              <div style={{ position: 'absolute', inset: '-40%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.22) 0%, rgba(26,23,20,0) 70%)', opacity: shadowOpacity }} />
+              <div style={{ position: 'absolute', inset: '-8%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.4) 0%, rgba(26,23,20,.15) 55%, rgba(26,23,20,0) 80%)', opacity: shadowOpacity }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               {/* The dot is the only drag handle - dragging the box itself
@@ -218,6 +240,12 @@ export function BoxStatsHero({
                   if (!dotInteractive) return;
                   dragging.current = true;
                   setGrabbing(true);
+                  const rect = ringRef.current?.getBoundingClientRect();
+                  if (rect) {
+                    const nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+                    const ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+                    lastRawAngle.current = Math.atan2(ny, nx);
+                  }
                   e.currentTarget.setPointerCapture(e.pointerId);
                 }}
                 onPointerMove={(e) => {
@@ -226,8 +254,13 @@ export function BoxStatsHero({
                   if (!rect) return;
                   const nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
                   const ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-                  const angle = Math.atan2(ny, nx);
-                  setRotationY(clampRotation(REST_ROTATION + Math.PI / 2 - angle));
+                  const rawAngle = Math.atan2(ny, nx);
+                  let delta = rawAngle - lastRawAngle.current;
+                  if (delta > Math.PI) delta -= Math.PI * 2;
+                  else if (delta < -Math.PI) delta += Math.PI * 2;
+                  lastRawAngle.current = rawAngle;
+                  continuousAngle.current = Math.min(ANGLE_MAX, Math.max(ANGLE_MIN, continuousAngle.current + delta));
+                  setRotationY(clampRotation(REST_ROTATION + Math.PI / 2 - continuousAngle.current));
                 }}
                 onPointerUp={() => { dragging.current = false; setGrabbing(false); }}
                 onPointerCancel={() => { dragging.current = false; setGrabbing(false); }}
