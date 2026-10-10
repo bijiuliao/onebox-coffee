@@ -10,11 +10,15 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 // progress instead of all moving in lockstep.
 const remap = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
 
-function responsiveSizes() {
-  const w = typeof window === 'undefined' ? 400 : window.innerWidth;
+// Sized off the stage's own rendered box, not window.innerWidth - on a wide
+// desktop monitor the hero still sits inside MobileShell's capped column
+// (max 900px), so sizing against the full window left the box tiny and lost
+// in empty space. Capped against stage height too so a short, wide viewport
+// doesn't get a box taller than the stage has room for.
+function computeSizes(stageWidth: number, stageHeight: number) {
   return {
-    boxWidthPx: Math.min(w * 0.62, 300),
-    circleMaxPx: Math.min(w * 0.7, 320),
+    boxWidthPx: Math.max(170, Math.min(stageWidth * 0.5, stageHeight * 0.34, 340)),
+    circleMaxPx: Math.max(190, Math.min(stageWidth * 0.56, stageHeight * 0.46, 380)),
   };
 }
 
@@ -40,7 +44,7 @@ export function BoxStatsHero({
   const [progress, setProgress] = useState(0);
   const [rotationY, setRotationY] = useState(Math.PI);
   const [boxReady, setBoxReady] = useState(false);
-  const [sizes, setSizes] = useState(responsiveSizes);
+  const [sizes, setSizes] = useState(() => computeSizes(400, 800));
 
   useEffect(() => {
     let raf = 0;
@@ -52,7 +56,7 @@ export function BoxStatsHero({
       const scrollable = rect.height - window.innerHeight;
       const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
       setProgress(p);
-      setSizes(responsiveSizes());
+      setSizes(computeSizes(rect.width, window.innerHeight));
     }
     function onScrollOrResize() {
       if (!raf) raf = requestAnimationFrame(update);
@@ -90,8 +94,12 @@ export function BoxStatsHero({
   const colorBorderOpacity = remap(progress, 0.5, 0.85);
   const textOpacity = remap(progress, 0.55, 0.88);
 
-  const dotLeft = 50 + 50 * Math.cos(rotationY);
-  const dotTop = 50 + 50 * Math.sin(rotationY);
+  // rotationY=PI is RotatingBox3D's resting orientation (the labeled face
+  // turned toward the camera) - offset the dot's angle so that resting state
+  // reads as sitting front-and-center on the ring, not off at its left edge.
+  const dotAngle = rotationY - Math.PI / 2;
+  const dotLeft = 50 + 50 * Math.cos(dotAngle);
+  const dotTop = 50 + 50 * Math.sin(dotAngle);
 
   return (
     <>
