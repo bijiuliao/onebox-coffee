@@ -116,7 +116,6 @@ export function DetailScreen() {
         src={coffee.coverUrl}
         color={coffee.color}
         placeholderLabel={`${coffee.originEN} · ${coffee.name}`}
-        tiltHint={t('detail.tiltHint')}
         roastLabel={coffee.roast}
         desc={coffee.desc}
         left={wheelLeft}

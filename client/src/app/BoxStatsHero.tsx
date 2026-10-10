@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { MAX_SWING, REST_ROTATION } from './boxRotation';
 
 // Three.js is a big chunk (~140KB gzip) - only worth paying for on the one
 // screen that actually renders the 3D box, not on every page load.
@@ -39,21 +40,25 @@ const WIDE_BREAKPOINT = 760;
 // component re-creates that: a tall scroll track with a pinned stage inside
 // it, where every visual property is driven by scroll progress (0-1)
 // computed from the track's position in the viewport.
+const clampRotation = (r: number) => Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, r));
+
 export function BoxStatsHero({
-  src, color, placeholderLabel, tiltHint, roastLabel, desc, left, right,
+  src, color, placeholderLabel, roastLabel, desc, left, right,
 }: {
   src: string | null;
   color: string;
   placeholderLabel: string;
-  tiltHint: string;
   roastLabel: string;
   desc: string;
   left: SpecItem[];
   right: SpecItem[];
 }) {
   const trackRef = useRef<HTMLDivElement>(null);
+  const ringRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
   const [progress, setProgress] = useState(0);
-  const [rotationY, setRotationY] = useState(Math.PI);
+  const [rotationY, setRotationY] = useState(REST_ROTATION);
+  const [grabbing, setGrabbing] = useState(false);
   const [boxReady, setBoxReady] = useState(false);
   const [sizes, setSizes] = useState(() => computeSizes(400, 800));
   const [openItem, setOpenItem] = useState<SpecItem | null>(null);
@@ -100,11 +105,12 @@ export function BoxStatsHero({
   // reference point for the ring's geometry across the whole animation.
   const boxScale = lerp(1, 0.46, remap(progress, 0, 0.55));
   const boxOpacity = lerp(1, 0.16, remap(progress, 0, 0.6));
-  const hintOpacity = boxReady ? lerp(0.65, 0, remap(progress, 0, 0.12)) : 0;
-  // Once the ring has clearly become the stat circle, dragging it to "spin"
-  // no longer makes sense - stop reacting to pointer input and let the dot
-  // fade out along with it, rather than leaving a dead control on screen.
-  const boxInteractive = progress < 0.5;
+  // Once the ring has clearly become the stat circle, dragging the dot to
+  // "spin" the box no longer makes sense - stop reacting to pointer input
+  // and let the dot fade out along with it, rather than leaving a dead
+  // control on screen. Also gated on the box having actually loaded, so
+  // there's nothing to grab before there's a box to respond.
+  const dotInteractive = boxReady && progress < 0.5;
   const dotOpacity = 1 - remap(progress, 0.5, 0.72);
 
   const ringT = remap(progress, 0.15, 0.8);
@@ -158,7 +164,11 @@ export function BoxStatsHero({
         <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
           <div
             style={{
-              position: 'absolute', left: '50%', top: '42%', width: boxWidthPx, height: boxHeightPx,
+              // Lower than this and the ring/dot collide with the fixed
+              // bottom buy bar before the sticky stage has even finished
+              // pinning (it still sits in normal flow, lower than its final
+              // position, until scroll passes the hero text above it).
+              position: 'absolute', left: '50%', top: '28%', width: boxWidthPx, height: boxHeightPx,
               transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
@@ -172,26 +182,53 @@ export function BoxStatsHero({
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity }} />
             </div>
 
-            <div style={{ width: '100%', height: '100%', position: 'relative', transform: `scale(${boxScale})`, opacity: boxOpacity, transformOrigin: 'center center', pointerEvents: boxInteractive ? 'auto' : 'none' }}>
+            <div style={{ width: '100%', height: '100%', position: 'relative', transform: `scale(${boxScale})`, opacity: boxOpacity, transformOrigin: 'center center', pointerEvents: 'none' }}>
               <Suspense fallback={<div style={{ width: '100%', height: '100%', background: `linear-gradient(140deg,${color}22,#fff)` }} />}>
                 <RotatingBox3D
                   src={src}
                   color={color}
                   placeholderLabel={placeholderLabel}
+                  rotationY={rotationY}
                   onReady={() => setBoxReady(true)}
-                  onRotationChange={setRotationY}
                 />
               </Suspense>
-              <span style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', font: "700 9px 'Space Mono'", letterSpacing: 1.5, color, opacity: hintOpacity, pointerEvents: 'none', whiteSpace: 'nowrap' }}>
-                ↔ {tiltHint}
-              </span>
             </div>
 
-            <div style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
+            <div ref={ringRef} style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
               <div style={{ position: 'absolute', inset: '-40%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.22) 0%, rgba(26,23,20,0) 70%)', opacity: shadowOpacity }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
-              <div style={{ position: 'absolute', width: 9, height: 9, left: `${dotLeft}%`, top: `${dotTop}%`, marginLeft: -4.5, marginTop: -4.5, borderRadius: '50%', background: '#1a1714', opacity: dotOpacity }} />
+              {/* The dot is the only drag handle - dragging the box itself
+                  does nothing. Its hit area is bigger than the visible dot
+                  so it's actually grabbable on a touch screen. */}
+              <div
+                onPointerDown={(e) => {
+                  if (!dotInteractive) return;
+                  dragging.current = true;
+                  setGrabbing(true);
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                }}
+                onPointerMove={(e) => {
+                  if (!dragging.current) return;
+                  const rect = ringRef.current?.getBoundingClientRect();
+                  if (!rect) return;
+                  const nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
+                  const ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
+                  const angle = Math.atan2(ny, nx);
+                  setRotationY(clampRotation(angle + Math.PI / 2));
+                }}
+                onPointerUp={() => { dragging.current = false; setGrabbing(false); }}
+                onPointerCancel={() => { dragging.current = false; setGrabbing(false); }}
+                style={{
+                  position: 'absolute', width: 36, height: 36, left: `${dotLeft}%`, top: `${dotTop}%`,
+                  marginLeft: -18, marginTop: -18, borderRadius: '50%',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  opacity: dotOpacity, pointerEvents: dotInteractive ? 'auto' : 'none',
+                  cursor: grabbing ? 'grabbing' : 'grab', touchAction: 'none',
+                }}
+              >
+                <span style={{ width: 9, height: 9, borderRadius: '50%', background: '#1a1714' }} />
+              </div>
               <div
                 style={{
                   position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: ringW * 0.74,

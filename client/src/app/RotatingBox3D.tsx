@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { REST_ROTATION } from './boxRotation';
 
 // "Package box mockup" by _simone.rizzi (CC-BY-4.0), sourced from Sketchfab:
 // https://sketchfab.com/3d-models/package-box-mockup-3b68aaab1d7d4bce889a2803b131a375
@@ -11,16 +12,6 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 const BOX_MODEL_URL = '/assets/package-box.glb';
 const TEXTURE_SIZE = 2048;
 const LABEL_RECT = { x: 1075, y: 733, width: 519, height: 790 };
-
-// The model's labeled face sits opposite the camera by default (its own
-// authored orientation, unrelated to the label's position within the
-// texture) - rest rotated to face it so customers see the label immediately
-// instead of having to drag first.
-const REST_ROTATION = Math.PI;
-// Onyx's own hero box doesn't spin freely - dragging only swings it a
-// limited amount each way before stopping, so you're peeking at the side
-// panels rather than spinning all the way around to the blank back.
-const MAX_SWING = Math.PI / 3;
 
 interface BoxAssets {
   geometry: THREE.BufferGeometry;
@@ -110,9 +101,12 @@ interface SceneState {
   paintLabel: (img: HTMLImageElement | null, color: string) => void;
 }
 
-export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, onReady }: {
+export function RotatingBox3D({ src, color, placeholderLabel, rotationY, onReady }: {
   src: string | null; color: string; placeholderLabel: string;
-  onRotationChange?: (rotationY: number) => void;
+  // Rotation is controlled from outside - the ring's dot is the only drag
+  // handle (see BoxStatsHero), this component just points the box wherever
+  // it's told.
+  rotationY: number;
   onReady?: () => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -120,12 +114,6 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
   const stateRef = useRef<SceneState | null>(null);
   const [ready, setReady] = useState(false);
   const [failed, setFailed] = useState(false);
-  // Rendering here is all imperative (direct Three.js calls), so `dragging`
-  // only needs to gate the move handler - a ref avoids the stale-closure
-  // window a useState value would have between pointerdown and its re-render.
-  const dragging = useRef(false);
-  const dragStartX = useRef(0);
-  const rotationAtDragStart = useRef(0);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -234,7 +222,6 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
         paintLabel(null, color);
         setReady(true);
         onReady?.();
-        onRotationChange?.(REST_ROTATION);
 
         // Rise up out of the ring, like the box is being lifted into view
         // rather than just appearing. The ring/shadow themselves now live in
@@ -286,6 +273,15 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
     img.src = src;
   }, [src, color, ready]);
 
+  // Point the box at whatever angle the dot (dragged externally) reports.
+  useEffect(() => {
+    const st = stateRef.current;
+    if (!st) return;
+    st.rotationY = rotationY;
+    st.boxGroup.rotation.y = rotationY;
+    st.render();
+  }, [rotationY]);
+
   if (failed) {
     // Model failed to load (offline, blocked, etc.) - fall back to a flat
     // placeholder rather than an empty box.
@@ -309,26 +305,7 @@ export function RotatingBox3D({ src, color, placeholderLabel, onRotationChange, 
         ref={containerRef}
         role="img"
         aria-label={placeholderLabel}
-        onPointerDown={(e) => {
-          const st = stateRef.current;
-          if (!st) return;
-          dragging.current = true;
-          dragStartX.current = e.clientX;
-          rotationAtDragStart.current = st.rotationY;
-          e.currentTarget.setPointerCapture(e.pointerId);
-        }}
-        onPointerMove={(e) => {
-          const st = stateRef.current;
-          if (!st || !dragging.current) return;
-          const raw = rotationAtDragStart.current + (e.clientX - dragStartX.current) / 140;
-          st.rotationY = Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, raw));
-          st.boxGroup.rotation.y = st.rotationY;
-          st.render();
-          onRotationChange?.(st.rotationY);
-        }}
-        onPointerUp={() => { dragging.current = false; }}
-        onPointerCancel={() => { dragging.current = false; }}
-        style={{ position: 'relative', width: '100%', height: '100%', cursor: 'grab', touchAction: 'pan-y', opacity: ready ? 1 : 0, transition: 'opacity .4s ease' }}
+        style={{ position: 'relative', width: '100%', height: '100%', opacity: ready ? 1 : 0, transition: 'opacity .4s ease' }}
       >
         <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
       </div>
