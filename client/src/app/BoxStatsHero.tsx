@@ -19,12 +19,18 @@ const remap = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - 
 // wide monitors. The hard caps below dominate once the stage is roomy
 // (desktop), the ratios dominate on a narrow phone-width stage.
 function computeSizes(stageWidth: number, stageHeight: number) {
+  const boxWidthPx = Math.max(170, Math.min(stageWidth * 0.48, stageHeight * 0.4, 420));
   return {
     stageWidth,
-    boxWidthPx: Math.max(190, Math.min(stageWidth * 0.66, stageHeight * 0.52, 560)),
-    // Clearly bigger than the box, not just a hair more - this is the
-    // dominant element once it's fully grown into the stat circle.
-    circleMaxPx: Math.max(240, Math.min(stageWidth * 0.85, stageHeight * 0.8, 760)),
+    stageHeight,
+    boxWidthPx,
+    // The ring is tied to the box's own width (not an independent stage
+    // formula) so the "ring is clearly wider than the box, even at rest"
+    // proportion from onyx's real page - a flat ellipse roughly 1.7x the
+    // box's width sitting under it - holds at every viewport size, and the
+    // fully-grown circle stays comfortably bigger again than that.
+    startRingW: boxWidthPx * 1.7,
+    circleMaxPx: Math.min(boxWidthPx * 2.5, stageHeight * 0.82, stageWidth * 0.88, 820),
   };
 }
 
@@ -111,7 +117,7 @@ export function BoxStatsHero({
     };
   }, []);
 
-  const { boxWidthPx, circleMaxPx, stageWidth } = sizes;
+  const { boxWidthPx, startRingW, circleMaxPx, stageWidth } = sizes;
   const boxHeightPx = boxWidthPx * 1.25;
   const isWide = stageWidth >= WIDE_BREAKPOINT;
 
@@ -129,9 +135,11 @@ export function BoxStatsHero({
   const dotOpacity = 1 - remap(progress, 0.5, 0.72);
 
   const ringT = remap(progress, 0.15, 0.8);
-  const startRingW = boxWidthPx * 0.4;
-  const startRingH = startRingW / 4.2;
-  const startRingCenterY = boxHeightPx / 2 - boxHeightPx * 0.13 - startRingH / 2;
+  // A thin, flat ellipse at rest (matching onyx's own "turntable" ring),
+  // not an oval closer to a circle - startRingW already comes in at ~1.7x
+  // the box's width (see computeSizes).
+  const startRingH = startRingW / 12;
+  const startRingCenterY = boxHeightPx / 2 - boxHeightPx * 0.08 - startRingH / 2;
   const ringW = lerp(startRingW, circleMaxPx, ringT);
   const ringH = lerp(startRingH, circleMaxPx, ringT);
   const ringCenterY = lerp(startRingCenterY, 0, ringT);
@@ -144,6 +152,11 @@ export function BoxStatsHero({
   const anchorTopPct = lerp(28, 50, remap(progress, 0.2, 0.75));
 
   const shadowOpacity = 1 - remap(progress, 0.2, 0.55);
+  // Onyx's own shadow isn't a static patch - it slides as the box turns,
+  // like it's cast by the box's current face rather than painted once and
+  // left alone. Shifting the gradient's center (not the whole shadow
+  // div, which would drag it off the ring) approximates that cheaply.
+  const shadowShiftPct = ((rotationY - REST_ROTATION) / MAX_SWING) * 22;
   const whiteBorderOpacity = 1 - remap(progress, 0.5, 0.85);
   const colorBorderOpacity = remap(progress, 0.5, 0.85);
   const textOpacity = remap(progress, 0.55, 0.88);
@@ -229,7 +242,7 @@ export function BoxStatsHero({
             </div>
 
             <div ref={ringRef} style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
-              <div style={{ position: 'absolute', inset: '-8%', borderRadius: '50%', background: 'radial-gradient(ellipse at center, rgba(26,23,20,.4) 0%, rgba(26,23,20,.15) 55%, rgba(26,23,20,0) 80%)', opacity: shadowOpacity }} />
+              <div style={{ position: 'absolute', inset: '-8%', borderRadius: '50%', background: `radial-gradient(ellipse at ${50 + shadowShiftPct}% 50%, rgba(26,23,20,.4) 0%, rgba(26,23,20,.15) 55%, rgba(26,23,20,0) 80%)`, opacity: shadowOpacity }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               {/* The dot is the only drag handle - dragging the box itself
