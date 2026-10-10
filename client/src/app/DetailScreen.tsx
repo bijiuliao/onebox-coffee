@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
@@ -9,72 +9,11 @@ import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
 import type { Size, Temp } from '../types';
 
+// Three.js is a big chunk (~140KB gzip) - only worth paying for on the one
+// screen that actually renders the 3D box, not on every page load.
+const RotatingBox3D = lazy(() => import('./RotatingBox3D').then(m => ({ default: m.RotatingBox3D })));
+
 type Mode = 'drip' | 'beans';
-
-// A real rotating 3D box (not a photo sequence - onyx renders theirs from an
-// actual 360deg photo shoot per product, which onebox doesn't have). The box
-// shape/geometry is the same for every coffee; only the front-face image
-// (the coffee's own cover photo) changes, so dragging actually spins a real
-// cuboid rather than faking a tilt on a flat photo.
-function RotatingBox({ src, alt, placeholderLabel, color }: { src: string | null; alt: string; placeholderLabel: string; color: string }) {
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const [width, setWidth] = useState(0);
-  const [rotation, setRotation] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const dragStartX = useRef(0);
-  const rotationAtDragStart = useRef(0);
-
-  useEffect(() => {
-    const el = sceneRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-
-  const depth = width * 0.16;
-
-  const face = src ? (
-    <img src={src} alt={alt} draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-  ) : (
-    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(140deg,${color}22,#fff)` }}>
-      <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color, opacity: .7 }}>{placeholderLabel}</span>
-    </div>
-  );
-
-  return (
-    <div
-      ref={sceneRef}
-      onPointerDown={(e) => {
-        setDragging(true);
-        dragStartX.current = e.clientX;
-        rotationAtDragStart.current = rotation;
-        e.currentTarget.setPointerCapture(e.pointerId);
-      }}
-      onPointerMove={(e) => {
-        if (!dragging) return;
-        setRotation(rotationAtDragStart.current + (e.clientX - dragStartX.current) / 2.4);
-      }}
-      onPointerUp={() => setDragging(false)}
-      onPointerCancel={() => setDragging(false)}
-      style={{ width: '100%', height: '100%', perspective: 1400, cursor: 'grab', touchAction: 'pan-y' }}
-    >
-      <div style={{
-        position: 'relative', width: '100%', height: '100%', transformStyle: 'preserve-3d',
-        transform: `rotateY(${rotation}deg)`, transition: dragging ? 'none' : 'transform .4s cubic-bezier(.2,.8,.2,1)',
-      }}>
-        {/* Front sits at z=0 - the hinge plane the left/right walls pivot off of. */}
-        <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', overflow: 'hidden' }}>
-          {face}
-        </div>
-        {/* Back sits depth behind the front, connected by the two side walls. */}
-        <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: `translateZ(${-depth}px)`, background: `linear-gradient(160deg,${color}33,${color}11)` }} />
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: depth, transformOrigin: 'left', transform: 'rotateY(-90deg)', backfaceVisibility: 'hidden', background: color, opacity: .85 }} />
-        <div style={{ position: 'absolute', top: 0, bottom: 0, right: 0, width: depth, transformOrigin: 'right', transform: 'rotateY(90deg)', backfaceVisibility: 'hidden', background: color, opacity: .7 }} />
-      </div>
-    </div>
-  );
-}
 
 export function DetailScreen() {
   const { id } = useParams<{ id: string }>();
@@ -191,10 +130,23 @@ export function DetailScreen() {
         className="rise-from-below"
         style={{ animationDelay: '.2s', margin: '22px 0 0', aspectRatio: '4 / 5', position: 'relative' }}
       >
-        <RotatingBox src={coffee.coverUrl} alt={coffee.name} placeholderLabel={`${coffee.originEN} · ${coffee.name}`} color={coffee.color} />
+        <Suspense fallback={<div style={{ width: '100%', height: '100%', background: `linear-gradient(140deg,${soft},#fff)` }} />}>
+          <RotatingBox3D src={coffee.coverUrl} color={coffee.color} placeholderLabel={`${coffee.originEN} · ${coffee.name}`} />
+        </Suspense>
         <span style={{ position: 'absolute', bottom: 14, left: '50%', transform: 'translateX(-50%)', font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: coffee.color, opacity: .65, pointerEvents: 'none' }}>
           ↔ {t('detail.tiltHint')}
         </span>
+      </div>
+      {/* "Package box mockup" by _simone.rizzi, CC-BY-4.0 - attribution
+          required by the license. */}
+      <div style={{ padding: '4px 24px 0', textAlign: 'right' }}>
+        <a
+          href="https://sketchfab.com/3d-models/package-box-mockup-3b68aaab1d7d4bce889a2803b131a375"
+          target="_blank" rel="noopener noreferrer"
+          style={{ font: "400 9px 'Space Mono'", color: '#b0a08c' }}
+        >
+          3D model by _simone.rizzi (CC-BY)
+        </a>
       </div>
 
       <Reveal style={{ padding: '20px 24px 0' }}>
