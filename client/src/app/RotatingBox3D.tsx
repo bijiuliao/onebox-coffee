@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { REST_ROTATION } from './boxRotation';
+import { COUNTRY_SHAPES } from './countryShapes';
 
 // "Coffee capsules pack" box mockup (geometry only - the model's own
 // branded packaging texture is stripped out at build time; we paint our own
@@ -14,7 +15,33 @@ const TEXTURE_SIZE = 2048;
 // directly from its own mesh data - this is the face that ends up pointed at
 // the camera at rest (see REST_ROTATION in boxRotation.ts).
 const LABEL_RECT = { x: 1040, y: 793, width: 921, height: 621 };
+// UV bounding box of the model's +X face - the side panel that swings into
+// view on screen-right as the box rotates (confirmed empirically: dragging
+// the dot left turns this face toward the camera on the right-hand side,
+// upright and not mirrored, same as the front face).
+const SIDE_LABEL_RECT = { x: 13, y: 812, width: 778, height: 532 };
 const LABEL_INK = '#f4f1ea';
+
+// coffee.originEN is free-typed in the admin (plain English country name,
+// e.g. "ETHIOPIA") - COUNTRY_SHAPES keys are the source dataset's own
+// spelling, so matching needs a normalize step plus a few aliases for the
+// handful of countries whose common name doesn't literally match the
+// dataset's (e.g. "DR CONGO" vs "Dem. Rep. Congo").
+const COUNTRY_ALIASES: Record<string, string> = {
+  'DR CONGO': 'Dem. Rep. Congo',
+  'DRC': 'Dem. Rep. Congo',
+  'CONGO': 'Dem. Rep. Congo',
+  'DOMINICAN REPUBLIC': 'Dominican Rep.',
+  'VIET NAM': 'Vietnam',
+  'PNG': 'Papua New Guinea',
+};
+
+function findCountryShape(origin: string): number[][][] | null {
+  const key = origin.trim().toUpperCase();
+  if (COUNTRY_ALIASES[key]) return COUNTRY_SHAPES[COUNTRY_ALIASES[key]] ?? null;
+  const match = Object.keys(COUNTRY_SHAPES).find(name => name.toUpperCase() === key);
+  return match ? COUNTRY_SHAPES[match] : null;
+}
 
 let cachedGeometry: Promise<THREE.BufferGeometry> | null = null;
 
@@ -207,8 +234,38 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
       const startY = y + height * 0.52 - ((lines.length - 1) * lineHeight) / 2;
       lines.forEach((line, i) => labelCtx.fillText(line, cx, startY + i * lineHeight));
 
+      paintOriginMap(originText);
+
       texture.needsUpdate = true;
       render();
+    }
+
+    // Silhouette of the origin country, filled in the same cream ink as the
+    // front text, centered on the side panel. Coordinates in COUNTRY_SHAPES
+    // are pre-normalized to roughly [-0.5,0.5] on their longer axis with y
+    // already flipped to canvas-down, so placing one is just "pick a pixel
+    // scale and an origin point" - no per-shape adjustment needed. Origins
+    // that don't match a known country (free-typed in the admin) just get a
+    // plain side panel instead of erroring.
+    function paintOriginMap(originText: string) {
+      const rings = findCountryShape(originText);
+      if (!rings) return;
+      const { x, y, width, height } = SIDE_LABEL_RECT;
+      const cx = x + width / 2;
+      const cy = y + height / 2;
+      const scale = Math.min(width, height) * 0.8;
+      labelCtx.fillStyle = LABEL_INK;
+      labelCtx.beginPath();
+      for (const ring of rings) {
+        ring.forEach(([nx, ny], i) => {
+          const px = cx + nx * scale;
+          const py = cy + ny * scale;
+          if (i === 0) labelCtx.moveTo(px, py);
+          else labelCtx.lineTo(px, py);
+        });
+        labelCtx.closePath();
+      }
+      labelCtx.fill();
     }
 
     boxGroup.rotation.y = REST_ROTATION;
