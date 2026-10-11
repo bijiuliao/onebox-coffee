@@ -180,19 +180,16 @@ export function BoxStatsHero({
   const isWide = stageWidth >= WIDE_BREAKPOINT;
 
   // The box container itself never resizes or moves - only the box *visual*
-  // inside it scales/fades. That keeps the container's center a fixed
+  // inside it scales down. That keeps the container's center a fixed
   // reference point for the ring's geometry across the whole animation.
   //
-  // Shrink finishes *before* the fade starts (0-0.38 vs 0.34-0.58, a
-  // deliberate overlap rather than a hard handoff) rather than running both
-  // in parallel the whole time - a large, mostly-opaque box turning
-  // see-through mid-scroll is what actually read as cheap/glassy; a small
-  // box that's already shrunk away fading the rest of the way out barely
-  // reads as transparent at all.
-  const boxScale = lerp(1, 0.46, remap(progress, 0, 0.38));
-  // Fades fully to 0 - the settled state is bean info only, never a faint
-  // box ghost left sitting behind it.
-  const boxOpacity = lerp(1, 0, Math.pow(remap(progress, 0.34, 0.58), 1.4));
+  // Scales all the way down to nothing rather than fading out - any amount
+  // of opacity/transparency on the rendered box read as cheap/glassy, so it
+  // disappears purely by shrinking to zero size instead. The settled state
+  // is still bean info only - there's just nothing left to see once this
+  // hits 0, rather than a faint box ghost sitting behind it.
+  const boxScale = lerp(1, 0, remap(progress, 0, 0.45));
+  const boxOpacity = 1;
   // Once the ring has clearly become the stat circle, dragging the dot to
   // "spin" the box no longer makes sense - stop reacting to pointer input
   // and let the dot fade out along with it, rather than leaving a dead
