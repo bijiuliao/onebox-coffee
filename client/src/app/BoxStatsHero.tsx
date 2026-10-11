@@ -299,6 +299,17 @@ export function BoxStatsHero({
               transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             }}
           >
+            {/* The shadow has to be painted *behind* the box (it used to live
+                in the "near" ring group below, which sits in front of the
+                box - a semi-transparent dark gradient drawn on top of the
+                box reads exactly like the box itself is see-through). Behind
+                it, the box's own opaque rendering naturally covers the part
+                of the shadow that should be hidden underneath it, while the
+                rest still shows around its footprint as intended. */}
+            <div style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
+              <div style={{ position: 'absolute', inset: '-8%', borderRadius: '50%', background: `radial-gradient(ellipse at ${50 + shadowShiftPct}% 50%, rgba(26,23,20,.4) 0%, rgba(26,23,20,.15) 55%, rgba(26,23,20,0) 80%)`, opacity: shadowOpacity }} />
+            </div>
+
             {/* The ring's far half is painted *before* the box so the box
                 visually occludes it, like a ring laid flat on the ground
                 with the box standing in front of its back edge - without
@@ -323,7 +334,6 @@ export function BoxStatsHero({
             </div>
 
             <div ref={ringRef} style={{ position: 'absolute', left: '50%', top: '50%', width: ringW, height: ringH, transform: ringTransform, borderRadius: '50%', pointerEvents: 'none' }}>
-              <div style={{ position: 'absolute', inset: '-8%', borderRadius: '50%', background: `radial-gradient(ellipse at ${50 + shadowShiftPct}% 50%, rgba(26,23,20,.4) 0%, rgba(26,23,20,.15) 55%, rgba(26,23,20,0) 80%)`, opacity: shadowOpacity }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '1.5px solid rgba(255,255,255,.9)', opacity: whiteBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `1px solid ${color}66`, opacity: colorBorderOpacity, clipPath: 'inset(50% 0 0 0)' }} />
               {/* The dot is the only drag handle - dragging the box itself
