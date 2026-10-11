@@ -19,7 +19,9 @@ const remap = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - 
 // wide monitors. The hard caps below dominate once the stage is roomy
 // (desktop), the ratios dominate on a narrow phone-width stage.
 function computeSizes(stageWidth: number, stageHeight: number) {
-  const boxWidthPx = Math.max(170, Math.min(stageWidth * 0.48, stageHeight * 0.4, 420));
+  // Bigger now that the label is printed text rather than a photo - it
+  // reads fine at a larger size with no cover image to pixelate or crop.
+  const boxWidthPx = Math.max(190, Math.min(stageWidth * 0.58, stageHeight * 0.48, 520));
   return {
     stageWidth,
     stageHeight,
@@ -55,9 +57,12 @@ const ANGLE_MIN = Math.PI / 2 - MAX_SWING;
 const ANGLE_MAX = Math.PI / 2 + MAX_SWING;
 
 export function BoxStatsHero({
-  src, color, placeholderLabel, roastLabel, desc, left, right,
+  origin, roasterName, color, placeholderLabel, roastLabel, desc, left, right,
 }: {
-  src: string | null;
+  // Printed on the box itself, onyx-style - origin small up top, roaster
+  // name big and centered (see RotatingBox3D's paintLabel).
+  origin: string;
+  roasterName: string;
   color: string;
   placeholderLabel: string;
   roastLabel: string;
@@ -192,7 +197,9 @@ export function BoxStatsHero({
   // inside it scales/fades. That keeps the container's center a fixed
   // reference point for the ring's geometry across the whole animation.
   const boxScale = lerp(1, 0.46, remap(progress, 0, 0.55));
-  const boxOpacity = lerp(1, 0.16, remap(progress, 0, 0.6));
+  // Fades fully to 0 - the settled state is bean info only, never a faint
+  // box ghost left sitting behind it.
+  const boxOpacity = lerp(1, 0, remap(progress, 0, 0.6));
   // Once the ring has clearly become the stat circle, dragging the dot to
   // "spin" the box no longer makes sense - stop reacting to pointer input
   // and let the dot fade out along with it, rather than leaving a dead
@@ -315,7 +322,8 @@ export function BoxStatsHero({
             <div style={{ width: '100%', height: '100%', position: 'relative', transform: `scale(${boxScale})`, opacity: boxOpacity, transformOrigin: 'center center', pointerEvents: 'none' }}>
               <Suspense fallback={<div style={{ width: '100%', height: '100%', background: `linear-gradient(140deg,${color}22,#fff)` }} />}>
                 <RotatingBox3D
-                  src={src}
+                  origin={origin}
+                  roasterName={roasterName}
                   color={color}
                   placeholderLabel={placeholderLabel}
                   rotationY={rotationY}

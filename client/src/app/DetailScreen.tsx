@@ -113,7 +113,8 @@ export function DetailScreen() {
       </div>
 
       <BoxStatsHero
-        src={coffee.coverUrl}
+        origin={coffee.originEN}
+        roasterName={coffee.roaster}
         color={coffee.color}
         placeholderLabel={`${coffee.originEN} · ${coffee.name}`}
         roastLabel={coffee.roast}

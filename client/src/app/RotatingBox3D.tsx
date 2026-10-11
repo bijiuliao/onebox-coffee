@@ -6,12 +6,14 @@ import { REST_ROTATION } from './boxRotation';
 // "Package box mockup" by _simone.rizzi (CC-BY-4.0), sourced from Sketchfab:
 // https://sketchfab.com/3d-models/package-box-mockup-3b68aaab1d7d4bce889a2803b131a375
 // The model's own diffuse texture ships with a placeholder label panel at a
-// known pixel rect - we redraw that rect with each coffee's own cover photo
-// rather than replacing the whole texture, so the surrounding cardboard
-// material (and the model's UVs) stay untouched.
+// known pixel rect - we redraw that rect with the coffee's origin + roaster
+// name (onyx-style, text printed straight on the box) rather than replacing
+// the whole texture, so the surrounding cardboard material (and the model's
+// UVs) stay untouched.
 const BOX_MODEL_URL = '/assets/package-box.glb';
 const TEXTURE_SIZE = 2048;
 const LABEL_RECT = { x: 1075, y: 733, width: 519, height: 790 };
+const LABEL_BG = '#f4f1ea';
 
 interface BoxAssets {
   geometry: THREE.BufferGeometry;
@@ -87,6 +89,25 @@ function loadBoxAssets(): Promise<BoxAssets> {
   return cachedAssets;
 }
 
+// Greedy word-wrap against the context's *currently set* font, capped at
+// `maxLines` - the caller shrinks the font and retries if that cap is hit.
+function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(' ');
+  const lines: string[] = [];
+  let line = '';
+  for (const word of words) {
+    const candidate = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(candidate).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = candidate;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
 interface SceneState {
   renderer: THREE.WebGLRenderer;
   scene: THREE.Scene;
@@ -98,11 +119,14 @@ interface SceneState {
   baseImage: HTMLImageElement | null;
   rotationY: number;
   render: () => void;
-  paintLabel: (img: HTMLImageElement | null, color: string) => void;
+  paintLabel: (origin: string, roasterName: string, textColor: string) => void;
 }
 
-export function RotatingBox3D({ src, color, placeholderLabel, rotationY, onReady }: {
-  src: string | null; color: string; placeholderLabel: string;
+export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, rotationY, onReady }: {
+  origin: string;
+  roasterName: string;
+  color: string;
+  placeholderLabel: string;
   // Rotation is controlled from outside - the ring's dot is the only drag
   // handle (see BoxStatsHero), this component just points the box wherever
   // it's told.
@@ -163,35 +187,57 @@ export function RotatingBox3D({ src, color, placeholderLabel, rotationY, onReady
       renderer.render(scene, camera);
     }
 
-    function paintLabel(img: HTMLImageElement | null, fallbackColor: string) {
+    function paintLabel(originText: string, roasterText: string, textColor: string) {
       const st = stateRef.current;
       if (!st?.baseImage) return;
       labelCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
       labelCtx.drawImage(st.baseImage, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
-      if (img) {
-        try {
-          // cover-fit the coffee's photo into the label rect
-          const rectAspect = LABEL_RECT.width / LABEL_RECT.height;
-          const imgAspect = img.width / img.height;
-          let sx = 0, sy = 0, sw = img.width, sh = img.height;
-          if (imgAspect > rectAspect) {
-            sw = img.height * rectAspect;
-            sx = (img.width - sw) / 2;
-          } else {
-            sh = img.width / rectAspect;
-            sy = (img.height - sh) / 2;
-          }
-          labelCtx.drawImage(img, sx, sy, sw, sh, LABEL_RECT.x, LABEL_RECT.y, LABEL_RECT.width, LABEL_RECT.height);
-        } catch {
-          // tainted canvas (cross-origin photo without CORS headers) - leave
-          // the plain base cardboard showing rather than breaking the page.
-          labelCtx.fillStyle = fallbackColor;
-          labelCtx.fillRect(LABEL_RECT.x, LABEL_RECT.y, LABEL_RECT.width, LABEL_RECT.height);
-        }
-      } else {
-        labelCtx.fillStyle = fallbackColor;
-        labelCtx.fillRect(LABEL_RECT.x, LABEL_RECT.y, LABEL_RECT.width, LABEL_RECT.height);
+
+      const { x, y, width, height } = LABEL_RECT;
+      labelCtx.save();
+      labelCtx.beginPath();
+      labelCtx.rect(x, y, width, height);
+      labelCtx.clip();
+      labelCtx.fillStyle = LABEL_BG;
+      labelCtx.fillRect(x, y, width, height);
+
+      // This face's UVs run the u-axis backwards relative to the rest of
+      // the model, so anything drawn normally comes out mirrored
+      // left-to-right on the box - pre-mirror horizontally around the
+      // rect's own center so it reads correctly once applied.
+      const rectCx = x + width / 2;
+      labelCtx.translate(rectCx, 0);
+      labelCtx.scale(-1, 1);
+      labelCtx.translate(-rectCx, 0);
+
+      const cx = x + width / 2;
+      labelCtx.fillStyle = textColor;
+      labelCtx.textAlign = 'center';
+      labelCtx.textBaseline = 'middle';
+
+      // Origin - small, letter-spaced caption near the top (onyx prints its
+      // own origin the same way, above the big roaster wordmark).
+      labelCtx.font = "700 34px 'Space Mono'";
+      labelCtx.letterSpacing = '5px';
+      labelCtx.fillText(originText.toUpperCase(), cx, y + height * 0.15);
+      labelCtx.letterSpacing = '0px';
+
+      // Roaster name - the big centerpiece. Shrinks and wraps (up to 3
+      // lines) to fit whatever the actual name turns out to be.
+      const maxWidth = width * 0.86;
+      let fontSize = 104;
+      let lines: string[] = [roasterText];
+      while (fontSize > 46) {
+        labelCtx.font = `600 ${fontSize}px 'Room205'`;
+        lines = wrapLines(labelCtx, roasterText, maxWidth);
+        if (lines.length <= 3 && lines.every(l => labelCtx.measureText(l).width <= maxWidth)) break;
+        fontSize -= 6;
       }
+      const lineHeight = fontSize * 1.08;
+      const startY = y + height * 0.52 - ((lines.length - 1) * lineHeight) / 2;
+      lines.forEach((line, i) => labelCtx.fillText(line, cx, startY + i * lineHeight));
+
+      labelCtx.restore();
       texture.needsUpdate = true;
       render();
     }
@@ -219,7 +265,7 @@ export function RotatingBox3D({ src, color, placeholderLabel, rotationY, onReady
         boxGroup.add(inner);
 
         stateRef.current.baseImage = baseImage;
-        paintLabel(null, color);
+        paintLabel(origin, roasterName, color);
         setReady(true);
         onReady?.();
 
@@ -257,21 +303,14 @@ export function RotatingBox3D({ src, color, placeholderLabel, rotationY, onReady
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Repaint just the label whenever the coffee (photo/color) changes - the
-  // model and base cardboard texture are already loaded and stay put.
+  // Repaint just the label whenever the coffee (origin/roaster/color)
+  // changes - the model and base cardboard texture are already loaded and
+  // stay put.
   useEffect(() => {
     const st = stateRef.current;
     if (!st || !ready) return;
-    if (!src) {
-      st.paintLabel(null, color);
-      return;
-    }
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => st.paintLabel(img, color);
-    img.onerror = () => st.paintLabel(null, color);
-    img.src = src;
-  }, [src, color, ready]);
+    st.paintLabel(origin, roasterName, color);
+  }, [origin, roasterName, color, ready]);
 
   // Point the box at whatever angle the dot (dragged externally) reports.
   useEffect(() => {
@@ -287,11 +326,7 @@ export function RotatingBox3D({ src, color, placeholderLabel, rotationY, onReady
     // placeholder rather than an empty box.
     return (
       <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: `linear-gradient(140deg,${color}22,#fff)` }}>
-        {src ? (
-          <img src={src} alt={placeholderLabel} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-        ) : (
-          <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color, opacity: .7 }}>{placeholderLabel}</span>
-        )}
+        <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 2, color, opacity: .7 }}>{placeholderLabel}</span>
       </div>
     );
   }
