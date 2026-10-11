@@ -51,6 +51,16 @@ const WIDE_BREAKPOINT = 760;
 // computed from the track's position in the viewport.
 const clampRotation = (r: number) => Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, r));
 
+// Onyx's own page doesn't ease the box-to-circle morph continuously across
+// the whole scroll track - scrolling past a small threshold (~20%) commits
+// decisively to the next stage, playing out over a short, fixed slice of
+// scroll distance rather than being stretched thin across the rest of the
+// track. These two bounds are that commit window: everything that turns the
+// box into the stat circle happens between them, staggered in stages, not
+// spread out further than that.
+const COMMIT_START = 0.22;
+const COMMIT_END = 0.46;
+
 export function BoxStatsHero({
   origin, roasterName, color, placeholderLabel, roastLabel, desc, left, right,
 }: {
@@ -156,7 +166,12 @@ export function BoxStatsHero({
         const rect = el.getBoundingClientRect();
         const scrollable = rect.height - window.innerHeight;
         if (scrollable <= 0) return;
-        const target = p < 0.5 ? 0 : 1;
+        // Asymmetric on purpose, matching onyx's own "cross the threshold and
+        // you're committed forward" behavior - this is *not* "snap to
+        // whichever end is numerically closer" (that would pull anything
+        // past COMMIT_START but still under 0.5 back down to the box view,
+        // undoing a transition that's already visually finished).
+        const target = p < COMMIT_START ? 0 : 1;
         const targetY = trackDocTop.current + target * scrollable;
         const startY = window.scrollY;
         const startTime = performance.now();
@@ -209,17 +224,32 @@ export function BoxStatsHero({
   // disappears purely by shrinking to zero size instead. The settled state
   // is still bean info only - there's just nothing left to see once this
   // hits 0, rather than a faint box ghost sitting behind it.
-  const boxScale = lerp(1, 0, remap(progress, 0, 0.45));
+  //
+  // Confined to the commit window (see COMMIT_START/COMMIT_END) rather than
+  // spread across most of the track - scroll a little past the threshold
+  // and the whole shrink-and-settle plays out over that short slice, not
+  // gradually over the rest of the scrollable distance.
+  const commitT = remap(progress, COMMIT_START, COMMIT_END);
+  const boxScale = lerp(1, 0, commitT);
   const boxOpacity = 1;
-  // Once the ring has clearly become the stat circle, dragging the dot to
-  // "spin" the box no longer makes sense - stop reacting to pointer input
-  // and let the dot fade out along with it, rather than leaving a dead
-  // control on screen. Also gated on the box having actually loaded, so
-  // there's nothing to grab before there's a box to respond.
-  const dotInteractive = boxReady && progress < 0.5;
-  const dotOpacity = 1 - remap(progress, 0.5, 0.72);
+  // Once past the commit threshold, dragging the dot to "spin" the box no
+  // longer makes sense - stop reacting to pointer input and let the dot
+  // fade out a bit ahead of the box itself, rather than leaving a dead
+  // control on screen or a lone dot outliving what it's attached to. Also
+  // gated on the box having actually loaded, so there's nothing to grab
+  // before there's a box to respond.
+  const dotInteractive = boxReady && progress < COMMIT_START;
+  const dotOpacity = 1 - remap(progress, COMMIT_START, COMMIT_END - 0.08);
+  // The box doesn't just shrink in place through the commit window - it
+  // keeps turning the same way the dot was last dragged, well past the
+  // interactive swing limit, so it reads as spinning away rather than
+  // deflating on the spot. Purely additive on top of whatever angle the
+  // user left it at; never written back into `rotationY` itself, so the
+  // dot (while it's still visible) doesn't jump when this starts.
+  const autoSpin = lerp(0, -MAX_SWING * 1.5, commitT);
+  const renderRotationY = rotationY + autoSpin;
 
-  const ringT = remap(progress, 0.15, 0.8);
+  const ringT = commitT;
   // A thin, flat ellipse at rest (matching onyx's own "turntable" ring),
   // not an oval closer to a circle - startRingW already comes in at ~1.7x
   // the box's width (see computeSizes).
@@ -234,26 +264,33 @@ export function BoxStatsHero({
   // that interactive phase is over and it's settled into the big stat
   // circle, pinning it down there just makes the circle look off-center in
   // the viewport. Drift the anchor back toward true center as that happens.
-  const anchorTopPct = lerp(28, 50, remap(progress, 0.2, 0.75));
+  const anchorTopPct = lerp(28, 50, commitT);
 
-  const shadowOpacity = 1 - remap(progress, 0.2, 0.55);
+  const shadowOpacity = 1 - remap(progress, COMMIT_START, COMMIT_END - 0.06);
   // Onyx's own shadow isn't a static patch - it slides as the box turns,
   // like it's cast by the box's current face rather than painted once and
   // left alone. Shifting the gradient's center (not the whole shadow
   // div, which would drag it off the ring) approximates that cheaply.
-  const shadowShiftPct = ((rotationY - REST_ROTATION) / MAX_SWING) * 22;
-  const whiteBorderOpacity = 1 - remap(progress, 0.5, 0.85);
-  const colorBorderOpacity = remap(progress, 0.5, 0.85);
-  const textOpacity = remap(progress, 0.55, 0.88);
-  const infoOpacity = remap(progress, 0.62, 0.92);
+  const shadowShiftPct = ((renderRotationY - REST_ROTATION) / MAX_SWING) * 22;
+  // These four cascade across the back half of the commit window and just
+  // past it, in the order they'd actually draw the eye - the ring finishing
+  // its color (border), then the default info settling into the now-big
+  // circle (text), then the flanking stat labels (info) - rather than every
+  // piece fading in in lockstep.
+  const whiteBorderOpacity = 1 - remap(progress, 0.34, COMMIT_END);
+  const colorBorderOpacity = remap(progress, 0.34, COMMIT_END);
+  const textOpacity = remap(progress, 0.38, 0.52);
+  const infoOpacity = remap(progress, 0.42, 0.58);
 
   // rotationY=REST_ROTATION is RotatingBox3D's resting orientation (the
   // labeled face turned toward the camera) - offset the dot's angle so that
   // resting state reads as sitting front-and-center on the ring, not off at
   // its left edge. The minus sign (rather than a plus) matches Three.js's
   // rotation.y handedness to the screen: without it, dragging the dot right
-  // turned the box the opposite way from how it visibly moved.
-  const dotAngle = Math.PI / 2 - (rotationY - REST_ROTATION);
+  // turned the box the opposite way from how it visibly moved. Driven by
+  // renderRotationY (not the raw drag value) so the dot keeps pace with the
+  // box's auto-spin during the brief window it's still visible for.
+  const dotAngle = Math.PI / 2 - (renderRotationY - REST_ROTATION);
   const dotLeft = 50 + 50 * Math.cos(dotAngle);
   const dotTop = 50 + 50 * Math.sin(dotAngle);
 
@@ -354,7 +391,7 @@ export function BoxStatsHero({
                   roasterName={roasterName}
                   color={color}
                   placeholderLabel={placeholderLabel}
-                  rotationY={rotationY}
+                  rotationY={renderRotationY}
                   onReady={() => setBoxReady(true)}
                 />
               </Suspense>
