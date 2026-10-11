@@ -88,6 +88,18 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'detail.addToCart': { zh: '加入購物車', en: 'Add to Cart' },
   'detail.addedToast': { zh: '已加入 · ', en: 'Added · ' },
 
+  'review.eyebrow': { zh: 'FEEDBACK · 風味回饋', en: 'FEEDBACK' },
+  'review.noneYet': { zh: '目前還沒有人評分，當第一個留下回饋的人吧', en: 'No ratings yet — be the first to leave feedback' },
+  'review.count': { zh: '{count} 則評分', en: '{count} ratings' },
+  'review.flavorMatch': { zh: '喝到這個風味的人', en: 'Tasters who picked this' },
+  'review.prompt': { zh: '喝完了嗎？幫這支豆打個分數', en: 'Finished your cup? Rate this bean' },
+  'review.flavorPrompt': { zh: '你喝到了哪些風味？（可複選，非必填）', en: 'Which flavors did you taste? (optional, pick any)' },
+  'review.submit': { zh: '送出評分', en: 'Submit Rating' },
+  'review.submitting': { zh: '送出中…', en: 'Submitting…' },
+  'review.thanks': { zh: '謝謝你的回饋！', en: 'Thanks for your feedback!' },
+  'review.needRating': { zh: '請先選擇星等', en: 'Please select a rating first' },
+  'review.failed': { zh: '送出失敗，請再試一次', en: 'Failed to submit — please try again' },
+
   'cart.title': { zh: '購物車', en: 'Cart' },
   'cart.pickupMethod': { zh: '取貨方式', en: 'Pickup Method' },
   'cart.pickup': { zh: '門市自取', en: 'Pickup' },

@@ -74,3 +74,19 @@ export interface DeliveryQuote {
   deliverable: boolean;
   maxKm: number;
 }
+
+export interface ReviewSummary {
+  count: number;
+  avgRating: number;
+  tagCounts: Record<string, number>;
+}
+
+export interface AdminReview {
+  id: number;
+  coffeeId: string;
+  coffeeName: string;
+  coffeeColor: string;
+  rating: number;
+  flavorTags: string[];
+  createdAt: string;
+}

@@ -9,6 +9,7 @@ import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
 import type { Size, Temp } from '../types';
 import { BoxStatsHero } from './BoxStatsHero';
+import { ReviewSection } from './ReviewSection';
 
 type Mode = 'drip' | 'beans';
 
@@ -191,7 +192,7 @@ export function DetailScreen() {
         </Reveal>
       )}
 
-      <Reveal style={{ padding: '22px 24px 130px' }}>
+      <Reveal style={{ padding: '22px 24px 0' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{t('common.qty')}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
@@ -200,6 +201,10 @@ export function DetailScreen() {
             <div onClick={() => setQty(q => q + 1)} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>＋</div>
           </div>
         </div>
+      </Reveal>
+
+      <Reveal style={{ padding: '0 0 130px' }}>
+        <ReviewSection coffee={coffee} />
       </Reveal>
 
       <div style={{ position: 'sticky', bottom: 0, padding: '14px 24px 24px', background: `linear-gradient(180deg,${coffee.color}00,${soft} 40%)` }}>

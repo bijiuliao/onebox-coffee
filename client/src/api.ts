@@ -1,4 +1,4 @@
-import type { Coffee, DeliveryQuote, ItemKind, Order, OrderType, Special } from './types';
+import type { AdminReview, Coffee, DeliveryQuote, ItemKind, Order, OrderType, ReviewSummary, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -74,4 +74,16 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ lat, lng }),
     }).then(res => json<DeliveryQuote>(res)),
+
+  getReviewSummary: (coffeeId: string) =>
+    fetch(`/api/coffees/${coffeeId}/reviews`).then(res => json<ReviewSummary>(res)),
+  submitReview: (coffeeId: string, rating: number, flavorTags: string[]) =>
+    fetch(`/api/coffees/${coffeeId}/reviews`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating, flavorTags }),
+    }).then(res => json<ReviewSummary>(res)),
+  listAdminReviews: () => fetch('/api/admin/reviews').then(res => json<AdminReview[]>(res)),
+  deleteAdminReview: (id: number) =>
+    fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).then(res => json<{ ok: true }>(res)),
 };
