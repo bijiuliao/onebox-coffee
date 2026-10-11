@@ -88,6 +88,27 @@ export function BoxStatsHero({
   const [boxReady, setBoxReady] = useState(false);
   const [sizes, setSizes] = useState(() => computeSizes(400, 800));
   const [activeItem, setActiveItem] = useState<SpecItem | null>(null);
+  // Moving the pointer from one label straight to an adjacent one crosses a
+  // gap where neither is hovered - without this, that gap's onMouseLeave
+  // clears activeItem a frame before the next label's onMouseEnter sets it
+  // again, and the circle's center flashes back to the default roast/desc
+  // in between. Debouncing the clear (but never the set, which is instant)
+  // lets a same-column pointer move cancel it before it ever fires.
+  const clearActiveTimer = useRef<number | null>(null);
+  function setActiveItemDebounced(item: SpecItem | null) {
+    if (clearActiveTimer.current) {
+      window.clearTimeout(clearActiveTimer.current);
+      clearActiveTimer.current = null;
+    }
+    if (item) {
+      setActiveItem(item);
+    } else {
+      clearActiveTimer.current = window.setTimeout(() => {
+        setActiveItem(null);
+        clearActiveTimer.current = null;
+      }, 150);
+    }
+  }
 
   useEffect(() => {
     const el = trackRef.current;
@@ -255,7 +276,13 @@ export function BoxStatsHero({
   // (or dimming its siblings) once we've scrolled back out of the settled
   // circle state.
   useEffect(() => {
-    if (!infoInteractive) setActiveItem(null);
+    if (!infoInteractive) {
+      if (clearActiveTimer.current) {
+        window.clearTimeout(clearActiveTimer.current);
+        clearActiveTimer.current = null;
+      }
+      setActiveItem(null);
+    }
   }, [infoInteractive]);
 
   const specTrigger = (s: SpecItem, align: 'left' | 'right') => {
@@ -265,8 +292,8 @@ export function BoxStatsHero({
       <button
         key={s.k}
         type="button"
-        onMouseEnter={() => setActiveItem(s)}
-        onMouseLeave={() => setActiveItem(prev => (prev && prev.k === s.k ? null : prev))}
+        onMouseEnter={() => setActiveItemDebounced(s)}
+        onMouseLeave={() => setActiveItemDebounced(null)}
         style={{
           pointerEvents: infoInteractive ? 'auto' : 'none', cursor: 'pointer', background: 'none', border: 'none', padding: '5px 0',
           display: 'flex', alignItems: 'center', gap: 10,
@@ -275,8 +302,8 @@ export function BoxStatsHero({
           opacity: dimmed ? 0.35 : 1, transition: 'opacity .2s ease, color .2s ease',
         }}
       >
-        <span style={{ font: "700 12px 'Space Mono'", letterSpacing: 1.5, color: isActive ? '#1a1714' : '#9a8a76' }}>{s.k}</span>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, flex: 'none' }} />
+        <span style={{ font: `700 ${isWide ? 19 : 12}px 'Space Mono'`, letterSpacing: 1.5, color: isActive ? '#1a1714' : '#9a8a76' }}>{s.k}</span>
+        <span style={{ width: isWide ? 8 : 6, height: isWide ? 8 : 6, borderRadius: '50%', background: color, flex: 'none' }} />
       </button>
     );
   };
@@ -409,10 +436,15 @@ export function BoxStatsHero({
 
             {isWide ? (
               <>
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 6, opacity: infoOpacity }}>
+                {/* Spread top-to-bottom across most of the circle's own
+                    height (space-between, not a tight stack) so the three
+                    labels per side read as sitting around the circle's
+                    edge, the way onyx's spec wheel does, rather than
+                    clustered in a huddle at its vertical center. */}
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: infoOpacity }}>
                   {left.map(s => specTrigger(s, 'right'))}
                 </div>
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', gap: 6, opacity: infoOpacity }}>
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: infoOpacity }}>
                   {right.map(s => specTrigger(s, 'left'))}
                 </div>
               </>
