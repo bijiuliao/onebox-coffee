@@ -5,10 +5,10 @@
 // Three.js into whichever chunk reads them - RotatingBox3D is lazy-loaded
 // specifically to keep that out of the main bundle.
 
-// The model's labeled face sits opposite the camera by default (its own
+// The model's labeled face already faces the camera at rotation 0 (its own
 // authored orientation, unrelated to the label's position within the
-// texture) - rest rotated to face it so customers see the label immediately.
-export const REST_ROTATION = Math.PI;
+// texture) - no extra rest rotation needed.
+export const REST_ROTATION = 0;
 // Onyx's own hero box doesn't spin freely - the ring's dot only swings a
 // limited amount each way before stopping, so you're peeking at the side
 // panels rather than spinning all the way around to the blank back.

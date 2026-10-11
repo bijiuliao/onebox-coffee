@@ -3,72 +3,24 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { REST_ROTATION } from './boxRotation';
 
-// "Package box mockup" by _simone.rizzi (CC-BY-4.0), sourced from Sketchfab:
-// https://sketchfab.com/3d-models/package-box-mockup-3b68aaab1d7d4bce889a2803b131a375
-// The model's own diffuse texture ships with a placeholder label panel at a
-// known pixel rect - we redraw that rect with the coffee's origin + roaster
-// name (onyx-style, text printed straight on the box) rather than replacing
-// the whole texture, so the surrounding cardboard material (and the model's
-// UVs) stay untouched.
-const BOX_MODEL_URL = '/assets/package-box.glb';
+// "Coffee capsules pack" box mockup (geometry only - the model's own
+// branded packaging texture is stripped out at build time; we paint our own
+// solid-color + printed-text label over the whole box instead, onyx-style).
+// TODO: fill in the Sketchfab source URL/author/license here once known -
+// the uploaded source files didn't carry that metadata embedded.
+const BOX_MODEL_URL = '/assets/cube-box.glb';
 const TEXTURE_SIZE = 2048;
-const LABEL_RECT = { x: 1075, y: 733, width: 519, height: 790 };
-const LABEL_BG = '#f4f1ea';
+// UV bounding box (scaled to TEXTURE_SIZE) of the model's +Z face, measured
+// directly from its own mesh data - this is the face that ends up pointed at
+// the camera at rest (see REST_ROTATION in boxRotation.ts).
+const LABEL_RECT = { x: 1040, y: 793, width: 921, height: 621 };
+const LABEL_INK = '#f4f1ea';
 
-interface BoxAssets {
-  geometry: THREE.BufferGeometry;
-  baseImage: HTMLImageElement;
-}
+let cachedGeometry: Promise<THREE.BufferGeometry> | null = null;
 
-function readChunkType(dv: DataView, offset: number): string {
-  let s = '';
-  for (let i = 0; i < 4; i++) s += String.fromCharCode(dv.getUint8(offset + i));
-  return s.replace(/\0/g, '').trim();
-}
-
-// GLTFLoader doesn't understand this model's legacy KHR_materials_pbrSpecularGlossiness
-// extension, so it never populates material.map - the diffuse texture it
-// references just never gets wired up. Geometry isn't affected by that (it's
-// not part of the material), so GLTFLoader still handles that fine; the
-// base texture image is pulled out by parsing the GLB's own binary chunks
-// directly (same technique used to find the label's pixel rect originally).
-async function extractBaseImage(url: string): Promise<HTMLImageElement> {
-  const res = await fetch(url);
-  const buf = await res.arrayBuffer();
-  const dv = new DataView(buf);
-  let offset = 12;
-  let json: { images?: { bufferView: number; mimeType?: string }[]; bufferViews?: { byteOffset?: number; byteLength: number }[] } | null = null;
-  let binStart = -1;
-  while (offset < buf.byteLength) {
-    const chunkLength = dv.getUint32(offset, true);
-    const chunkType = readChunkType(dv, offset + 4);
-    const dataStart = offset + 8;
-    if (chunkType === 'JSON') {
-      json = JSON.parse(new TextDecoder('utf-8').decode(new Uint8Array(buf, dataStart, chunkLength)));
-    } else if (chunkType === 'BIN') {
-      binStart = dataStart;
-    }
-    offset = dataStart + chunkLength;
-  }
-  const imageDesc = json?.images?.[0];
-  const bv = imageDesc && json?.bufferViews?.[imageDesc.bufferView];
-  if (!imageDesc || !bv || binStart < 0) throw new Error('package-box.glb: no embedded image found');
-  const imgBytes = new Uint8Array(buf, binStart + (bv.byteOffset || 0), bv.byteLength);
-  const blob = new Blob([imgBytes], { type: imageDesc.mimeType || 'image/png' });
-  const objectUrl = URL.createObjectURL(blob);
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('failed to decode base texture image'));
-    img.src = objectUrl;
-  });
-}
-
-let cachedAssets: Promise<BoxAssets> | null = null;
-
-function loadBoxAssets(): Promise<BoxAssets> {
-  if (!cachedAssets) {
-    const geometryPromise = new Promise<THREE.BufferGeometry>((resolve, reject) => {
+function loadBoxGeometry(): Promise<THREE.BufferGeometry> {
+  if (!cachedGeometry) {
+    cachedGeometry = new Promise((resolve, reject) => {
       new GLTFLoader().load(
         BOX_MODEL_URL,
         (gltf) => {
@@ -76,17 +28,15 @@ function loadBoxAssets(): Promise<BoxAssets> {
           gltf.scene.traverse((obj) => {
             if (!mesh && (obj as THREE.Mesh).isMesh) mesh = obj as THREE.Mesh;
           });
-          if (!mesh) { reject(new Error('package-box.glb: no mesh found')); return; }
+          if (!mesh) { reject(new Error('cube-box.glb: no mesh found')); return; }
           resolve(mesh.geometry);
         },
         undefined,
-        (err) => reject(err instanceof Error ? err : new Error('failed to load package-box.glb')),
+        (err) => reject(err instanceof Error ? err : new Error('failed to load cube-box.glb')),
       );
     });
-    cachedAssets = Promise.all([geometryPromise, extractBaseImage(BOX_MODEL_URL)])
-      .then(([geometry, baseImage]) => ({ geometry, baseImage }));
   }
-  return cachedAssets;
+  return cachedGeometry;
 }
 
 // Greedy word-wrap against the context's *currently set* font, capped at
@@ -116,10 +66,9 @@ interface SceneState {
   material: THREE.MeshStandardMaterial;
   labelCanvas: HTMLCanvasElement;
   labelCtx: CanvasRenderingContext2D;
-  baseImage: HTMLImageElement | null;
   rotationY: number;
   render: () => void;
-  paintLabel: (origin: string, roasterName: string, textColor: string) => void;
+  paintLabel: (origin: string, roasterName: string, boxColor: string) => void;
 }
 
 export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, rotationY, onReady }: {
@@ -171,7 +120,7 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
     const texture = new THREE.CanvasTexture(labelCanvas);
     texture.colorSpace = THREE.SRGBColorSpace;
 
-    const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.88, metalness: 0 });
+    const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.85, metalness: 0 });
 
     function render() {
       if (!container) return;
@@ -187,31 +136,17 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
       renderer.render(scene, camera);
     }
 
-    function paintLabel(originText: string, roasterText: string, textColor: string) {
-      const st = stateRef.current;
-      if (!st?.baseImage) return;
-      labelCtx.clearRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
-      labelCtx.drawImage(st.baseImage, 0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+    function paintLabel(originText: string, roasterText: string, boxColor: string) {
+      // The whole box is a single solid color now (no cardboard photo to
+      // underlay) - the coffee's theme color fills every face, and the
+      // printed text sits in cream ink on top of the one face that's
+      // pointed at the camera at rest.
+      labelCtx.fillStyle = boxColor;
+      labelCtx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
 
       const { x, y, width, height } = LABEL_RECT;
-      labelCtx.save();
-      labelCtx.beginPath();
-      labelCtx.rect(x, y, width, height);
-      labelCtx.clip();
-      labelCtx.fillStyle = LABEL_BG;
-      labelCtx.fillRect(x, y, width, height);
-
-      // This face's UVs run the u-axis backwards relative to the rest of
-      // the model, so anything drawn normally comes out mirrored
-      // left-to-right on the box - pre-mirror horizontally around the
-      // rect's own center so it reads correctly once applied.
-      const rectCx = x + width / 2;
-      labelCtx.translate(rectCx, 0);
-      labelCtx.scale(-1, 1);
-      labelCtx.translate(-rectCx, 0);
-
       const cx = x + width / 2;
-      labelCtx.fillStyle = textColor;
+      labelCtx.fillStyle = LABEL_INK;
       labelCtx.textAlign = 'center';
       labelCtx.textBaseline = 'middle';
 
@@ -237,16 +172,15 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
       const startY = y + height * 0.52 - ((lines.length - 1) * lineHeight) / 2;
       lines.forEach((line, i) => labelCtx.fillText(line, cx, startY + i * lineHeight));
 
-      labelCtx.restore();
       texture.needsUpdate = true;
       render();
     }
 
     boxGroup.rotation.y = REST_ROTATION;
-    stateRef.current = { renderer, scene, camera, boxGroup, material, labelCanvas, labelCtx, baseImage: null, rotationY: REST_ROTATION, render, paintLabel };
+    stateRef.current = { renderer, scene, camera, boxGroup, material, labelCanvas, labelCtx, rotationY: REST_ROTATION, render, paintLabel };
 
-    loadBoxAssets()
-      .then(({ geometry, baseImage }) => {
+    loadBoxGeometry()
+      .then((geometry) => {
         if (cancelled || !stateRef.current) return;
         geometry.computeBoundingBox();
         const bb = geometry.boundingBox!;
@@ -264,7 +198,6 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
         inner.scale.setScalar(scale);
         boxGroup.add(inner);
 
-        stateRef.current.baseImage = baseImage;
         paintLabel(origin, roasterName, color);
         setReady(true);
         onReady?.();
@@ -304,8 +237,7 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
   }, []);
 
   // Repaint just the label whenever the coffee (origin/roaster/color)
-  // changes - the model and base cardboard texture are already loaded and
-  // stay put.
+  // changes - the model is already loaded and stays put.
   useEffect(() => {
     const st = stateRef.current;
     if (!st || !ready) return;
