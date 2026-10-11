@@ -474,11 +474,18 @@ export function BoxStatsHero({
                     position while `committed` just flipped is exactly the
                     layout-shift-under-the-pointer scenario `infoInteractive`
                     guards against (see its comment above); position is
-                    already final from the start, only visibility fades. */}
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: committed ? 1 : 0, transition: 'opacity .8s ease' }}>
+                    already final from the start, only visibility fades.
+                    pointerEvents gated on the container too, not just the
+                    buttons inside it (via infoInteractive) - opacity:0 alone
+                    doesn't stop hit-testing, so before committing this
+                    container was still sitting in front of (and swallowing
+                    touches meant for) whatever's underneath it at the same
+                    position - on the narrow layout below, that's literally
+                    the drag dot, which made it ungrabbable on mobile. */}
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: committed ? 1 : 0, transition: 'opacity .8s ease', pointerEvents: committed ? 'auto' : 'none' }}>
                   {left.map(s => specTrigger(s, 'right'))}
                 </div>
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: committed ? 1 : 0, transition: 'opacity .8s ease' }}>
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: committed ? 1 : 0, transition: 'opacity .8s ease', pointerEvents: committed ? 'auto' : 'none' }}>
                   {right.map(s => specTrigger(s, 'left'))}
                 </div>
               </>
@@ -489,6 +496,12 @@ export function BoxStatsHero({
                   transform: `translate(-50%, calc(-50% + ${ringCenterY}px + ${ringH / 2}px + 26px))`,
                   width: Math.min(stageWidth * 0.8, 300), opacity: committed ? 1 : 0, transition: 'opacity .8s ease',
                   display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 10, rowGap: 2,
+                  // See the isWide comment above - this grid sits right under
+                  // the box/ring at rest (ringCenterY + ringH/2 lands close
+                  // to the dot's own position before the ring has grown),
+                  // so without this it silently ate every touch meant for
+                  // the drag dot despite being invisible.
+                  pointerEvents: committed ? 'auto' : 'none',
                 }}
               >
                 {[...left, ...right].map(s => specTrigger(s, 'left'))}
