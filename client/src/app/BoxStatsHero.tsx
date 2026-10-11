@@ -77,6 +77,20 @@ export function BoxStatsHero({
   // limit from either direction.
   const continuousAngle = useRef(Math.PI / 2);
   const lastRawAngle = useRef(Math.PI / 2);
+  // Mirrors `progress` for the scroll-settle timeout below, which runs
+  // outside React's render cycle and would otherwise only ever see the
+  // `progress` value from whenever the effect was first set up.
+  const progressRef = useRef(0);
+  // The track's own top in document coordinates - constant unless the
+  // layout above it reflows, recomputed each scroll/resize alongside
+  // `progress` rather than measured once, so a webfont loading in doesn't
+  // leave it stale.
+  const trackDocTop = useRef(0);
+  const settleTimer = useRef<number | null>(null);
+  // True while we're driving a programmatic snap-scroll, so the scroll
+  // events *we* cause don't get reinterpreted as "the user scrolled, maybe
+  // it's time to snap again".
+  const snapping = useRef(false);
   const [progress, setProgress] = useState(0);
   const [rotationY, setRotationY] = useState(REST_ROTATION);
   const [grabbing, setGrabbing] = useState(false);
@@ -94,11 +108,60 @@ export function BoxStatsHero({
       const rect = el.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
       const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
+      progressRef.current = p;
+      // rect.top (viewport-relative) = trackDocumentTop - scrollY, so
+      // trackDocumentTop = rect.top + scrollY - not scrollY - rect.top,
+      // which silently computes something close to "2x current scrollY"
+      // instead of the track's actual (scroll-independent) position.
+      trackDocTop.current = window.scrollY + rect.top;
       setProgress(p);
       setSizes(computeSizes(rect.width, window.innerHeight));
     }
     function schedule() {
       if (!raf) raf = requestAnimationFrame(update);
+    }
+    // Scrubbing through every in-between frame while actively scrolling
+    // reads fine, but leaving the box stopped halfway - part box, part
+    // stat circle - reads as broken. Once scrolling settles (no new scroll
+    // events for a beat), animate the rest of the way to whichever of the
+    // two real states (box, or fully-formed info circle) is closer.
+    //
+    // This drives its own rAF tween rather than window.scrollTo's native
+    // "smooth" behavior + the 'scrollend' event: that combination raced in
+    // practice - 'scrollend' (or its timeout fallback) could clear
+    // `snapping` while the native animation was still finishing, letting a
+    // *second* settle cycle fire mid-flight, cancel the first, and leave
+    // the scroll stranded partway between the two states again (exactly
+    // the bug this exists to fix). Owning the whole tween start-to-finish
+    // means `snapping` is only ever cleared by us, when we know it's done.
+    let snapRaf = 0;
+    function onScrollSettle() {
+      if (snapping.current) return;
+      if (settleTimer.current) window.clearTimeout(settleTimer.current);
+      settleTimer.current = window.setTimeout(() => {
+        const p = progressRef.current;
+        if (p <= 0.02 || p >= 0.98 || !el) return;
+        const rect = el.getBoundingClientRect();
+        const scrollable = rect.height - window.innerHeight;
+        if (scrollable <= 0) return;
+        const target = p < 0.5 ? 0 : 1;
+        const targetY = trackDocTop.current + target * scrollable;
+        const startY = window.scrollY;
+        const startTime = performance.now();
+        const DURATION = 500;
+        snapping.current = true;
+        function tick(now: number) {
+          const t = Math.min(1, (now - startTime) / DURATION);
+          const eased = 1 - Math.pow(1 - t, 3);
+          window.scrollTo(0, startY + (targetY - startY) * eased);
+          if (t < 1) {
+            snapRaf = requestAnimationFrame(tick);
+          } else {
+            snapping.current = false;
+          }
+        }
+        snapRaf = requestAnimationFrame(tick);
+      }, 160);
     }
     update();
     // A plain resize listener only catches the window itself changing size -
@@ -108,12 +171,16 @@ export function BoxStatsHero({
     const ro = new ResizeObserver(schedule);
     ro.observe(el);
     window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('scroll', onScrollSettle, { passive: true });
     window.addEventListener('resize', schedule);
     return () => {
       ro.disconnect();
       window.removeEventListener('scroll', schedule);
+      window.removeEventListener('scroll', onScrollSettle);
       window.removeEventListener('resize', schedule);
       if (raf) cancelAnimationFrame(raf);
+      if (snapRaf) cancelAnimationFrame(snapRaf);
+      if (settleTimer.current) window.clearTimeout(settleTimer.current);
     };
   }, []);
 
@@ -178,6 +245,22 @@ export function BoxStatsHero({
   // before the click, so this alone is enough to make tap-to-show work too;
   // an onClick toggle here would just race that synthetic mouseenter and
   // immediately cancel it back out.
+  //
+  // Only interactive once fully faded in (infoOpacity===1): while these
+  // labels are still animating into position, Chrome re-evaluates which
+  // element is under the pointer on every layout shift even though the
+  // pointer itself never moved - a label sweeping past wherever the cursor
+  // happens to be resting fires a real mouseenter and gets stuck "hovered"
+  // with nothing to mouseleave it back off again.
+  const infoInteractive = infoOpacity >= 1;
+  // Belt-and-suspenders alongside the pointerEvents gate above: if a stale
+  // hover ever does slip through, don't let it keep showing in the circle
+  // (or dimming its siblings) once we've scrolled back out of the settled
+  // circle state.
+  useEffect(() => {
+    if (!infoInteractive) setActiveItem(null);
+  }, [infoInteractive]);
+
   const specTrigger = (s: SpecItem, align: 'left' | 'right') => {
     const isActive = activeItem?.k === s.k;
     const dimmed = activeItem !== null && !isActive;
@@ -188,7 +271,7 @@ export function BoxStatsHero({
         onMouseEnter={() => setActiveItem(s)}
         onMouseLeave={() => setActiveItem(prev => (prev && prev.k === s.k ? null : prev))}
         style={{
-          pointerEvents: 'auto', cursor: 'pointer', background: 'none', border: 'none', padding: '5px 0',
+          pointerEvents: infoInteractive ? 'auto' : 'none', cursor: 'pointer', background: 'none', border: 'none', padding: '5px 0',
           display: 'flex', alignItems: 'center', gap: 10,
           justifyContent: align === 'right' ? 'flex-end' : 'flex-start',
           flexDirection: align === 'right' ? 'row' : 'row-reverse',
