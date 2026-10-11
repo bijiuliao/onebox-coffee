@@ -253,7 +253,12 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
       const { x, y, width, height } = SIDE_LABEL_RECT;
       const cx = x + width / 2;
       const cy = y + height / 2;
-      const scale = Math.min(width, height) * 0.8;
+      // Generous margin, not just enough to technically fit: the rect's own
+      // edges sit right where the model's bevel curves away toward the
+      // adjacent face, so a shape sized close to the rect bounds reads as
+      // spilling over that edge at the box's more extreme swing angles.
+      // Keeping it well inside the flat part of the face avoids that.
+      const scale = Math.min(width, height) * 0.55;
       labelCtx.fillStyle = LABEL_INK;
       labelCtx.beginPath();
       for (const ring of rings) {
