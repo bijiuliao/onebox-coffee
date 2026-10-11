@@ -39,6 +39,32 @@ function loadBoxGeometry(): Promise<THREE.BufferGeometry> {
   return cachedGeometry;
 }
 
+// A flat solid fill alone reads as cheap plastic, especially once it's
+// partly see-through during the scroll fade - a faint paper-grain speckle
+// breaks up that flatness without being an obviously "textured" pattern.
+// Built once (resolution-independent as a repeating pattern) and reused
+// across every repaint and every box instance.
+let cachedGrainPattern: CanvasPattern | null = null;
+function getGrainPattern(ctx: CanvasRenderingContext2D): CanvasPattern | null {
+  if (cachedGrainPattern) return cachedGrainPattern;
+  const tile = document.createElement('canvas');
+  const tileSize = 160;
+  tile.width = tileSize;
+  tile.height = tileSize;
+  const tileCtx = tile.getContext('2d')!;
+  const imageData = tileCtx.createImageData(tileSize, tileSize);
+  for (let i = 0; i < imageData.data.length; i += 4) {
+    const v = Math.random() < 0.5 ? 0 : 255;
+    imageData.data[i] = v;
+    imageData.data[i + 1] = v;
+    imageData.data[i + 2] = v;
+    imageData.data[i + 3] = Math.random() * 14; // very faint - texture, not pattern
+  }
+  tileCtx.putImageData(imageData, 0, 0);
+  cachedGrainPattern = ctx.createPattern(tile, 'repeat');
+  return cachedGrainPattern;
+}
+
 // Greedy word-wrap against the context's *currently set* font, capped at
 // `maxLines` - the caller shrinks the font and retries if that cap is hit.
 function wrapLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
@@ -119,6 +145,10 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
     const labelCtx = labelCanvas.getContext('2d')!;
     const texture = new THREE.CanvasTexture(labelCanvas);
     texture.colorSpace = THREE.SRGBColorSpace;
+    // The label face is viewed at an angle, not head-on, so without this the
+    // default anisotropy of 1 lets mipmapping blur the printed text badly
+    // along the oblique axis - this is the single biggest sharpness knob.
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
 
     const material = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.85, metalness: 0 });
 
@@ -143,6 +173,11 @@ export function RotatingBox3D({ origin, roasterName, color, placeholderLabel, ro
       // pointed at the camera at rest.
       labelCtx.fillStyle = boxColor;
       labelCtx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+      const grain = getGrainPattern(labelCtx);
+      if (grain) {
+        labelCtx.fillStyle = grain;
+        labelCtx.fillRect(0, 0, TEXTURE_SIZE, TEXTURE_SIZE);
+      }
 
       const { x, y, width, height } = LABEL_RECT;
       const cx = x + width / 2;

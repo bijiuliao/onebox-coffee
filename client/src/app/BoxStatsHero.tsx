@@ -50,11 +50,6 @@ const WIDE_BREAKPOINT = 760;
 // it, where every visual property is driven by scroll progress (0-1)
 // computed from the track's position in the viewport.
 const clampRotation = (r: number) => Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, r));
-// The mouse-angle range that maps onto the clamped rotation range (see
-// clampRotation) - independent of REST_ROTATION, since rotationY = REST +
-// PI/2 - angle, so REST cancels out when solving for angle's own bounds.
-const ANGLE_MIN = Math.PI / 2 - MAX_SWING;
-const ANGLE_MAX = Math.PI / 2 + MAX_SWING;
 
 export function BoxStatsHero({
   origin, roasterName, color, placeholderLabel, roastLabel, desc, left, right,
@@ -73,15 +68,6 @@ export function BoxStatsHero({
   const trackRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  // atan2 wraps at ±π - if we fed its raw result straight into rotationY,
-  // dragging the dot past the ellipse's leftmost point would see the angle
-  // jump from near +π to near -π in one pointermove, snapping the box to
-  // the opposite swing limit instead of stopping at the near one. Tracking
-  // the continuous (unwrapped) angle via per-move deltas, then clamping
-  // that instead of the raw angle, keeps the drag smooth right up to the
-  // limit from either direction.
-  const continuousAngle = useRef(Math.PI / 2);
-  const lastRawAngle = useRef(Math.PI / 2);
   // Mirrors `progress` for the scroll-settle timeout below, which runs
   // outside React's render cycle and would otherwise only ever see the
   // `progress` value from whenever the effect was first set up.
@@ -196,10 +182,17 @@ export function BoxStatsHero({
   // The box container itself never resizes or moves - only the box *visual*
   // inside it scales/fades. That keeps the container's center a fixed
   // reference point for the ring's geometry across the whole animation.
-  const boxScale = lerp(1, 0.46, remap(progress, 0, 0.55));
+  //
+  // Shrink finishes *before* the fade starts (0-0.38 vs 0.34-0.58, a
+  // deliberate overlap rather than a hard handoff) rather than running both
+  // in parallel the whole time - a large, mostly-opaque box turning
+  // see-through mid-scroll is what actually read as cheap/glassy; a small
+  // box that's already shrunk away fading the rest of the way out barely
+  // reads as transparent at all.
+  const boxScale = lerp(1, 0.46, remap(progress, 0, 0.38));
   // Fades fully to 0 - the settled state is bean info only, never a faint
   // box ghost left sitting behind it.
-  const boxOpacity = lerp(1, 0, remap(progress, 0, 0.6));
+  const boxOpacity = lerp(1, 0, Math.pow(remap(progress, 0.34, 0.58), 1.4));
   // Once the ring has clearly become the stat circle, dragging the dot to
   // "spin" the box no longer makes sense - stop reacting to pointer input
   // and let the dot fade out along with it, rather than leaving a dead
@@ -344,27 +337,28 @@ export function BoxStatsHero({
                   if (!dotInteractive) return;
                   dragging.current = true;
                   setGrabbing(true);
-                  const rect = ringRef.current?.getBoundingClientRect();
-                  if (rect) {
-                    const nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-                    const ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-                    lastRawAngle.current = Math.atan2(ny, nx);
-                  }
                   e.currentTarget.setPointerCapture(e.pointerId);
                 }}
                 onPointerMove={(e) => {
                   if (!dragging.current) return;
                   const rect = ringRef.current?.getBoundingClientRect();
                   if (!rect) return;
+                  // The ring is a near-flat ellipse, so the dot's whole swing
+                  // reads almost entirely off the pointer's *horizontal*
+                  // position - the matching render-side formula is exactly
+                  // `dotLeft = 50 + 50*cos(dotAngle)`, so inverting with acos
+                  // here keeps the two in lockstep. This also sidesteps the
+                  // instability an atan2-based angle would have: dragging
+                  // out toward either swing limit and back often sweeps the
+                  // pointer back across the ring's own center point (the
+                  // ellipse is barely 60px tall), where atan2(ny, nx) is a
+                  // near-singularity - a sub-pixel wobble in ny there used to
+                  // flip the angle by nearly a full turn and snap the box to
+                  // the opposite limit. acos only reads nx, so it never sees
+                  // that crossing at all.
                   const nx = (e.clientX - (rect.left + rect.width / 2)) / (rect.width / 2);
-                  const ny = (e.clientY - (rect.top + rect.height / 2)) / (rect.height / 2);
-                  const rawAngle = Math.atan2(ny, nx);
-                  let delta = rawAngle - lastRawAngle.current;
-                  if (delta > Math.PI) delta -= Math.PI * 2;
-                  else if (delta < -Math.PI) delta += Math.PI * 2;
-                  lastRawAngle.current = rawAngle;
-                  continuousAngle.current = Math.min(ANGLE_MAX, Math.max(ANGLE_MIN, continuousAngle.current + delta));
-                  setRotationY(clampRotation(REST_ROTATION + Math.PI / 2 - continuousAngle.current));
+                  const dotAngle = Math.acos(Math.min(1, Math.max(-1, nx)));
+                  setRotationY(clampRotation(REST_ROTATION + Math.PI / 2 - dotAngle));
                 }}
                 onPointerUp={() => { dragging.current = false; setGrabbing(false); }}
                 onPointerCancel={() => { dragging.current = false; setGrabbing(false); }}
@@ -430,17 +424,9 @@ export function BoxStatsHero({
           </div>
         </div>
       </div>
-      {/* "Package box mockup" by _simone.rizzi, CC-BY-4.0 - attribution
-          required by the license. */}
-      <div style={{ padding: '4px 24px 0', textAlign: 'right' }}>
-        <a
-          href="https://sketchfab.com/3d-models/package-box-mockup-3b68aaab1d7d4bce889a2803b131a375"
-          target="_blank" rel="noopener noreferrer"
-          style={{ font: "400 9px 'Space Mono'", color: '#b0a08c' }}
-        >
-          3D model by _simone.rizzi (CC-BY)
-        </a>
-      </div>
+      {/* The box model changed (see RotatingBox3D.tsx) and its source/license
+          isn't confirmed yet - no attribution link here until that's known,
+          rather than crediting the wrong model. */}
     </>
   );
 }
