@@ -8,10 +8,6 @@ const RotatingBox3D = lazy(() => import('./RotatingBox3D').then(m => ({ default:
 type SpecItem = { k: string; v: string };
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-// Remaps `v` from the range [a,b] onto [0,1], clamped - lets each visual
-// property run its fade/grow over its own slice of the overall scroll
-// progress instead of all moving in lockstep.
-const remap = (v: number, a: number, b: number) => Math.min(1, Math.max(0, (v - a) / (b - a)));
 
 // Sized off the stage's own rendered box, not window.innerWidth - the hero
 // sits inside MobileShell's column, which is much narrower than the full
@@ -51,15 +47,18 @@ const WIDE_BREAKPOINT = 760;
 // computed from the track's position in the viewport.
 const clampRotation = (r: number) => Math.min(REST_ROTATION + MAX_SWING, Math.max(REST_ROTATION - MAX_SWING, r));
 
-// Onyx's own page doesn't ease the box-to-circle morph continuously across
-// the whole scroll track - scrolling past a small threshold (~20%) commits
-// decisively to the next stage, playing out over a short, fixed slice of
-// scroll distance rather than being stretched thin across the rest of the
-// track. These two bounds are that commit window: everything that turns the
-// box into the stat circle happens between them, staggered in stages, not
-// spread out further than that.
-const COMMIT_START = 0.22;
-const COMMIT_END = 0.46;
+// Onyx's own page doesn't ease the box-to-circle morph continuously as you
+// scroll - crossing a small threshold commits decisively to the next stage,
+// and the shape animation itself then runs on its own fixed-duration timer
+// (see `transitionT` below), fully decoupled from however choppy the actual
+// scroll input is. That's what makes it read as a smooth transition instead
+// of a mechanical one tied 1:1 to scroll deltas.
+const THRESHOLD = 0.3;
+// How long the shape morph (box -> circle) takes once committed, either
+// direction. Ease-out-quad, not cubic - quad's gentler deceleration reads
+// closer to onyx's own reference tween than cubic's sharper snap-to-rest.
+const TRANSITION_DURATION = 900;
+const easeOutQuad = (t: number) => 1 - (1 - t) * (1 - t);
 
 export function BoxStatsHero({
   origin, roasterName, color, placeholderLabel, roastLabel, desc, left, right,
@@ -78,21 +77,13 @@ export function BoxStatsHero({
   const trackRef = useRef<HTMLDivElement>(null);
   const ringRef = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
-  // Mirrors `progress` for the scroll-settle timeout below, which runs
-  // outside React's render cycle and would otherwise only ever see the
-  // `progress` value from whenever the effect was first set up.
-  const progressRef = useRef(0);
-  // The track's own top in document coordinates - constant unless the
-  // layout above it reflows, recomputed each scroll/resize alongside
-  // `progress` rather than measured once, so a webfont loading in doesn't
-  // leave it stale.
-  const trackDocTop = useRef(0);
-  const settleTimer = useRef<number | null>(null);
-  // True while we're driving a programmatic snap-scroll, so the scroll
-  // events *we* cause don't get reinterpreted as "the user scrolled, maybe
-  // it's time to snap again".
-  const snapping = useRef(false);
   const [progress, setProgress] = useState(0);
+  // The shape morph's own current value (0 = box, 1 = circle), driven by a
+  // self-contained rAF tween below - not derived from `progress` directly,
+  // so its motion is as smooth as rAF itself regardless of how discrete the
+  // user's actual scroll input is.
+  const transitionTRef = useRef(0);
+  const [transitionT, setTransitionT] = useState(0);
   const [rotationY, setRotationY] = useState(REST_ROTATION);
   const [grabbing, setGrabbing] = useState(false);
   const [boxReady, setBoxReady] = useState(false);
@@ -130,65 +121,11 @@ export function BoxStatsHero({
       const rect = el.getBoundingClientRect();
       const scrollable = rect.height - window.innerHeight;
       const p = scrollable > 0 ? Math.min(1, Math.max(0, -rect.top / scrollable)) : 0;
-      progressRef.current = p;
-      // rect.top (viewport-relative) = trackDocumentTop - scrollY, so
-      // trackDocumentTop = rect.top + scrollY - not scrollY - rect.top,
-      // which silently computes something close to "2x current scrollY"
-      // instead of the track's actual (scroll-independent) position.
-      trackDocTop.current = window.scrollY + rect.top;
       setProgress(p);
       setSizes(computeSizes(rect.width, window.innerHeight));
     }
     function schedule() {
       if (!raf) raf = requestAnimationFrame(update);
-    }
-    // Scrubbing through every in-between frame while actively scrolling
-    // reads fine, but leaving the box stopped halfway - part box, part
-    // stat circle - reads as broken. Once scrolling settles (no new scroll
-    // events for a beat), animate the rest of the way to whichever of the
-    // two real states (box, or fully-formed info circle) is closer.
-    //
-    // This drives its own rAF tween rather than window.scrollTo's native
-    // "smooth" behavior + the 'scrollend' event: that combination raced in
-    // practice - 'scrollend' (or its timeout fallback) could clear
-    // `snapping` while the native animation was still finishing, letting a
-    // *second* settle cycle fire mid-flight, cancel the first, and leave
-    // the scroll stranded partway between the two states again (exactly
-    // the bug this exists to fix). Owning the whole tween start-to-finish
-    // means `snapping` is only ever cleared by us, when we know it's done.
-    let snapRaf = 0;
-    function onScrollSettle() {
-      if (snapping.current) return;
-      if (settleTimer.current) window.clearTimeout(settleTimer.current);
-      settleTimer.current = window.setTimeout(() => {
-        const p = progressRef.current;
-        if (p <= 0.02 || p >= 0.98 || !el) return;
-        const rect = el.getBoundingClientRect();
-        const scrollable = rect.height - window.innerHeight;
-        if (scrollable <= 0) return;
-        // Asymmetric on purpose, matching onyx's own "cross the threshold and
-        // you're committed forward" behavior - this is *not* "snap to
-        // whichever end is numerically closer" (that would pull anything
-        // past COMMIT_START but still under 0.5 back down to the box view,
-        // undoing a transition that's already visually finished).
-        const target = p < COMMIT_START ? 0 : 1;
-        const targetY = trackDocTop.current + target * scrollable;
-        const startY = window.scrollY;
-        const startTime = performance.now();
-        const DURATION = 500;
-        snapping.current = true;
-        function tick(now: number) {
-          const t = Math.min(1, (now - startTime) / DURATION);
-          const eased = 1 - Math.pow(1 - t, 3);
-          window.scrollTo(0, startY + (targetY - startY) * eased);
-          if (t < 1) {
-            snapRaf = requestAnimationFrame(tick);
-          } else {
-            snapping.current = false;
-          }
-        }
-        snapRaf = requestAnimationFrame(tick);
-      }, 160);
     }
     update();
     // A plain resize listener only catches the window itself changing size -
@@ -198,18 +135,40 @@ export function BoxStatsHero({
     const ro = new ResizeObserver(schedule);
     ro.observe(el);
     window.addEventListener('scroll', schedule, { passive: true });
-    window.addEventListener('scroll', onScrollSettle, { passive: true });
     window.addEventListener('resize', schedule);
     return () => {
       ro.disconnect();
       window.removeEventListener('scroll', schedule);
-      window.removeEventListener('scroll', onScrollSettle);
       window.removeEventListener('resize', schedule);
       if (raf) cancelAnimationFrame(raf);
-      if (snapRaf) cancelAnimationFrame(snapRaf);
-      if (settleTimer.current) window.clearTimeout(settleTimer.current);
     };
   }, []);
+
+  // Crossing the threshold commits to the next stage; the shape morph then
+  // plays out on its own fixed timer below, decoupled from scroll entirely.
+  const committed = progress > THRESHOLD;
+
+  // Self-contained, interruptible tween toward whichever end `committed`
+  // currently points at - reads `transitionTRef.current` (wherever the
+  // *previous* tween left off) as its own start point rather than assuming
+  // 0 or 1, so scrolling back across the threshold mid-animation reverses
+  // smoothly from exactly where the box already was instead of jumping.
+  useEffect(() => {
+    const target = committed ? 1 : 0;
+    const start = transitionTRef.current;
+    if (start === target) return;
+    let raf = 0;
+    const startTime = performance.now();
+    function tick(now: number) {
+      const t = Math.min(1, (now - startTime) / TRANSITION_DURATION);
+      const value = start + (target - start) * easeOutQuad(t);
+      transitionTRef.current = value;
+      setTransitionT(value);
+      if (t < 1) raf = requestAnimationFrame(tick);
+    }
+    raf = requestAnimationFrame(tick);
+    return () => { if (raf) cancelAnimationFrame(raf); };
+  }, [committed]);
 
   const { boxWidthPx, startRingW, circleMaxPx, stageWidth } = sizes;
   const boxHeightPx = boxWidthPx * 1.25;
@@ -225,31 +184,28 @@ export function BoxStatsHero({
   // is still bean info only - there's just nothing left to see once this
   // hits 0, rather than a faint box ghost sitting behind it.
   //
-  // Confined to the commit window (see COMMIT_START/COMMIT_END) rather than
-  // spread across most of the track - scroll a little past the threshold
-  // and the whole shrink-and-settle plays out over that short slice, not
-  // gradually over the rest of the scrollable distance.
-  const commitT = remap(progress, COMMIT_START, COMMIT_END);
-  const boxScale = lerp(1, 0, commitT);
+  // Every shape property below rides `transitionT` (the self-contained
+  // tween above), not raw scroll progress - its motion is paced entirely by
+  // rAF on a fixed timer, so it reads as a real transition no matter how
+  // choppy the scroll input that triggered it was.
+  const boxScale = lerp(1, 0, transitionT);
   const boxOpacity = 1;
-  // Once past the commit threshold, dragging the dot to "spin" the box no
-  // longer makes sense - stop reacting to pointer input and let the dot
-  // fade out a bit ahead of the box itself, rather than leaving a dead
-  // control on screen or a lone dot outliving what it's attached to. Also
-  // gated on the box having actually loaded, so there's nothing to grab
-  // before there's a box to respond.
-  const dotInteractive = boxReady && progress < COMMIT_START;
-  const dotOpacity = 1 - remap(progress, COMMIT_START, COMMIT_END - 0.08);
-  // The box doesn't just shrink in place through the commit window - it
-  // keeps turning the same way the dot was last dragged, well past the
-  // interactive swing limit, so it reads as spinning away rather than
-  // deflating on the spot. Purely additive on top of whatever angle the
-  // user left it at; never written back into `rotationY` itself, so the
-  // dot (while it's still visible) doesn't jump when this starts.
-  const autoSpin = lerp(0, -MAX_SWING * 1.5, commitT);
+  // Once committed, dragging the dot to "spin" the box no longer makes
+  // sense - stop reacting to pointer input, rather than leaving a dead
+  // control on screen. Also gated on the box having actually loaded, so
+  // there's nothing to grab before there's a box to respond.
+  const dotInteractive = boxReady && !committed;
+  const dotOpacity = lerp(1, 0, transitionT);
+  // The box doesn't just shrink in place - it keeps turning the same way
+  // the dot was last dragged, well past the interactive swing limit, so it
+  // reads as spinning away rather than deflating on the spot. Purely
+  // additive on top of whatever angle the user left it at; never written
+  // back into `rotationY` itself, so the dot (while it's still visible)
+  // doesn't jump when this starts.
+  const autoSpin = lerp(0, -MAX_SWING * 1.3, transitionT);
   const renderRotationY = rotationY + autoSpin;
 
-  const ringT = commitT;
+  const ringT = transitionT;
   // A thin, flat ellipse at rest (matching onyx's own "turntable" ring),
   // not an oval closer to a circle - startRingW already comes in at ~1.7x
   // the box's width (see computeSizes).
@@ -264,23 +220,22 @@ export function BoxStatsHero({
   // that interactive phase is over and it's settled into the big stat
   // circle, pinning it down there just makes the circle look off-center in
   // the viewport. Drift the anchor back toward true center as that happens.
-  const anchorTopPct = lerp(28, 50, commitT);
+  const anchorTopPct = lerp(28, 50, transitionT);
 
-  const shadowOpacity = 1 - remap(progress, COMMIT_START, COMMIT_END - 0.06);
+  const shadowOpacity = lerp(1, 0, transitionT);
   // Onyx's own shadow isn't a static patch - it slides as the box turns,
   // like it's cast by the box's current face rather than painted once and
   // left alone. Shifting the gradient's center (not the whole shadow
   // div, which would drag it off the ring) approximates that cheaply.
   const shadowShiftPct = ((renderRotationY - REST_ROTATION) / MAX_SWING) * 22;
-  // These four cascade across the back half of the commit window and just
-  // past it, in the order they'd actually draw the eye - the ring finishing
-  // its color (border), then the default info settling into the now-big
-  // circle (text), then the flanking stat labels (info) - rather than every
-  // piece fading in in lockstep.
-  const whiteBorderOpacity = 1 - remap(progress, 0.34, COMMIT_END);
-  const colorBorderOpacity = remap(progress, 0.34, COMMIT_END);
-  const textOpacity = remap(progress, 0.38, 0.52);
-  const infoOpacity = remap(progress, 0.42, 0.58);
+  const whiteBorderOpacity = lerp(1, 0, transitionT);
+  const colorBorderOpacity = transitionT;
+  // Unlike the shape properties above, the text/label content reveal is a
+  // plain CSS transition keyed directly off the `committed` boolean (see
+  // the opacity/transform values used below in the JSX) rather than a JS
+  // value computed here - its own independent timing is what gives the
+  // content a separate, layered feel instead of locking it to the box's
+  // morph tween.
 
   // rotationY=REST_ROTATION is RotatingBox3D's resting orientation (the
   // labeled face turned toward the camera) - offset the dot's angle so that
@@ -301,13 +256,14 @@ export function BoxStatsHero({
   // an onClick toggle here would just race that synthetic mouseenter and
   // immediately cancel it back out.
   //
-  // Only interactive once fully faded in (infoOpacity===1): while these
-  // labels are still animating into position, Chrome re-evaluates which
-  // element is under the pointer on every layout shift even though the
-  // pointer itself never moved - a label sweeping past wherever the cursor
-  // happens to be resting fires a real mouseenter and gets stuck "hovered"
-  // with nothing to mouseleave it back off again.
-  const infoInteractive = infoOpacity >= 1;
+  // Gated on the plain `committed` boolean, not an opacity threshold - while
+  // the labels are still CSS-transitioning into position, Chrome
+  // re-evaluates which element is under the pointer on every layout shift
+  // even though the pointer itself never moved, so a label sweeping past
+  // wherever the cursor happens to be resting could fire a real mouseenter
+  // and get stuck "hovered" with nothing to mouseleave it back off again -
+  // a boolean switch has no fractional state for that to slip through.
+  const infoInteractive = committed;
   // Belt-and-suspenders alongside the pointerEvents gate above: if a stale
   // hover ever does slip through, don't let it keep showing in the circle
   // (or dimming its siblings) once we've scrolled back out of the settled
@@ -322,6 +278,35 @@ export function BoxStatsHero({
     }
   }, [infoInteractive]);
 
+  // Clearing activeItem on each label's own onMouseLeave meant moving off a
+  // label for *any* reason - including toward the circle itself, or just
+  // into the gap between it and the next label - dropped straight back to
+  // the default intro. What's wanted instead: once a label's been hovered,
+  // keep showing it until the pointer actually leaves the whole circle's
+  // neighborhood, not just that one label. So triggers only ever *set*
+  // activeItem now; clearing it is this one distance check on the whole
+  // stage instead, measured from the ring's own center.
+  function handleStageMouseMove(e: React.MouseEvent) {
+    if (!infoInteractive || !activeItem) return;
+    const rect = ringRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dist = Math.hypot(e.clientX - cx, e.clientY - cy);
+    const circleRadius = Math.max(rect.width, rect.height) / 2;
+    // Reach out to just past the far edge of the flanking label columns
+    // (sideColGap is already measured from this same center point, so this
+    // isn't circleRadius + sideColGap - that double-counts, since
+    // sideColGap itself is roughly a circle-radius out already) - or, on
+    // the narrow layout where labels sit in a grid below the circle
+    // instead, just past the circle itself. Generous on purpose so this
+    // only fires once the pointer has genuinely left the neighborhood, not
+    // while crossing an ordinary gap between elements - but not generous
+    // enough to cover half the screen either.
+    const reach = (isWide ? sideColGap + 220 : circleRadius + 80) + 60;
+    if (dist > reach) setActiveItemDebounced(null);
+  }
+
   const specTrigger = (s: SpecItem, align: 'left' | 'right') => {
     const isActive = activeItem?.k === s.k;
     const dimmed = activeItem !== null && !isActive;
@@ -330,7 +315,6 @@ export function BoxStatsHero({
         key={s.k}
         type="button"
         onMouseEnter={() => setActiveItemDebounced(s)}
-        onMouseLeave={() => setActiveItemDebounced(null)}
         style={{
           pointerEvents: infoInteractive ? 'auto' : 'none', cursor: 'pointer', background: 'none', border: 'none', padding: '5px 0',
           display: 'flex', alignItems: 'center', gap: 10,
@@ -351,7 +335,7 @@ export function BoxStatsHero({
   return (
     <>
       <div ref={trackRef} style={{ height: '170vh', position: 'relative' }}>
-        <div style={{ position: 'sticky', top: 0, height: '100vh' }}>
+        <div onMouseMove={handleStageMouseMove} style={{ position: 'sticky', top: 0, height: '100vh' }}>
           <div
             style={{
               // Lower than 28% and the ring/dot collide with the fixed
@@ -451,8 +435,15 @@ export function BoxStatsHero({
               </div>
               <div
                 style={{
-                  position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: ringW * 0.74,
-                  textAlign: 'center', opacity: textOpacity, padding: '0 8px',
+                  position: 'absolute', left: '50%', top: '50%', width: ringW * 0.74,
+                  // Plain CSS transition keyed off `committed`, decoupled
+                  // from the box's own JS-driven shape tween above - this is
+                  // the "text appearance" half of the reference the user
+                  // pointed at, running on its own independent timing/easing
+                  // rather than being locked to transitionT.
+                  transform: `translate(-50%,-50%) translateY(${committed ? 0 : 10}px)`,
+                  transition: 'opacity .8s ease, transform .8s ease',
+                  textAlign: 'center', opacity: committed ? 1 : 0, padding: '0 8px',
                 }}
               >
                 {activeItem ? (
@@ -478,10 +469,16 @@ export function BoxStatsHero({
                     labels per side read as sitting around the circle's
                     edge, the way onyx's spec wheel does, rather than
                     clustered in a huddle at its vertical center. */}
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: infoOpacity }}>
+                {/* opacity-only CSS transition, no transform shift - these
+                    are the interactive hover targets, and animating their
+                    position while `committed` just flipped is exactly the
+                    layout-shift-under-the-pointer scenario `infoInteractive`
+                    guards against (see its comment above); position is
+                    already final from the start, only visibility fades. */}
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(calc(-100% - ${sideColGap}px), calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: committed ? 1 : 0, transition: 'opacity .8s ease' }}>
                   {left.map(s => specTrigger(s, 'right'))}
                 </div>
-                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: infoOpacity }}>
+                <div style={{ position: 'absolute', left: '50%', top: '50%', width: 200, height: ringH * 0.64, transform: `translate(${sideColGap}px, calc(-50% + ${ringCenterY}px))`, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', opacity: committed ? 1 : 0, transition: 'opacity .8s ease' }}>
                   {right.map(s => specTrigger(s, 'left'))}
                 </div>
               </>
@@ -490,7 +487,7 @@ export function BoxStatsHero({
                 style={{
                   position: 'absolute', left: '50%', top: '50%',
                   transform: `translate(-50%, calc(-50% + ${ringCenterY}px + ${ringH / 2}px + 26px))`,
-                  width: Math.min(stageWidth * 0.8, 300), opacity: infoOpacity,
+                  width: Math.min(stageWidth * 0.8, 300), opacity: committed ? 1 : 0, transition: 'opacity .8s ease',
                   display: 'grid', gridTemplateColumns: '1fr 1fr', columnGap: 10, rowGap: 2,
                 }}
               >
