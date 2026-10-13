@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
 import { SHOW_SCORES } from '../constants';
-import { isSoldOut, useCart, dripPrice } from '../cart';
+import { isBeansSoldOut, useCart, dripPrice } from '../cart';
 import { useLang } from '../i18n';
 import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
@@ -50,7 +50,10 @@ export function DetailScreen() {
   const backToMenu = fromCategory ? { state: { category: fromCategory } } : undefined;
 
   const soft = coffee.color + '22';
-  const soldOut = isSoldOut(coffee);
+  // Stock only limits retail bean bags - a coffee can be out of beans to
+  // sell while hand-drip (brewed to order, not drawn from a bag) stays
+  // available, so this only blocks ordering while viewing beans mode.
+  const soldOut = mode === 'beans' && isBeansSoldOut(coffee);
   const unavailable = coffee.archived || soldOut;
   const canDrip = coffee.temps.hot || coffee.temps.ice;
   const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;

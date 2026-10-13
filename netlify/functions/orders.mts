@@ -46,7 +46,8 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     if (!row) return { error: `unknown coffee: ${item.id}` };
     const coffee = toCoffee(row);
     if (coffee.archived) return { error: `${coffee.name} 已經下架` };
-    if (coffee.stockQty !== null && coffee.stockQty <= 0) return { error: `${coffee.name} 已經賣完了` };
+    // Stock only tracks retail bean bags, not hand-drip cups - a coffee
+    // can run out of beans to sell while the bar keeps brewing it.
     const size = item.size === '大杯' ? '大杯' : '標準';
     const temp = item.temp === '冰' ? '冰' : '熱';
     const unitPrice = coffee.price + (size === '大杯' ? 20 : 0);
@@ -173,11 +174,12 @@ export default async (req: Request, context: Context) => {
 
   const total = lines.reduce((sum, l) => sum + l.linePrice, 0) + deliveryFee;
 
-  // Hand-drip cups and retail bags of the same coffee draw from one shared
-  // stock count, so aggregate qty per coffee id before touching the DB.
+  // Only retail bean bags draw down stock - hand-drip cups are unlimited
+  // (see priceItem above), so aggregate qty per coffee id from beans lines
+  // only before touching the DB.
   const stockNeeded = new Map<string, number>();
   for (const item of items) {
-    if (item.kind === 'drip' || item.kind === 'beans') {
+    if (item.kind === 'beans') {
       const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
       stockNeeded.set(item.id, (stockNeeded.get(item.id) ?? 0) + qty);
     }

@@ -36,9 +36,10 @@ export function dripPrice(basePrice: number, size: Size): number {
   return basePrice + (size === '大杯' ? 20 : 0);
 }
 
-// Stock is shared between a coffee's hand-drip cups and retail bags; null
-// means untracked/unlimited.
-export function isSoldOut(coffee: Coffee): boolean {
+// Stock only tracks retail bean bags, not hand-drip cups - null means
+// untracked/unlimited. Callers that gate hand-drip availability should NOT
+// use this; only beans-mode flows should (see DetailScreen/MenuScreen).
+export function isBeansSoldOut(coffee: Coffee): boolean {
   return coffee.stockQty !== null && coffee.stockQty <= 0;
 }
 

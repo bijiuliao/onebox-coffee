@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
-import { isSoldOut, useCart } from '../cart';
+import { isBeansSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
 import { useArchivedCoffees, useCoffees, useSpecials } from '../useCoffees';
 import type { BagOption, Coffee } from '../types';
@@ -369,19 +369,19 @@ export function MenuScreen() {
             )}
             <div className="coffee-grid coffee-grid-1col">
               {visibleCoffees.map(c => {
-                const soldOut = isSoldOut(c);
+                // Stock only limits retail bean bags, not hand-drip cups -
+                // a coffee running low on beans to sell doesn't stop the
+                // bar from brewing it, so no sold-out gating here.
                 return (
                   <div
                     key={c.id}
                     onClick={() => navigate(`/coffee/${c.id}`, { state: { fromCategory: 'drip' } })}
                     className="lift"
-                    style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden', opacity: soldOut ? .6 : 1 }}
+                    style={{ cursor: 'pointer', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 22, overflow: 'hidden' }}
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '11px 18px', background: c.color + '22', color: c.color }}>
                       <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5 }}>{c.originEN}</span>
-                      {soldOut ? (
-                        <span style={{ padding: '4px 10px', borderRadius: 12, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'" }}>{t('stock.soldOut')}</span>
-                      ) : SHOW_SCORES && <span style={{ font: "700 11px 'Space Mono'", color: c.color }}>⌾ {c.score}</span>}
+                      {SHOW_SCORES && <span style={{ font: "700 11px 'Space Mono'", color: c.color }}>⌾ {c.score}</span>}
                     </div>
                     <div style={{ padding: '16px 18px 18px' }}>
                       <div style={{ font: "500 22px/1.15 'Room205',serif", color: '#1a1714' }}>{c.name}</div>
@@ -409,7 +409,7 @@ export function MenuScreen() {
             {coffees === null && <div style={{ padding: '40px 0', textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div>}
             <div className="coffee-grid coffee-grid-2col">
               {visibleCoffees.map(c => {
-                const soldOut = isSoldOut(c);
+                const soldOut = isBeansSoldOut(c);
                 const bag = largestBagOption(c);
                 return (
                   <div

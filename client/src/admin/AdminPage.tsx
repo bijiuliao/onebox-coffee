@@ -136,7 +136,7 @@ export function AdminPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
               <div style={{ font: "400 10px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>
-                {b.originEN} · ${b.price}{b.stockQty !== null && (b.stockQty > 0 ? ` · 庫存${b.stockQty}` : ' · 已售完')}
+                {b.originEN} · ${b.price}{b.stockQty !== null && (b.stockQty > 0 ? ` · 豆子庫存${b.stockQty}` : ' · 豆子已售完')}
               </div>
             </div>
             <div style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: b.active ? '#3d6b4f' : '#d3c9b6' }} />
@@ -426,7 +426,7 @@ export function AdminPage() {
               {sel.stockQty !== null ? '✓ 追蹤庫存' : '追蹤庫存'}
             </div>
             <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
-              開啟後，手沖和買豆子共用同一個庫存量；客人下單會自動扣庫存，歸零會在顧客端自動顯示「已售完」並停止加購
+              開啟後，庫存只計算「買豆子」的客人；客人下單買豆子會自動扣庫存，歸零會在顧客端自動顯示「已售完」並停止加購豆子——手沖咖啡不受影響，仍可照常下單
             </div>
             {sel.stockQty !== null && (
               <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
