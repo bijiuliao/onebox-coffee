@@ -11,6 +11,7 @@ import { AdminPage } from './admin/AdminPage';
 import { SpecialsAdminPage } from './admin/SpecialsAdminPage';
 import { OrdersView } from './admin/OrdersView';
 import { ReviewsAdminView } from './admin/ReviewsAdminView';
+import { CustomersView } from './admin/CustomersView';
 
 function App() {
   return (
@@ -27,6 +28,7 @@ function App() {
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/specials" element={<SpecialsAdminPage />} />
               <Route path="/admin/orders" element={<OrdersView />} />
+              <Route path="/admin/customers" element={<CustomersView />} />
               <Route path="/admin/reviews" element={<ReviewsAdminView />} />
             </Routes>
           </BrowserRouter>

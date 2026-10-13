@@ -42,6 +42,9 @@ export function OrdersView() {
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
                   <div style={{ font: "600 15px 'Iansui'" }}>訂單 #{order.id}</div>
                   <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714' }}>{order.customerName || '（未填寫姓名）'}</div>
+                  {order.customerEmail && (
+                    <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{order.customerEmail}</span>
+                  )}
                   <span style={{
                     font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10,
                     background: order.orderType === '外送' ? '#e2eef2' : '#efe7d8',

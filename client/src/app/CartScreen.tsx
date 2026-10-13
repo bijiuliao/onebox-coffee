@@ -10,6 +10,8 @@ import { unlockDing } from '../feedback';
 import type { DeliveryQuote, OrderType } from '../types';
 
 const NAME_STORAGE_KEY = 'onebox-customer-name';
+const EMAIL_STORAGE_KEY = 'onebox-customer-email';
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // lineDetail() carries the raw Chinese domain values (temp/size are fixed
 // literal types used by the order + cart data model); this only relabels
@@ -29,6 +31,7 @@ export function CartScreen() {
   const { showToast } = useToast();
   const [placing, setPlacing] = useState(false);
   const [customerName, setCustomerName] = useState(() => localStorage.getItem(NAME_STORAGE_KEY) ?? '');
+  const [customerEmail, setCustomerEmail] = useState(() => localStorage.getItem(EMAIL_STORAGE_KEY) ?? '');
 
   const [orderType, setOrderType] = useState<OrderType>('自取');
   const [locating, setLocating] = useState(false);
@@ -75,18 +78,22 @@ export function CartScreen() {
 
   const checkout = async () => {
     const name = customerName.trim();
+    const email = customerEmail.trim().toLowerCase();
     if (placing || cart.lines.length === 0 || !canCheckout) return;
     if (!name) { showToast(t('cart.needName')); return; }
+    if (!email || !EMAIL_RE.test(email)) { showToast(t('cart.needEmail')); return; }
     unlockDing(); // must run synchronously in this click before any `await`, or iOS Safari blocks the sound later
     setPlacing(true);
     try {
       const order = await api.placeOrder({
         customerName: name,
+        customerEmail: email,
         orderType,
         items: cart.lines.map(cartLineToItemInput),
         ...(orderType === '外送' && location ? { lat: location.lat, lng: location.lng } : {}),
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
+      localStorage.setItem(EMAIL_STORAGE_KEY, email);
       cart.clear();
       navigate('/order-success', { state: { customerName: name, total: order.total, orderType } });
     } catch (err) {
@@ -171,6 +178,18 @@ export function CartScreen() {
               onChange={(e) => setCustomerName(e.target.value)}
               placeholder={t('cart.namePlaceholder')}
               maxLength={40}
+              style={{ width: '100%', padding: '13px 16px', border: '1px solid #e4ddcd', borderRadius: 14, background: '#fff', font: "400 15px 'Iansui'", color: '#1a1714', outline: 'none' }}
+            />
+          </div>
+
+          <div style={{ padding: '16px 22px 0' }}>
+            <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 8, display: 'block' }}>{t('cart.emailLabel')}</label>
+            <input
+              type="email"
+              value={customerEmail}
+              onChange={(e) => setCustomerEmail(e.target.value)}
+              placeholder={t('cart.emailPlaceholder')}
+              maxLength={254}
               style={{ width: '100%', padding: '13px 16px', border: '1px solid #e4ddcd', borderRadius: 14, background: '#fff', font: "400 15px 'Iansui'", color: '#1a1714', outline: 'none' }}
             />
           </div>

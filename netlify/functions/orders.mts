@@ -98,10 +98,10 @@ export default async (req: Request, context: Context) => {
     if (unauthorized) return unauthorized;
 
     const rows = (await db.sql`
-      SELECT id, created_at, customer_name, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng
+      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng
       FROM orders ORDER BY created_at DESC LIMIT 200
     `) as {
-      id: number; created_at: string; customer_name: string; items: unknown; total: number;
+      id: number; created_at: string; customer_name: string; customer_email: string; items: unknown; total: number;
       order_type: string; delivery_fee: number; delivery_distance_km: number | null;
       customer_lat: number | null; customer_lng: number | null;
     }[];
@@ -109,6 +109,7 @@ export default async (req: Request, context: Context) => {
       id: r.id,
       createdAt: r.created_at,
       customerName: r.customer_name,
+      customerEmail: r.customer_email,
       items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
       total: r.total,
       orderType: r.order_type,
@@ -126,6 +127,15 @@ export default async (req: Request, context: Context) => {
   const customerName = typeof body.customerName === 'string' ? body.customerName.trim() : '';
   if (!customerName) return json({ error: 'customerName is required' }, 400);
   if (customerName.length > 40) return json({ error: 'customerName is too long' }, 400);
+
+  // Required (not just optional contact info) so repeat customers can be
+  // grouped reliably in the customer list - customerName alone can collide
+  // between different people. Lowercased so "Foo@Example.com" and
+  // "foo@example.com" aggregate as the same customer.
+  const customerEmail = typeof body.customerEmail === 'string' ? body.customerEmail.trim().toLowerCase() : '';
+  if (!customerEmail) return json({ error: 'customerEmail is required' }, 400);
+  if (customerEmail.length > 254) return json({ error: 'customerEmail is too long' }, 400);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) return json({ error: 'customerEmail is not a valid email address' }, 400);
 
   const orderType: OrderType = body.orderType === '外送' ? '外送' : '自取';
 
@@ -179,7 +189,7 @@ export default async (req: Request, context: Context) => {
     // Same customer, same cart, same IP, moments ago - treat as an accidental
     // double-submit rather than creating a second order.
     return json({
-      id: dup.id, createdAt: dup.created_at, customerName, items: lines, total: dup.total,
+      id: dup.id, createdAt: dup.created_at, customerName, customerEmail, items: lines, total: dup.total,
       orderType: dup.order_type, deliveryFee: dup.delivery_fee, deliveryDistanceKm: dup.delivery_distance_km,
     }, 200);
   }
@@ -225,10 +235,10 @@ export default async (req: Request, context: Context) => {
     }
 
     const insert = await client.query<{ id: number; created_at: string }>(
-      `INSERT INTO orders (customer_name, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      `INSERT INTO orders (customer_name, customer_email, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, created_at`,
-      [customerName, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng],
+      [customerName, customerEmail, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng],
     );
     order = insert.rows[0];
 
@@ -241,12 +251,12 @@ export default async (req: Request, context: Context) => {
   }
 
   await notifyNewOrder({
-    id: order.id, customerName, items: lines, total,
+    id: order.id, customerName, customerEmail, items: lines, total,
     orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng,
   });
 
   return json({
-    id: order.id, createdAt: order.created_at, customerName, items: lines, total,
+    id: order.id, createdAt: order.created_at, customerName, customerEmail, items: lines, total,
     orderType, deliveryFee, deliveryDistanceKm,
   }, 201);
 };

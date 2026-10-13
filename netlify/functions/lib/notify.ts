@@ -1,6 +1,7 @@
 interface OrderForNotify {
   id: number;
   customerName: string;
+  customerEmail: string;
   items: { name: string; detail: string; qty: number; linePrice: number }[];
   total: number;
   orderType: string;
@@ -39,6 +40,7 @@ export async function notifyNewOrder(order: OrderForNotify) {
     <div style="font-family:sans-serif;color:#1a1714">
       <h2 style="margin:0 0 4px">☕ 新訂單 #${order.id}</h2>
       <p style="margin:0 0 4px;color:#4a3c2e"><b>取餐姓名：</b>${escapeHtml(order.customerName)}</p>
+      <p style="margin:0 0 4px;color:#4a3c2e"><b>Email：</b>${escapeHtml(order.customerEmail)}</p>
       <p style="margin:0 0 16px;color:#4a3c2e"><b>取貨方式：</b>${fulfillmentLine}</p>
       <table style="border-collapse:collapse;width:100%;max-width:420px">${rows}</table>
       <p style="margin-top:16px;font-size:18px"><b>總計：$${order.total}</b></p>

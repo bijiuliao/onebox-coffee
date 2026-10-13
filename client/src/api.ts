@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, DeliveryQuote, ItemKind, Order, OrderType, ReviewSummary, Special } from './types';
+import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, Order, OrderType, ReviewSummary, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -57,6 +57,7 @@ export const api = {
 
   placeOrder: (order: {
     customerName: string;
+    customerEmail: string;
     orderType: OrderType;
     items: { kind: ItemKind; id: string; temp?: string; size?: string; bagLabel?: string; qty: number }[];
     lat?: number;
@@ -68,6 +69,7 @@ export const api = {
       body: JSON.stringify(order),
     }).then(res => json<Order>(res)),
   listOrders: () => fetch('/api/orders').then(res => json<Order[]>(res)),
+  listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {
       method: 'POST',

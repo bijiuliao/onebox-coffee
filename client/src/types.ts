@@ -59,6 +59,7 @@ export interface Order {
   id: number;
   createdAt: string;
   customerName: string;
+  customerEmail: string;
   items: OrderLine[];
   total: number;
   orderType: OrderType;
@@ -66,6 +67,18 @@ export interface Order {
   deliveryDistanceKm: number | null;
   customerLat?: number | null;
   customerLng?: number | null;
+}
+
+// Not a stored record - an aggregate computed from orders sharing the same
+// email (see netlify/functions/customers-list.mts). name is whichever
+// customer_name was used on that customer's most recent order, since name
+// is a free-text field typed per order, not a fixed profile attribute.
+export interface Customer {
+  email: string;
+  name: string;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string;
 }
 
 export interface DeliveryQuote {
