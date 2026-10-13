@@ -5,6 +5,7 @@ import { ACCENT_PALETTE } from './palette';
 import { CoverUploader } from './CoverUploader';
 import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
+import { parseBagWeightGrams } from '../weight';
 
 function soft(color: string) {
   return color + '22';
@@ -136,7 +137,7 @@ export function AdminPage() {
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ font: "500 15px 'Room205',serif", color: '#1a1714', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.name}</div>
               <div style={{ font: "400 10px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>
-                {b.originEN} · ${b.price}{b.stockQty !== null && (b.stockQty > 0 ? ` · 豆子庫存${b.stockQty}` : ' · 豆子已售完')}
+                {b.originEN} · ${b.price}{b.stockQty !== null && (b.stockQty > 0 ? ` · 豆子庫存${b.stockQty}g` : ' · 豆子已售完')}
               </div>
             </div>
             <div style={{ width: 8, height: 8, borderRadius: '50%', flex: 'none', background: b.active ? '#3d6b4f' : '#d3c9b6' }} />
@@ -426,12 +427,12 @@ export function AdminPage() {
               {sel.stockQty !== null ? '✓ 追蹤庫存' : '追蹤庫存'}
             </div>
             <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
-              開啟後，庫存只計算「買豆子」的客人；客人下單買豆子會自動扣庫存，歸零會在顧客端自動顯示「已售完」並停止加購豆子——手沖咖啡不受影響，仍可照常下單
+              開啟後，庫存以「公克」計算，只跟買豆子綁定；客人下單買豆子時，依照選的重量選項（如227g、1kg）扣除對應的公克數，個別重量選項不夠扣就會先被擋下、其他還夠的選項仍可購買，全部扣完才會顯示「已售完」——手沖咖啡不受影響，仍可照常下單
             </div>
             {sel.stockQty !== null && (
               <div style={{ marginTop: 16, display: 'flex', alignItems: 'center', gap: 14 }}>
                 <div>
-                  {label('目前庫存')}
+                  {label('目前庫存（公克）')}
                   <input
                     type="number"
                     value={sel.stockQty}
@@ -457,16 +458,30 @@ export function AdminPage() {
               <div style={{ marginTop: 18 }}>
                 <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10, display: 'block' }}>重量選項 BAG OPTIONS</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
-                  {sel.bagOptions.map((bag, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 13px', border: '1px solid #e2dac9', borderRadius: 10, background: '#faf7f0' }}>
-                      <span style={{ flex: 1, font: "500 14px 'Iansui'", color: '#1a1714' }}>{bag.label}</span>
-                      <span style={{ font: "500 14px 'Room205'", color: '#1a1714' }}>${bag.price}</span>
-                      <span onClick={() => removeBag(i)} style={{ cursor: 'pointer', opacity: .6, fontWeight: 700 }}>×</span>
-                    </div>
-                  ))}
+                  {sel.bagOptions.map((bag, i) => {
+                    // Stock is tracked in grams and deducted per bag by this
+                    // parsed weight (see parseBagWeightGrams) - if the label
+                    // has no recognizable number in it, that bag option
+                    // can't be checked against stock at all, so flag it here
+                    // where it can actually be fixed.
+                    const grams = parseBagWeightGrams(bag.label);
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 13px', border: '1px solid #e2dac9', borderRadius: 10, background: '#faf7f0' }}>
+                        <span style={{ flex: 1, font: "500 14px 'Iansui'", color: '#1a1714' }}>{bag.label}</span>
+                        {grams === null && sel.stockQty !== null && (
+                          <span style={{ font: "400 11px 'Iansui'", color: '#b0603a' }}>⚠ 無法辨識重量，不會扣庫存</span>
+                        )}
+                        <span style={{ font: "500 14px 'Room205'", color: '#1a1714' }}>${bag.price}</span>
+                        <span onClick={() => removeBag(i)} style={{ cursor: 'pointer', opacity: .6, fontWeight: 700 }}>×</span>
+                      </div>
+                    );
+                  })}
                   {sel.bagOptions.length === 0 && (
                     <div style={{ font: "400 12px 'Iansui'", color: '#b0a08c' }}>還沒有重量選項</div>
                   )}
+                </div>
+                <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginBottom: 10 }}>
+                  重量選項的文字裡要帶數字＋單位（例如「半磅 227g」「1kg」），系統會從文字裡解析出公克數來跟庫存比對
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
@@ -526,14 +541,17 @@ export function AdminPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
                 <span style={{ font: "600 24px 'Room205'", color: '#1a1714' }}>${sel.price}</span>
-                <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'", opacity: sel.stockQty === 0 ? .5 : 1 }}>
-                  {sel.stockQty === 0 ? '已售完' : '加入購物車'}
+                {/* This card is the hand-drip preview - stock no longer
+                    gates drip (only retail bean bags), so the button here
+                    is never greyed out by stockQty. */}
+                <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>
+                  加入購物車
                 </div>
               </div>
             </div>
           </div>
-          <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.archived ? '#efe7d8' : (sel.active && sel.stockQty === 0) ? '#f1e9db' : sel.active ? '#e6f0ea' : '#f1e9db', color: sel.archived ? '#8a7a68' : (sel.active && sel.stockQty === 0) ? '#9a8a76' : sel.active ? '#3d6b4f' : '#9a8a76' }}>
-            {sel.archived ? '已封存，顧客看不到' : sel.active && sel.stockQty === 0 ? '顧客看得到，但顯示已售完、無法下單' : sel.active ? '顧客可在商店看到這款' : '目前未上架，顧客看不到'}
+          <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.archived ? '#efe7d8' : sel.active ? '#e6f0ea' : '#f1e9db', color: sel.archived ? '#8a7a68' : sel.active ? '#3d6b4f' : '#9a8a76' }}>
+            {sel.archived ? '已封存，顧客看不到' : sel.active ? '顧客可在商店看到這款' : '目前未上架，顧客看不到'}
           </div>
         </div>
       </div>

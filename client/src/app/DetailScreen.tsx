@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
 import { SHOW_SCORES } from '../constants';
-import { isBeansSoldOut, useCart, dripPrice } from '../cart';
+import { isBeansSoldOut, isBagAvailable, maxBagQty, useCart, dripPrice } from '../cart';
 import { useLang } from '../i18n';
 import { useCoffee } from '../useCoffees';
 import { useToast } from '../toast';
@@ -36,9 +36,24 @@ export function DetailScreen() {
     setMode(requested === 'beans' && canBeans ? 'beans' : canDrip ? 'drip' : 'beans');
     setTemp(coffee.temps.hot ? '熱' : '冰');
     setSize(coffee.sizes.std ? '標準' : '大杯');
-    setBagLabel(coffee.bagOptions[0]?.label ?? null);
+    // Default to the first bag size that's actually still in stock, not
+    // just the first one listed - no point landing on a size that's
+    // immediately greyed out when a smaller one is still available.
+    const firstAvailable = coffee.bagOptions.find(b => isBagAvailable(coffee, b));
+    setBagLabel((firstAvailable ?? coffee.bagOptions[0])?.label ?? null);
     setQty(1);
   }, [coffee, location.state]);
+
+  // Re-clamp qty whenever it would outrun the selected bag's remaining
+  // stock - covers switching to a smaller-capacity bag after bumping qty up
+  // on a roomier one, not just the "+" button's own cap above.
+  useEffect(() => {
+    if (!coffee || mode !== 'beans') return;
+    const selectedBag = coffee.bagOptions.find(b => b.label === bagLabel);
+    if (!selectedBag) return;
+    const max = maxBagQty(coffee, selectedBag);
+    if (max !== null && qty > max) setQty(Math.max(1, max));
+  }, [coffee, mode, bagLabel, qty]);
 
   if (!coffee || !mode || !temp || !size) {
     return <MobileShell><div style={{ padding: 60, textAlign: 'center', color: '#9a8a76' }}>{t('common.loading')}</div></MobileShell>;
@@ -50,14 +65,19 @@ export function DetailScreen() {
   const backToMenu = fromCategory ? { state: { category: fromCategory } } : undefined;
 
   const soft = coffee.color + '22';
-  // Stock only limits retail bean bags - a coffee can be out of beans to
-  // sell while hand-drip (brewed to order, not drawn from a bag) stays
-  // available, so this only blocks ordering while viewing beans mode.
-  const soldOut = mode === 'beans' && isBeansSoldOut(coffee);
-  const unavailable = coffee.archived || soldOut;
   const canDrip = coffee.temps.hot || coffee.temps.ice;
   const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
   const bag = coffee.bagOptions.find(b => b.label === bagLabel) ?? coffee.bagOptions[0] ?? null;
+  // Stock is tracked in grams and only limits retail bean bags - a coffee
+  // can be out of beans to sell while hand-drip (brewed to order, not drawn
+  // from a bag) stays available, so this only blocks ordering while viewing
+  // beans mode. Two ways beans can be sold out: the coffee's gram pool has
+  // hit zero outright (isBeansSoldOut), or there's still some left but not
+  // enough for even the selected bag's own weight (bag picked unavailable).
+  const bagUnavailable = mode === 'beans' && bag !== null && !isBagAvailable(coffee, bag);
+  const soldOut = mode === 'beans' && (isBeansSoldOut(coffee) || bagUnavailable);
+  const unavailable = coffee.archived || soldOut;
+  const bagMaxQty = mode === 'beans' && bag ? maxBagQty(coffee, bag) : null;
   const total = (mode === 'beans' ? (bag?.price ?? 0) : dripPrice(coffee.price, size)) * qty;
   const tempOpts: { key: Temp; label: string }[] = [];
   if (coffee.temps.hot) tempOpts.push({ key: '熱', label: t('detail.tempHot') });
@@ -186,11 +206,27 @@ export function DetailScreen() {
         <Reveal style={{ padding: '22px 24px 0' }}>
           <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.weight')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {coffee.bagOptions.map(b => (
-              <div key={b.label} onClick={() => setBagLabel(b.label)} className="press" style={{ ...seg(bagLabel === b.label), flex: 'none', padding: '13px 18px' }}>
-                {b.label} · ${b.price}
-              </div>
-            ))}
+            {coffee.bagOptions.map(b => {
+              // A bag size can be individually out of stock even while the
+              // coffee overall still has grams left - e.g. 100g remaining
+              // but this option is a 227g bag. Greyed out and unclickable
+              // rather than hidden, so it's clear the size exists but isn't
+              // available right now, not that it was never offered.
+              const bAvailable = isBagAvailable(coffee, b);
+              return (
+                <div
+                  key={b.label}
+                  onClick={() => bAvailable && setBagLabel(b.label)}
+                  className={bAvailable ? 'press' : undefined}
+                  style={{
+                    ...seg(bagLabel === b.label && bAvailable), flex: 'none', padding: '13px 18px',
+                    cursor: bAvailable ? 'pointer' : 'default', opacity: bAvailable ? 1 : .4,
+                  }}
+                >
+                  {b.label} · ${b.price}{!bAvailable && ` · ${t('stock.soldOut')}`}
+                </div>
+              );
+            })}
           </div>
         </Reveal>
       )}
@@ -201,7 +237,22 @@ export function DetailScreen() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
             <div onClick={() => setQty(q => Math.max(1, q - 1))} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>−</div>
             <span style={{ font: "500 22px 'Room205'", color: '#1a1714', minWidth: 24, textAlign: 'center' }}>{qty}</span>
-            <div onClick={() => setQty(q => q + 1)} className="press" style={{ cursor: 'pointer', width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'" }}>＋</div>
+            {/* Capped at the selected bag's remaining stock in beans mode
+                (bagMaxQty is null when untracked/unverifiable, i.e. no cap)
+                so a customer can't type their way past what's actually left
+                and only find out at checkout. */}
+            <div
+              onClick={() => { if (bagMaxQty === null || qty < bagMaxQty) setQty(q => q + 1); }}
+              className="press"
+              style={{
+                cursor: bagMaxQty !== null && qty >= bagMaxQty ? 'default' : 'pointer',
+                opacity: bagMaxQty !== null && qty >= bagMaxQty ? .4 : 1,
+                width: 38, height: 38, borderRadius: '50%', background: 'rgba(255,255,255,.8)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', font: "500 20px 'Room205'",
+              }}
+            >
+              ＋
+            </div>
           </div>
         </div>
       </Reveal>

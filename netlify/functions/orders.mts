@@ -5,6 +5,7 @@ import { toSpecial, type SpecialRow } from './lib/specials';
 import { requireAdmin } from './lib/auth';
 import { notifyNewOrder } from './lib/notify';
 import { quoteDelivery, isValidLatLng } from './lib/delivery';
+import { parseBagWeightGrams } from './lib/weight';
 
 type ItemKind = 'drip' | 'beans' | 'special';
 type OrderType = '自取' | '外送';
@@ -60,9 +61,20 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     const coffee = toCoffee(row);
     if (coffee.archived) return { error: `${coffee.name} 已經下架` };
     if (!coffee.sellsBeans) return { error: `${coffee.name} 目前沒有開放零售` };
-    if (coffee.stockQty !== null && coffee.stockQty <= 0) return { error: `${coffee.name} 已經賣完了` };
     const bag = coffee.bagOptions.find(b => b.label === item.bagLabel);
     if (!bag) return { error: `${coffee.name} 沒有這個重量選項` };
+    // Stock is tracked in grams, deducted by each bag's actual weight (parsed
+    // from its label, e.g. "半磅 227g") rather than 1 unit per bag - a 1kg
+    // bag should draw down the shared stock far more than a 227g one does.
+    // A label with no recognizable weight (no number in it) can't be
+    // checked against the gram pool, so it's left untracked rather than
+    // blocked outright - see parseBagWeightGrams.
+    if (coffee.stockQty !== null) {
+      const grams = parseBagWeightGrams(bag.label);
+      if (grams !== null && coffee.stockQty < grams * qty) {
+        return { error: `${coffee.name}（${bag.label}）庫存不足，只剩 ${coffee.stockQty}g` };
+      }
+    }
     return { name: `${coffee.name}（豆）`, detail: bag.label, qty, unitPrice: bag.price, linePrice: bag.price * qty };
   }
 
@@ -175,13 +187,17 @@ export default async (req: Request, context: Context) => {
   const total = lines.reduce((sum, l) => sum + l.linePrice, 0) + deliveryFee;
 
   // Only retail bean bags draw down stock - hand-drip cups are unlimited
-  // (see priceItem above), so aggregate qty per coffee id from beans lines
-  // only before touching the DB.
+  // (see priceItem above) - and by each bag's actual gram weight, not 1 per
+  // bag, so aggregate grams needed per coffee id from beans lines before
+  // touching the DB. A bag label with no parseable weight is left out here
+  // too, same as in priceItem's pre-check.
   const stockNeeded = new Map<string, number>();
   for (const item of items) {
     if (item.kind === 'beans') {
+      const grams = parseBagWeightGrams(item.bagLabel ?? '');
+      if (grams === null) continue;
       const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
-      stockNeeded.set(item.id, (stockNeeded.get(item.id) ?? 0) + qty);
+      stockNeeded.set(item.id, (stockNeeded.get(item.id) ?? 0) + grams * qty);
     }
   }
 
@@ -190,7 +206,7 @@ export default async (req: Request, context: Context) => {
   try {
     await client.query('BEGIN');
 
-    for (const [coffeeId, qtyNeeded] of stockNeeded) {
+    for (const [coffeeId, gramsNeeded] of stockNeeded) {
       // FOR UPDATE locks the row for the rest of this transaction, so a
       // concurrent order on the same coffee waits here instead of both
       // reading the same stock count and overselling it.
@@ -200,11 +216,11 @@ export default async (req: Request, context: Context) => {
       );
       const row = rows[0];
       if (row && row.stock_qty !== null) {
-        if (row.stock_qty < qtyNeeded) {
+        if (row.stock_qty < gramsNeeded) {
           await client.query('ROLLBACK');
           return json({ error: `${row.name} 剛好賣完了，請重新整理頁面再試一次` }, 409);
         }
-        await client.query('UPDATE coffees SET stock_qty = stock_qty - $1 WHERE id = $2', [qtyNeeded, coffeeId]);
+        await client.query('UPDATE coffees SET stock_qty = stock_qty - $1 WHERE id = $2', [gramsNeeded, coffeeId]);
       }
     }
 

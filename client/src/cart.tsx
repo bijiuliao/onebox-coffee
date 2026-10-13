@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { BagOption, Coffee, ItemKind, Size, Special, Temp } from './types';
+import { parseBagWeightGrams } from './weight';
 
 interface DripLine {
   kind: 'drip';
@@ -38,9 +39,28 @@ export function dripPrice(basePrice: number, size: Size): number {
 
 // Stock only tracks retail bean bags, not hand-drip cups - null means
 // untracked/unlimited. Callers that gate hand-drip availability should NOT
-// use this; only beans-mode flows should (see DetailScreen/MenuScreen).
+// use this; only beans-mode flows should (see DetailScreen/MenuScreen). This
+// is a coarse check (the coffee has run all the way out) - it doesn't catch
+// "stock left, but less than any single bag option weighs"; use maxBagQty
+// for that per-bag case.
 export function isBeansSoldOut(coffee: Coffee): boolean {
   return coffee.stockQty !== null && coffee.stockQty <= 0;
+}
+
+// How many of this bag size are left to sell, given the coffee's remaining
+// gram stock - null means unlimited/unverifiable: either stock isn't
+// tracked for this coffee, or the bag's label has no number in it that
+// parseBagWeightGrams can read (so there's nothing to check it against).
+export function maxBagQty(coffee: Coffee, bag: BagOption): number | null {
+  if (coffee.stockQty === null) return null;
+  const grams = parseBagWeightGrams(bag.label);
+  if (grams === null || grams <= 0) return null;
+  return Math.floor(coffee.stockQty / grams);
+}
+
+export function isBagAvailable(coffee: Coffee, bag: BagOption): boolean {
+  const max = maxBagQty(coffee, bag);
+  return max === null || max > 0;
 }
 
 export function lineUnitPrice(line: CartLine): number {
