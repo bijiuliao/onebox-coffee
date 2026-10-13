@@ -282,7 +282,12 @@ export function DetailScreen() {
           }}
         >
           <span style={{ font: "600 16px 'Iansui'" }}>{coffee.archived ? t('stock.discontinued') : soldOut ? t('stock.soldOut') : t('detail.addToCart')}</span>
-          <span style={{ font: "500 18px 'Room205'" }}>${total}</span>
+          {/* Showing a $ figure next to "already sold out" reads like it's
+              still for sale at that price - replace it with the same
+              unavailable label instead of a price once it can't be bought. */}
+          <span style={{ font: "500 18px 'Room205'" }}>
+            {unavailable ? (coffee.archived ? t('stock.discontinued') : t('stock.soldOut')) : `$${total}`}
+          </span>
         </div>
       </div>
     </MobileShell>
