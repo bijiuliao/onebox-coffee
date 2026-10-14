@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { useLang } from './i18n';
+import { useCoffees } from './useCoffees';
 
 // Fades/slides a section in once it scrolls into view (and stays revealed -
 // the observer disconnects after the first trigger so it never re-hides).
@@ -28,13 +29,27 @@ export function Reveal({ children, delay = 0, style, className }: { children: Re
 }
 
 const TICKER_KEYS = ['ticker.msg1', 'ticker.msg2', 'ticker.msg3', 'ticker.msg4'] as const;
+// How many of the most-recently-added beans to announce in the ticker -
+// enough to loop smoothly, not so many it takes forever to repeat.
+const TICKER_RECENT_COUNT = 6;
 
 // Black promo marquee above the header - scrolls on a CSS loop (pauses on
 // hover), always rendered twice back-to-back so a 50% translateX wraps
 // seamlessly regardless of how long the translated copy ends up being.
 export function Ticker() {
-  const { t } = useLang();
-  const items = TICKER_KEYS.map(k => t(k));
+  const { t, lang } = useLang();
+  // Doubles as a "what's new" announcement for newly added beans instead of
+  // static evergreen promo copy - sorted newest-createdAt-first, independent
+  // of the menu's own sort_order. Falls back to the static messages below
+  // while coffees is still loading, or if the list comes back empty, so the
+  // ticker is never left showing nothing.
+  const { coffees } = useCoffees();
+  const recent = coffees
+    ? [...coffees].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, TICKER_RECENT_COUNT)
+    : [];
+  const items = recent.length > 0
+    ? recent.map(c => (lang === 'en' ? `New · ${c.originEN} · ${c.name}` : `新上架・${c.originEN}・${c.name}`))
+    : TICKER_KEYS.map(k => t(k));
   const segment = (
     <div className="ticker-seg">
       {items.map((msg, i) => (
