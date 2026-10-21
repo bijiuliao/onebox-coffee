@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import type { Coffee } from '../types';
+import type { Coffee, LoffeelabsBean, LoffeelabsBeansResponse } from '../types';
 import { ACCENT_PALETTE } from './palette';
 import { CoverUploader } from './CoverUploader';
 import { AdminTopBar } from './AdminTopBar';
@@ -21,6 +21,11 @@ export function AdminPage() {
   const [bagPriceDraft, setBagPriceDraft] = useState('');
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
+  const [loffeelabsOpen, setLoffeelabsOpen] = useState(false);
+  const [loffeelabsData, setLoffeelabsData] = useState<LoffeelabsBeansResponse | null>(null);
+  const [loffeelabsLoading, setLoffeelabsLoading] = useState(false);
+  const [loffeelabsError, setLoffeelabsError] = useState<string | null>(null);
+  const [loffeelabsSelected, setLoffeelabsSelected] = useState('');
 
   useEffect(() => {
     api.listCoffees(true).then(list => {
@@ -104,6 +109,54 @@ export function AdminPage() {
     } finally {
       setImporting(false);
     }
+  };
+
+  // loffeelabs exports are metered against a daily quota (meta.remainingQuota
+  // below), so this only fetches when the admin actually opens the picker -
+  // never eagerly on page load - and pages a fixed 20-at-a-time rather than
+  // pulling the whole catalog.
+  const fetchLoffeelabsPage = async (page: number) => {
+    setLoffeelabsLoading(true);
+    setLoffeelabsError(null);
+    try {
+      const data = await api.listLoffeelabsBeans(page);
+      setLoffeelabsData(data);
+      setLoffeelabsSelected('');
+    } catch (err) {
+      setLoffeelabsError(err instanceof Error ? err.message : '載入失敗');
+    } finally {
+      setLoffeelabsLoading(false);
+    }
+  };
+
+  const toggleLoffeelabs = () => {
+    const next = !loffeelabsOpen;
+    setLoffeelabsOpen(next);
+    if (next && !loffeelabsData) fetchLoffeelabsPage(1);
+  };
+
+  // Only the descriptive/profile fields - never price or weight. loffeelabs
+  // prices are in each roaster's own local currency (no currency field even
+  // given), not NT$, so auto-filling them into price/bagOptions would look
+  // like real pricing while actually being nonsense; pricing stays something
+  // the admin sets themselves either way.
+  const applyLoffeelabsBean = (bean: LoffeelabsBean) => {
+    const next: Partial<Coffee> = {};
+    if (bean.roastName) next.name = bean.roastName;
+    if (bean.roaster) next.roaster = bean.roaster;
+    if (bean.origin) next.originEN = bean.origin.toUpperCase();
+    if (bean.process) next.process = bean.process;
+    if (bean.variety) next.varietal = bean.variety;
+    if (bean.harvest) next.harvest = bean.harvest;
+    if (bean.degree) next.roast = bean.degree;
+    if (bean.tasting) next.notes = bean.tasting.split(',').map(s => s.trim()).filter(Boolean);
+    if (bean.minElev != null || bean.maxElev != null) {
+      next.altitude = bean.minElev != null && bean.maxElev != null && bean.minElev !== bean.maxElev
+        ? `${bean.minElev}–${bean.maxElev}m`
+        : `${bean.minElev ?? bean.maxElev}m`;
+    }
+    patch(next);
+    showToast('已從 loffeelabs 匯入資料，確認無誤後記得按「儲存」');
   };
 
   const sidebar = (
@@ -323,6 +376,93 @@ export function AdminPage() {
             </div>
             <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
               會自動填入下方欄位（不含封面圖），請務必確認內容正確後再按「儲存」
+            </div>
+          </div>
+
+          <div style={{ ...section, border: '1px dashed #d3c9b6', background: '#faf7f0' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: loffeelabsOpen ? 14 : 0 }}>
+              <div style={{ ...sectionTitle, marginBottom: 0 }}>從 LOFFEELABS 匯入 · L O F F E E L A B S</div>
+              <div
+                onClick={toggleLoffeelabs}
+                className="press"
+                style={{ cursor: 'pointer', padding: '7px 14px', borderRadius: 10, font: "600 12px 'Iansui'", background: loffeelabsOpen ? '#1a1714' : '#fff', color: loffeelabsOpen ? '#f4f1ea' : '#8a7a68', border: loffeelabsOpen ? 'none' : '1px solid #e2dac9' }}
+              >
+                {loffeelabsOpen ? '收起' : '瀏覽豆單'}
+              </div>
+            </div>
+
+            {loffeelabsOpen && (
+              <div>
+                {loffeelabsLoading && <div style={{ font: "400 13px 'Iansui'", color: '#9a8a76' }}>載入中…</div>}
+                {loffeelabsError && <div style={{ font: "400 13px 'Iansui'", color: '#c8342b' }}>{loffeelabsError}</div>}
+                {loffeelabsData && (
+                  <>
+                    <select
+                      value={loffeelabsSelected}
+                      onChange={(e) => setLoffeelabsSelected(e.target.value)}
+                      style={{ ...textInputStyle, cursor: 'pointer' }}
+                    >
+                      <option value="">請選擇一筆豆子…</option>
+                      {loffeelabsData.beans.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.roaster ?? '—'} · {b.roastName ?? '—'}{b.origin ? ` · ${b.origin}` : ''}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <div
+                          onClick={() => loffeelabsData.meta && loffeelabsData.meta.page > 1 && fetchLoffeelabsPage(loffeelabsData.meta.page - 1)}
+                          className="press"
+                          style={{
+                            cursor: 'pointer', padding: '7px 13px', borderRadius: 8, font: "600 12px 'Iansui'",
+                            background: '#fff', color: '#8a7a68', border: '1px solid #e2dac9',
+                            opacity: !loffeelabsData.meta || loffeelabsData.meta.page <= 1 ? .4 : 1,
+                          }}
+                        >
+                          ← 上一頁
+                        </div>
+                        <div
+                          onClick={() => loffeelabsData.meta && loffeelabsData.meta.page < loffeelabsData.meta.totalPages && fetchLoffeelabsPage(loffeelabsData.meta.page + 1)}
+                          className="press"
+                          style={{
+                            cursor: 'pointer', padding: '7px 13px', borderRadius: 8, font: "600 12px 'Iansui'",
+                            background: '#fff', color: '#8a7a68', border: '1px solid #e2dac9',
+                            opacity: !loffeelabsData.meta || loffeelabsData.meta.page >= loffeelabsData.meta.totalPages ? .4 : 1,
+                          }}
+                        >
+                          下一頁 →
+                        </div>
+                      </div>
+                      {loffeelabsData.meta && (
+                        <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>
+                          第 {loffeelabsData.meta.page}/{loffeelabsData.meta.totalPages} 頁 · 今日剩餘配額 {loffeelabsData.meta.remainingQuota}
+                        </div>
+                      )}
+                    </div>
+
+                    <div
+                      onClick={() => {
+                        const bean = loffeelabsData.beans.find(b => b.id === loffeelabsSelected);
+                        if (bean) applyLoffeelabsBean(bean);
+                      }}
+                      className="press"
+                      style={{
+                        cursor: loffeelabsSelected ? 'pointer' : 'default', marginTop: 10, textAlign: 'center',
+                        padding: '11px 18px', borderRadius: 10, font: "600 13px 'Iansui'",
+                        background: '#1a1714', color: '#f4f1ea', opacity: loffeelabsSelected ? 1 : .5,
+                      }}
+                    >
+                      匯入選取的豆子
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
+              會自動填入品名、烘豆商、產地、處理法、品種、海拔、風味標籤——價格、重量、照片仍需自己設定；loffeelabs 匯出每日有配額限制，所以不會自動載入，要按「瀏覽豆單」才會抓資料
             </div>
           </div>
 

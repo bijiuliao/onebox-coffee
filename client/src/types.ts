@@ -81,6 +81,44 @@ export interface Customer {
   lastOrderAt: string;
 }
 
+// A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)
+// for the admin to browse and import from - not a onebox record itself.
+export interface LoffeelabsBean {
+  id: string;
+  date: string | null;
+  roaster: string | null;
+  roastName: string | null;
+  link: string | null;
+  origin: string | null;
+  region: string | null;
+  producer: string | null;
+  minElev: number | null;
+  maxElev: number | null;
+  variety: string | null;
+  process: string | null;
+  tasting: string | null;
+  harvest: string | null;
+  degree: string | null;
+  priceLow: number | null;
+  gramLow: number | null;
+  priceHigh: number | null;
+  gramHigh: number | null;
+  roasterCountry: string | null;
+}
+
+export interface LoffeelabsBeansResponse {
+  beans: LoffeelabsBean[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    tier: string;
+    beansExportedToday: number;
+    remainingQuota: number;
+  } | null;
+}
+
 export interface DeliveryQuote {
   distanceKm: number;
   fee: number;
