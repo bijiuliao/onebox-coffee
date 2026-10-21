@@ -3,11 +3,10 @@ import { json } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
 
 const LOFFEELABS_BASE = 'https://loffeelabs.com/api/v2/beans';
-// Kept modest and fixed server-side (not client-controlled) - loffeelabs
-// meters exports against a daily quota (see `meta.remainingQuota` in its
-// response), so every page turn in the admin UI should cost as little of
-// that budget as reasonably possible.
-const PAGE_LIMIT = 20;
+// Fixed server-side (not client-controlled) - loffeelabs meters exports
+// against a daily quota (see `meta.remainingQuota` in its response). 50
+// matches the limit the user's own reference requests already used.
+const PAGE_LIMIT = 50;
 const FETCH_TIMEOUT_MS = 10000;
 
 interface LoffeelabsRawBean {
