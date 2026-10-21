@@ -6,6 +6,7 @@ import { CoverUploader } from './CoverUploader';
 import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
 import { parseBagWeightGrams } from '../weight';
+import { estimateTwdPerGram } from '../loffeelabsPricing';
 
 function soft(color: string) {
   return color + '22';
@@ -412,12 +413,18 @@ export function AdminPage() {
                       style={{ ...textInputStyle, cursor: 'pointer' }}
                     >
                       <option value="">請選擇一筆豆子…</option>
-                      {loffeelabsData.beans.map(b => (
-                        <option key={b.id} value={b.id}>
-                          {b.roastName ?? '—'}{b.origin ? ` · ${b.origin}` : ''}
-                        </option>
-                      ))}
+                      {loffeelabsData.beans.map(b => {
+                        const twdPerGram = estimateTwdPerGram(b);
+                        return (
+                          <option key={b.id} value={b.id}>
+                            {b.roastName ?? '—'}{b.origin ? ` · ${b.origin}` : ''}{twdPerGram !== null ? ` · 約NT$${twdPerGram.toFixed(1)}/g` : ''}
+                          </option>
+                        );
+                      })}
                     </select>
+                    <div style={{ font: "400 10px 'Iansui'", color: '#b0a08c', marginTop: 4 }}>
+                      每克台幣價格假設 loffeelabs 的價格是美金，依概算匯率換算，不是即時匯率，僅供比較參考
+                    </div>
 
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                       <div style={{ display: 'flex', gap: 8 }}>
