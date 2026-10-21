@@ -216,7 +216,14 @@ export function MenuScreen() {
   const roastFilterOptions = ROAST_FILTER_KEYS.map(k => ({ key: k, label: t(ROAST_FILTER_I18N[k]) }));
   const sortOptions = SORT_KEYS.map(k => ({ key: k, label: t(SORT_I18N[k]) }));
 
-  const categoryCoffees = category === 'beans' ? (coffees ?? []).filter(c => c.sellsBeans) : (coffees ?? []);
+  // A coffee with both temps off (see AdminPage's "供應溫度" toggle) is
+  // beans-only - it shouldn't show up in the drip listing at all, not just
+  // fail to be orderable once you click into it.
+  const categoryCoffees = category === 'beans'
+    ? (coffees ?? []).filter(c => c.sellsBeans)
+    : category === 'drip'
+      ? (coffees ?? []).filter(c => c.temps.hot || c.temps.ice)
+      : (coffees ?? []);
   const origins = Array.from(new Set(categoryCoffees.map(c => c.originEN))).filter(Boolean).sort();
   const roasters = Array.from(new Set(categoryCoffees.map(c => c.roaster))).filter(Boolean).sort();
   const visibleCoffees = sortCoffees(

@@ -228,6 +228,10 @@ export function AdminPage() {
     setBagPriceDraft('');
   };
   const removeBag = (i: number) => patch({ bagOptions: sel.bagOptions.filter((_, j) => j !== i) });
+  // Edits an existing option's label/price in place - no need to remove and
+  // re-add just to fix a typo'd weight or adjust a price.
+  const updateBag = (i: number, fields: Partial<{ label: string; price: number }>) =>
+    patch({ bagOptions: sel.bagOptions.map((b, j) => (j === i ? { ...b, ...fields } : b)) });
 
   const chipStyle = { display: 'inline-flex', alignItems: 'center', padding: '6px 12px', borderRadius: 20, background: soft(sel.color), color: sel.color, font: "600 13px 'Iansui'" } as const;
 
@@ -243,6 +247,15 @@ export function AdminPage() {
   const textInputStyle = { width: '100%', padding: '11px 13px', border: '1px solid #e2dac9', borderRadius: 10, background: '#fff', font: "400 14px 'Iansui'", color: '#1a1714', outline: 'none' } as const;
   const section = { background: '#fff', border: '1px solid #ece5d6', borderRadius: 18, padding: 22, marginBottom: 20 } as const;
   const sectionTitle = { font: "700 11px 'Space Mono'", letterSpacing: 3, color: '#1a1714', whiteSpace: 'nowrap' as const, marginBottom: 18 };
+
+  // Whether this coffee offers hand-drip at all - purely derived from the
+  // temp toggles (there's no separate field for it), matching exactly what
+  // DetailScreen/MenuScreen use to decide whether to show drip ordering.
+  // The toggle below is a one-click shortcut over those two temp pills: off
+  // clears both temps at once ("beans only"), back on restores hot so the
+  // coffee isn't left with drip "on" but zero servable temperatures.
+  const offersDrip = sel.temps.hot || sel.temps.ice;
+  const toggleOffersDrip = () => patch({ temps: offersDrip ? { hot: false, ice: false } : { hot: true, ice: sel.temps.ice } });
 
   const pvNotes = sel.notes;
   const pvStats = [
@@ -398,11 +411,18 @@ export function AdminPage() {
             <div style={{ display: 'flex', gap: 40, flexWrap: 'wrap' }}>
               <div>
                 <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10, display: 'block' }}>供應溫度 SERVE</label>
-                <div style={{ display: 'flex', gap: 10 }}>
-                  <div onClick={() => patch({ temps: { ...sel.temps, hot: !sel.temps.hot } })} className="press" style={pillStyle(sel.temps.hot, '#b5502f')}><span style={{ fontSize: 16 }}>♨</span> 熱手沖</div>
-                  <div onClick={() => patch({ temps: { ...sel.temps, ice: !sel.temps.ice } })} className="press" style={pillStyle(sel.temps.ice, '#2b6f8a')}><span style={{ fontSize: 16 }}>❄</span> 冰手沖</div>
+                <div onClick={toggleOffersDrip} className="press" style={pillStyle(offersDrip, '#b5502f')}>
+                  {offersDrip ? '✓ 有供應手沖' : '只零售豆子，不供應手沖'}
                 </div>
-                <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>顧客點餐時可選的冷 / 熱選項</div>
+                {offersDrip && (
+                  <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
+                    <div onClick={() => patch({ temps: { ...sel.temps, hot: !sel.temps.hot } })} className="press" style={pillStyle(sel.temps.hot, '#b5502f')}><span style={{ fontSize: 16 }}>♨</span> 熱手沖</div>
+                    <div onClick={() => patch({ temps: { ...sel.temps, ice: !sel.temps.ice } })} className="press" style={pillStyle(sel.temps.ice, '#2b6f8a')}><span style={{ fontSize: 16 }}>❄</span> 冰手沖</div>
+                  </div>
+                )}
+                <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
+                  {offersDrip ? '顧客點餐時可選的冷 / 熱選項' : '關閉後，這支豆子只會出現在「買豆子」分類，不會出現在「手沖咖啡」分類、也不提供手沖點餐'}
+                </div>
               </div>
               <div>
                 <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10, display: 'block' }}>份量 SIZE</label>
@@ -467,11 +487,23 @@ export function AdminPage() {
                     const grams = parseBagWeightGrams(bag.label);
                     return (
                       <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '9px 13px', border: '1px solid #e2dac9', borderRadius: 10, background: '#faf7f0' }}>
-                        <span style={{ flex: 1, font: "500 14px 'Iansui'", color: '#1a1714' }}>{bag.label}</span>
+                        <input
+                          value={bag.label}
+                          onChange={(e) => updateBag(i, { label: e.target.value })}
+                          style={{ flex: 1, minWidth: 0, padding: '6px 9px', border: '1px solid #e2dac9', borderRadius: 8, background: '#fff', font: "500 14px 'Iansui'", color: '#1a1714', outline: 'none' }}
+                        />
                         {grams === null && sel.stockQty !== null && (
-                          <span style={{ font: "400 11px 'Iansui'", color: '#b0603a' }}>⚠ 無法辨識重量，不會扣庫存</span>
+                          <span style={{ font: "400 11px 'Iansui'", color: '#b0603a', whiteSpace: 'nowrap' }}>⚠ 無法辨識重量，不會扣庫存</span>
                         )}
-                        <span style={{ font: "500 14px 'Room205'", color: '#1a1714' }}>${bag.price}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 'none' }}>
+                          <span style={{ font: "500 14px 'Room205'", color: '#9a8a76' }}>$</span>
+                          <input
+                            type="number"
+                            value={bag.price}
+                            onChange={(e) => updateBag(i, { price: Math.max(0, Number(e.target.value) || 0) })}
+                            style={{ width: 80, padding: '6px 9px', border: '1px solid #e2dac9', borderRadius: 8, background: '#fff', font: "500 14px 'Room205'", color: '#1a1714', outline: 'none' }}
+                          />
+                        </div>
                         <span onClick={() => removeBag(i)} style={{ cursor: 'pointer', opacity: .6, fontWeight: 700 }}>×</span>
                       </div>
                     );
@@ -535,19 +567,29 @@ export function AdminPage() {
                   </div>
                 ))}
               </div>
-              <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-                {sel.temps.hot && <span style={{ padding: '6px 13px', borderRadius: 20, background: '#f4e7e1', color: '#b5502f', font: "600 12px 'Iansui'" }}>♨ 熱</span>}
-                {sel.temps.ice && <span style={{ padding: '6px 13px', borderRadius: 20, background: '#e2eef2', color: '#2b6f8a', font: "600 12px 'Iansui'" }}>❄ 冰</span>}
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
-                <span style={{ font: "600 24px 'Room205'", color: '#1a1714' }}>${sel.price}</span>
-                {/* This card is the hand-drip preview - stock no longer
-                    gates drip (only retail bean bags), so the button here
-                    is never greyed out by stockQty. */}
-                <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>
-                  加入購物車
+              {offersDrip ? (
+                <>
+                  <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
+                    {sel.temps.hot && <span style={{ padding: '6px 13px', borderRadius: 20, background: '#f4e7e1', color: '#b5502f', font: "600 12px 'Iansui'" }}>♨ 熱</span>}
+                    {sel.temps.ice && <span style={{ padding: '6px 13px', borderRadius: 20, background: '#e2eef2', color: '#2b6f8a', font: "600 12px 'Iansui'" }}>❄ 冰</span>}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
+                    <span style={{ font: "600 24px 'Room205'", color: '#1a1714' }}>${sel.price}</span>
+                    {/* This card is the hand-drip preview - stock no longer
+                        gates drip (only retail bean bags), so the button here
+                        is never greyed out by stockQty. */}
+                    <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>
+                      加入購物車
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // No drip to preview here - this card only exists for the
+                // hand-drip listing, which this coffee has opted out of.
+                <div style={{ marginTop: 16, padding: '12px 14px', borderRadius: 12, background: '#f1e9db', color: '#8a7a68', font: "400 12px 'Iansui'" }}>
+                  這支豆子不供應手沖，不會出現在「手沖咖啡」分類，只會出現在「買豆子」分類
                 </div>
-              </div>
+              )}
             </div>
           </div>
           <div style={{ marginTop: 14, textAlign: 'center', font: "600 12px 'Iansui'", padding: 10, borderRadius: 12, background: sel.archived ? '#efe7d8' : sel.active ? '#e6f0ea' : '#f1e9db', color: sel.archived ? '#8a7a68' : sel.active ? '#3d6b4f' : '#9a8a76' }}>
