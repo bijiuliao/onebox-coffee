@@ -21,7 +21,7 @@ export function AdminPage() {
   const [bagPriceDraft, setBagPriceDraft] = useState('');
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
-  const [loffeelabsOpen, setLoffeelabsOpen] = useState(false);
+  const [loffeelabsRoaster, setLoffeelabsRoaster] = useState('');
   const [loffeelabsData, setLoffeelabsData] = useState<LoffeelabsBeansResponse | null>(null);
   const [loffeelabsLoading, setLoffeelabsLoading] = useState(false);
   const [loffeelabsError, setLoffeelabsError] = useState<string | null>(null);
@@ -112,27 +112,24 @@ export function AdminPage() {
   };
 
   // loffeelabs exports are metered against a daily quota (meta.remainingQuota
-  // below), so this only fetches when the admin actually opens the picker -
-  // never eagerly on page load - and pages a fixed 20-at-a-time rather than
-  // pulling the whole catalog.
-  const fetchLoffeelabsPage = async (page: number) => {
+  // below), so this only fetches on an explicit search for a roaster name -
+  // never eagerly, and never just "browse everything" - and pages a fixed
+  // 20-at-a-time within that roaster's results rather than pulling the
+  // whole catalog.
+  const searchLoffeelabs = async (page: number) => {
+    const roaster = loffeelabsRoaster.trim();
+    if (!roaster || loffeelabsLoading) return;
     setLoffeelabsLoading(true);
     setLoffeelabsError(null);
     try {
-      const data = await api.listLoffeelabsBeans(page);
+      const data = await api.listLoffeelabsBeans(page, roaster);
       setLoffeelabsData(data);
       setLoffeelabsSelected('');
     } catch (err) {
-      setLoffeelabsError(err instanceof Error ? err.message : '載入失敗');
+      setLoffeelabsError(err instanceof Error ? err.message : '搜尋失敗');
     } finally {
       setLoffeelabsLoading(false);
     }
-  };
-
-  const toggleLoffeelabs = () => {
-    const next = !loffeelabsOpen;
-    setLoffeelabsOpen(next);
-    if (next && !loffeelabsData) fetchLoffeelabsPage(1);
   };
 
   // Only the descriptive/profile fields - never price or weight. loffeelabs
@@ -380,22 +377,34 @@ export function AdminPage() {
           </div>
 
           <div style={{ ...section, border: '1px dashed #d3c9b6', background: '#faf7f0' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: loffeelabsOpen ? 14 : 0 }}>
-              <div style={{ ...sectionTitle, marginBottom: 0 }}>從 LOFFEELABS 匯入 · L O F F E E L A B S</div>
+            <div style={sectionTitle}>從 LOFFEELABS 匯入 · L O F F E E L A B S</div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                value={loffeelabsRoaster}
+                onChange={(e) => setLoffeelabsRoaster(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); searchLoffeelabs(1); } }}
+                placeholder="輸入烘豆商名稱…"
+                style={{ ...textInputStyle, flex: 1 }}
+              />
               <div
-                onClick={toggleLoffeelabs}
+                onClick={() => searchLoffeelabs(1)}
                 className="press"
-                style={{ cursor: 'pointer', padding: '7px 14px', borderRadius: 10, font: "600 12px 'Iansui'", background: loffeelabsOpen ? '#1a1714' : '#fff', color: loffeelabsOpen ? '#f4f1ea' : '#8a7a68', border: loffeelabsOpen ? 'none' : '1px solid #e2dac9' }}
+                style={{
+                  cursor: loffeelabsLoading ? 'default' : 'pointer', whiteSpace: 'nowrap', padding: '11px 18px', borderRadius: 10,
+                  font: "600 13px 'Iansui'", background: '#1a1714', color: '#f4f1ea', opacity: loffeelabsLoading || !loffeelabsRoaster.trim() ? .5 : 1,
+                }}
               >
-                {loffeelabsOpen ? '收起' : '瀏覽豆單'}
+                {loffeelabsLoading ? '搜尋中…' : '搜尋'}
               </div>
             </div>
 
-            {loffeelabsOpen && (
-              <div>
-                {loffeelabsLoading && <div style={{ font: "400 13px 'Iansui'", color: '#9a8a76' }}>載入中…</div>}
-                {loffeelabsError && <div style={{ font: "400 13px 'Iansui'", color: '#c8342b' }}>{loffeelabsError}</div>}
-                {loffeelabsData && (
+            {loffeelabsError && <div style={{ font: "400 13px 'Iansui'", color: '#c8342b', marginTop: 10 }}>{loffeelabsError}</div>}
+
+            {loffeelabsData && (
+              <div style={{ marginTop: 14 }}>
+                {loffeelabsData.beans.length === 0 ? (
+                  <div style={{ font: "400 13px 'Iansui'", color: '#9a8a76' }}>找不到這個烘豆商的豆子</div>
+                ) : (
                   <>
                     <select
                       value={loffeelabsSelected}
@@ -405,7 +414,7 @@ export function AdminPage() {
                       <option value="">請選擇一筆豆子…</option>
                       {loffeelabsData.beans.map(b => (
                         <option key={b.id} value={b.id}>
-                          {b.roaster ?? '—'} · {b.roastName ?? '—'}{b.origin ? ` · ${b.origin}` : ''}
+                          {b.roastName ?? '—'}{b.origin ? ` · ${b.origin}` : ''}
                         </option>
                       ))}
                     </select>
@@ -413,7 +422,7 @@ export function AdminPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 }}>
                       <div style={{ display: 'flex', gap: 8 }}>
                         <div
-                          onClick={() => loffeelabsData.meta && loffeelabsData.meta.page > 1 && fetchLoffeelabsPage(loffeelabsData.meta.page - 1)}
+                          onClick={() => loffeelabsData.meta && loffeelabsData.meta.page > 1 && searchLoffeelabs(loffeelabsData.meta.page - 1)}
                           className="press"
                           style={{
                             cursor: 'pointer', padding: '7px 13px', borderRadius: 8, font: "600 12px 'Iansui'",
@@ -424,7 +433,7 @@ export function AdminPage() {
                           ← 上一頁
                         </div>
                         <div
-                          onClick={() => loffeelabsData.meta && loffeelabsData.meta.page < loffeelabsData.meta.totalPages && fetchLoffeelabsPage(loffeelabsData.meta.page + 1)}
+                          onClick={() => loffeelabsData.meta && loffeelabsData.meta.page < loffeelabsData.meta.totalPages && searchLoffeelabs(loffeelabsData.meta.page + 1)}
                           className="press"
                           style={{
                             cursor: 'pointer', padding: '7px 13px', borderRadius: 8, font: "600 12px 'Iansui'",
@@ -462,7 +471,7 @@ export function AdminPage() {
             )}
 
             <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
-              會自動填入品名、烘豆商、產地、處理法、品種、海拔、風味標籤——價格、重量、照片仍需自己設定；loffeelabs 匯出每日有配額限制，所以不會自動載入，要按「瀏覽豆單」才會抓資料
+              輸入烘豆商名稱搜尋，選一筆後會自動填入品名、產地、處理法、品種、海拔、風味標籤——價格、重量、照片仍需自己設定；loffeelabs 匯出每日有配額限制，所以不會自動載入
             </div>
           </div>
 

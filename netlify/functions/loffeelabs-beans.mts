@@ -72,8 +72,15 @@ export default async (req: Request) => {
 
   const url = new URL(req.url);
   const page = Math.max(1, Math.floor(Number(url.searchParams.get('page')) || 1));
+  const roaster = url.searchParams.get('roaster')?.trim() ?? '';
 
-  const upstreamUrl = `${LOFFEELABS_BASE}?api_key=${encodeURIComponent(apiKey)}&page=${page}&limit=${PAGE_LIMIT}`;
+  // `roaster` as the upstream param name is a best guess (matches the field
+  // name loffeelabs itself shows in its export-field picker) - not
+  // confirmed against their docs, since this sandbox can't reach
+  // loffeelabs.com to check. If filtering doesn't actually narrow results
+  // once this is live, that's the thing to double check/adjust.
+  const upstreamUrl = `${LOFFEELABS_BASE}?api_key=${encodeURIComponent(apiKey)}&page=${page}&limit=${PAGE_LIMIT}`
+    + (roaster ? `&roaster=${encodeURIComponent(roaster)}` : '');
 
   let upstreamRes: Response;
   try {

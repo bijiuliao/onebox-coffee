@@ -35,8 +35,8 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
     }).then(res => json<Partial<Coffee>>(res)),
-  listLoffeelabsBeans: (page: number) =>
-    fetch(`/api/admin/loffeelabs-beans?page=${page}`).then(res => json<LoffeelabsBeansResponse>(res)),
+  listLoffeelabsBeans: (page: number, roaster: string) =>
+    fetch(`/api/admin/loffeelabs-beans?page=${page}&roaster=${encodeURIComponent(roaster)}`).then(res => json<LoffeelabsBeansResponse>(res)),
 
   listSpecials: (all = false) => fetch(`/api/specials${all ? '?all=1' : ''}`).then(res => json<Special[]>(res)),
   createSpecial: (name: string) =>
