@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import type { Coffee, Special } from './types';
+import type { Coffee, Settings, Special } from './types';
 
 export function useCoffees(all = false) {
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
@@ -50,6 +50,21 @@ export function useCoffee(id: string | undefined) {
   }, [id]);
 
   return { coffee, error };
+}
+
+export function useSettings() {
+  const [settings, setSettings] = useState<Settings | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getSettings().then(
+      s => { if (!cancelled) setSettings(s); },
+      () => {}, // best-effort - callers treat null as "assume enabled" rather than erroring the page
+    );
+    return () => { cancelled = true; };
+  }, []);
+
+  return { settings };
 }
 
 export function useSpecials(all = false) {

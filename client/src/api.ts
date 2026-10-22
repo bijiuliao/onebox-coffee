@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LoffeelabsBeansResponse, Order, OrderType, ReviewSummary, Special } from './types';
+import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LoffeelabsBeansResponse, Order, OrderType, ReviewSummary, Settings, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -106,4 +106,12 @@ export const api = {
     }).then(res => json<{ ok: true }>(res)),
   deleteAdminReview: (id: number) =>
     fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).then(res => json<{ ok: true }>(res)),
+
+  getSettings: () => fetch('/api/settings').then(res => json<Settings>(res)),
+  updateSettings: (patch: Partial<Settings>) =>
+    fetch('/api/settings', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).then(res => json<Settings>(res)),
 };

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useToast } from '../toast';
@@ -7,6 +7,12 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [sending, setSending] = useState(false);
+  const [dripEnabled, setDripEnabled] = useState<boolean | null>(null);
+  const [togglingDrip, setTogglingDrip] = useState(false);
+
+  useEffect(() => {
+    api.getSettings().then(s => setDripEnabled(s.dripEnabled), () => {});
+  }, []);
 
   async function sendTestEmail() {
     if (sending) return;
@@ -18,6 +24,21 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
       showToast(err instanceof Error ? `寄送失敗：${err.message}` : '寄送失敗');
     } finally {
       setSending(false);
+    }
+  }
+
+  async function toggleDrip() {
+    if (dripEnabled === null || togglingDrip) return;
+    const next = !dripEnabled;
+    setTogglingDrip(true);
+    try {
+      const s = await api.updateSettings({ dripEnabled: next });
+      setDripEnabled(s.dripEnabled);
+      showToast(s.dripEnabled ? '手沖供應已開啟' : '手沖供應已暫停');
+    } catch (err) {
+      showToast(err instanceof Error ? `更新失敗：${err.message}` : '更新失敗');
+    } finally {
+      setTogglingDrip(false);
     }
   }
 
@@ -40,6 +61,18 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
           className="press"
           style={{ cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.5 : 1, font: "600 10px 'Iansui'", color: '#8a7a68', textDecoration: 'underline', whiteSpace: 'nowrap' }}
         >{sending ? '寄送中…' : '寄測試信'}</div>
+        {dripEnabled !== null && (
+          <div
+            onClick={toggleDrip}
+            className="press"
+            style={{
+              cursor: togglingDrip ? 'default' : 'pointer', opacity: togglingDrip ? 0.5 : 1, whiteSpace: 'nowrap',
+              font: "700 10px 'Space Mono'", letterSpacing: 1, padding: '5px 10px', borderRadius: 8,
+              background: dripEnabled ? 'rgba(61,107,79,.18)' : 'rgba(200,52,43,.18)',
+              color: dripEnabled ? '#6fae84' : '#e0897f',
+            }}
+          >{dripEnabled ? '● 手沖供應中' : '○ 手沖已暫停'}</div>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
         <div onClick={() => navigate('/admin')} className="press" style={navStyle(active === 'beans')}>豆款管理</div>

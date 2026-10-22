@@ -6,7 +6,7 @@ import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isBeansSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
-import { useArchivedCoffees, useCoffees, useSpecials } from '../useCoffees';
+import { useArchivedCoffees, useCoffees, useSettings, useSpecials } from '../useCoffees';
 import type { BagOption, Coffee } from '../types';
 
 function PillOptions<T extends string>({ options, value, onChange }: {
@@ -179,11 +179,20 @@ export function MenuScreen() {
   const { coffees } = useCoffees();
   const { specials } = useSpecials();
   const { coffees: archivedCoffees } = useArchivedCoffees();
+  const { settings } = useSettings();
+  const dripEnabled = settings?.dripEnabled ?? true;
   // Returning from a coffee's detail page (via its back button) restores
   // whichever tab the customer actually came from, instead of always
   // bouncing back to 手沖咖啡.
   const initialCategory = (location.state as { category?: unknown } | null)?.category;
   const [category, setCategory] = useState<CategoryKey>(isCategoryKey(initialCategory) ? initialCategory : 'drip');
+
+  // Settings load after first render, and the shop might have paused drip
+  // service - once that's known, bounce off the 手沖咖啡 tab rather than
+  // leaving the customer stranded on a tab that's about to disappear.
+  useEffect(() => {
+    if (settings && !settings.dripEnabled && category === 'drip') setCategory('beans');
+  }, [settings]);
   // Empty set == no restriction on that category (matches every coffee),
   // same convention onyx coffee lab's filter checkboxes use.
   const [roastFilter, setRoastFilter] = useState<Set<RoastFilterKey>>(() => new Set());
@@ -212,7 +221,7 @@ export function MenuScreen() {
     eyebrow: t(`title.${category}.eyebrow`),
     heading: [t(`title.${category}.heading1`), t(`title.${category}.heading2`)] as [string, string],
   };
-  const categories = CATEGORY_KEYS.map(k => ({ key: k, label: t(`category.${k}`) }));
+  const categories = CATEGORY_KEYS.filter(k => k !== 'drip' || dripEnabled).map(k => ({ key: k, label: t(`category.${k}`) }));
   const roastFilterOptions = ROAST_FILTER_KEYS.map(k => ({ key: k, label: t(ROAST_FILTER_I18N[k]) }));
   const sortOptions = SORT_KEYS.map(k => ({ key: k, label: t(SORT_I18N[k]) }));
 
@@ -222,7 +231,7 @@ export function MenuScreen() {
   const categoryCoffees = category === 'beans'
     ? (coffees ?? []).filter(c => c.sellsBeans)
     : category === 'drip'
-      ? (coffees ?? []).filter(c => c.temps.hot || c.temps.ice)
+      ? (dripEnabled ? (coffees ?? []).filter(c => c.temps.hot || c.temps.ice) : [])
       : (coffees ?? []);
   const origins = Array.from(new Set(categoryCoffees.map(c => c.originEN))).filter(Boolean).sort();
   const roasters = Array.from(new Set(categoryCoffees.map(c => c.roaster))).filter(Boolean).sort();

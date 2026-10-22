@@ -47,10 +47,11 @@ function dedupeKeyFor(customerName: string, orderType: OrderType, items: CartIte
   return `${customerName}|${orderType}|${itemsKey}`;
 }
 
-async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Promise<OrderLine | { error: string }> {
+async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput, dripEnabled: boolean): Promise<OrderLine | { error: string }> {
   const qty = Math.max(1, Math.floor(Number(item.qty) || 1));
 
   if (item.kind === 'drip') {
+    if (!dripEnabled) return { error: '目前暫停手沖供應，僅能購買豆子' };
     const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${item.id}`) as CoffeeRow[];
     if (!row) return { error: `unknown coffee: ${item.id}` };
     const coffee = toCoffee(row);
@@ -187,9 +188,11 @@ export default async (req: Request, context: Context) => {
     ORDER BY created_at DESC LIMIT 1
   `) as { id: number; created_at: string; total: number; order_type: string; delivery_fee: number; delivery_distance_km: number | null }[];
 
+  const [{ drip_enabled: dripEnabled }] = (await db.sql`SELECT drip_enabled FROM site_settings WHERE id = 1`) as { drip_enabled: boolean }[];
+
   const lines: OrderLine[] = [];
   for (const item of items) {
-    const priced = await priceItem(db, item);
+    const priced = await priceItem(db, item, dripEnabled);
     if ('error' in priced) return json({ error: priced.error }, 400);
     lines.push(priced);
   }

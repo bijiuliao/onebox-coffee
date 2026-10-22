@@ -149,6 +149,12 @@ export interface ReviewSummary {
   tagCounts: Record<string, number>;
 }
 
+// Site-wide toggles, independent of any individual coffee's own settings
+// (see netlify/functions/settings.mts - a singleton row, not per-coffee).
+export interface Settings {
+  dripEnabled: boolean;
+}
+
 export interface AdminReview {
   id: number;
   coffeeId: string;

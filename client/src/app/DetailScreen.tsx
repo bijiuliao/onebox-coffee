@@ -5,7 +5,7 @@ import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../compone
 import { SHOW_SCORES } from '../constants';
 import { isBeansSoldOut, isBagAvailable, maxBagQty, useCart, dripPrice } from '../cart';
 import { useLang } from '../i18n';
-import { useCoffee } from '../useCoffees';
+import { useCoffee, useSettings } from '../useCoffees';
 import { useToast } from '../toast';
 import type { Size, Temp } from '../types';
 import { BoxStatsHero } from './BoxStatsHero';
@@ -21,6 +21,8 @@ export function DetailScreen() {
   const { t } = useLang();
   const { showToast } = useToast();
   const { coffee } = useCoffee(id);
+  const { settings } = useSettings();
+  const dripEnabled = settings?.dripEnabled ?? true;
 
   const [mode, setMode] = useState<Mode | null>(null);
   const [temp, setTemp] = useState<Temp | null>(null);
@@ -30,7 +32,7 @@ export function DetailScreen() {
 
   useEffect(() => {
     if (!coffee) return;
-    const canDrip = coffee.temps.hot || coffee.temps.ice;
+    const canDrip = dripEnabled && (coffee.temps.hot || coffee.temps.ice);
     const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
     const requested = (location.state as { mode?: Mode } | null)?.mode;
     setMode(requested === 'beans' && canBeans ? 'beans' : canDrip ? 'drip' : 'beans');
@@ -42,7 +44,7 @@ export function DetailScreen() {
     const firstAvailable = coffee.bagOptions.find(b => isBagAvailable(coffee, b));
     setBagLabel((firstAvailable ?? coffee.bagOptions[0])?.label ?? null);
     setQty(1);
-  }, [coffee, location.state]);
+  }, [coffee, location.state, dripEnabled]);
 
   // Re-clamp qty whenever it would outrun the selected bag's remaining
   // stock - covers switching to a smaller-capacity bag after bumping qty up
@@ -65,7 +67,7 @@ export function DetailScreen() {
   const backToMenu = fromCategory ? { state: { category: fromCategory } } : undefined;
 
   const soft = coffee.color + '22';
-  const canDrip = coffee.temps.hot || coffee.temps.ice;
+  const canDrip = dripEnabled && (coffee.temps.hot || coffee.temps.ice);
   const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
   const bag = coffee.bagOptions.find(b => b.label === bagLabel) ?? coffee.bagOptions[0] ?? null;
   // Stock is tracked in grams and only limits retail bean bags - a coffee
