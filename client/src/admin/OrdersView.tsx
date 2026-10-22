@@ -10,18 +10,28 @@ function formatTime(iso: string) {
 }
 
 type FulfillFilter = 'pending' | 'fulfilled' | 'all';
+type PaidFilter = 'unpaid' | 'paid' | 'all';
 
 export function OrdersView() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FulfillFilter>('pending');
+  const [paidFilter, setPaidFilter] = useState<PaidFilter>('all');
   const [togglingId, setTogglingId] = useState<number | null>(null);
 
   useEffect(() => {
     api.listOrders().then(setOrders, err => setError(err.message));
   }, []);
 
-  const visible = orders?.filter(o => filter === 'all' || (filter === 'fulfilled') === o.fulfilled);
+  const visible = orders?.filter(o =>
+    (filter === 'all' || (filter === 'fulfilled') === o.fulfilled) &&
+    (paidFilter === 'all' || (paidFilter === 'paid') === o.paid)
+  );
+
+  // Beans-only (not drip/specials) revenue across whatever's currently
+  // filtered - e.g. switch to 已付款 to see confirmed bean income so far.
+  const beansTotal = (visible ?? []).reduce((sum, o) =>
+    sum + o.items.filter(l => l.kind === 'beans').reduce((s, l) => s + l.linePrice, 0), 0);
 
   async function toggleFulfilled(order: Order) {
     setTogglingId(order.id);
@@ -58,7 +68,7 @@ export function OrdersView() {
           {orders && <div style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{visible?.length} 筆</div>}
         </div>
 
-        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
           {([
             { key: 'pending', label: '待出貨' },
             { key: 'fulfilled', label: '已出貨' },
@@ -78,6 +88,26 @@ export function OrdersView() {
           ))}
         </div>
 
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {([
+            { key: 'all', label: '付款：全部' },
+            { key: 'unpaid', label: '未付款' },
+            { key: 'paid', label: '已付款' },
+          ] as const).map(tab => (
+            <div
+              key={tab.key}
+              onClick={() => setPaidFilter(tab.key)}
+              className="press"
+              style={{
+                cursor: 'pointer', font: "600 12px 'Iansui'", padding: '7px 16px', borderRadius: 20,
+                background: paidFilter === tab.key ? '#3d6b4f' : '#fff',
+                color: paidFilter === tab.key ? '#f4f1ea' : '#8a7a68',
+                border: '1px solid ' + (paidFilter === tab.key ? '#3d6b4f' : '#ece5d6'),
+              }}
+            >{tab.label}</div>
+          ))}
+        </div>
+
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
         {!error && orders === null && <div style={{ color: '#9a8a76', font: "400 14px 'Iansui'" }}>載入中…</div>}
 
@@ -89,6 +119,13 @@ export function OrdersView() {
         {orders && orders.length > 0 && visible?.length === 0 && (
           <div style={{ textAlign: 'center', padding: '80px 0', color: '#9a8a76', font: "400 14px 'Iansui'" }}>
             沒有符合的訂單
+          </div>
+        )}
+
+        {visible && visible.length > 0 && (
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderRadius: 14, background: '#1a1714', color: '#f4f1ea', marginBottom: 20 }}>
+            <span style={{ font: "600 13px 'Iansui'" }}>豆子銷售額（目前篩選）</span>
+            <span style={{ font: "600 20px 'Room205'" }}>${beansTotal}</span>
           </div>
         )}
 
