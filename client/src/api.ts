@@ -73,6 +73,8 @@ export const api = {
       body: JSON.stringify(order),
     }).then(res => json<Order>(res)),
   listOrders: () => fetch('/api/orders').then(res => json<Order[]>(res)),
+  lookupOrder: (id: number, email: string) =>
+    fetch(`/api/orders/${id}?email=${encodeURIComponent(email)}`).then(res => json<Order>(res)),
   setOrderFulfilled: (id: number, fulfilled: boolean) =>
     fetch(`/api/orders/${id}`, {
       method: 'PATCH',

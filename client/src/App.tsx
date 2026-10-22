@@ -7,6 +7,7 @@ import { MenuScreen } from './app/MenuScreen';
 import { DetailScreen } from './app/DetailScreen';
 import { CartScreen } from './app/CartScreen';
 import { OrderSuccessScreen } from './app/OrderSuccessScreen';
+import { OrderLookupScreen } from './app/OrderLookupScreen';
 import { AdminPage } from './admin/AdminPage';
 import { SpecialsAdminPage } from './admin/SpecialsAdminPage';
 import { OrdersView } from './admin/OrdersView';
@@ -27,6 +28,7 @@ function App() {
               <Route path="/coffee/:id" element={<DetailScreen />} />
               <Route path="/cart" element={<CartScreen />} />
               <Route path="/order-success" element={<OrderSuccessScreen />} />
+              <Route path="/order-lookup" element={<OrderLookupScreen />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/specials" element={<SpecialsAdminPage />} />
               <Route path="/admin/orders" element={<OrdersView />} />

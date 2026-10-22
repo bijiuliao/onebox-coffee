@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { playDing, vibrateSuccess } from '../feedback';
@@ -6,7 +6,9 @@ import { useLang } from '../i18n';
 import type { OrderType } from '../types';
 
 interface SuccessState {
+  orderId: number;
   customerName: string;
+  customerEmail: string;
   total: number;
   orderType: OrderType;
 }
@@ -16,6 +18,7 @@ export function OrderSuccessScreen() {
   const navigate = useNavigate();
   const { t } = useLang();
   const state = location.state as SuccessState | null;
+  const redirectTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     if (!state) {
@@ -24,10 +27,17 @@ export function OrderSuccessScreen() {
     }
     playDing();
     vibrateSuccess();
-    const t = setTimeout(() => navigate('/', { replace: true }), 2200);
-    return () => clearTimeout(t);
+    redirectTimer.current = setTimeout(() => navigate('/', { replace: true }), 2200);
+    return () => clearTimeout(redirectTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const goToLookup = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    clearTimeout(redirectTimer.current);
+    if (!state) return;
+    navigate(`/order-lookup?id=${state.orderId}&email=${encodeURIComponent(state.customerEmail)}`);
+  };
 
   if (!state) return null;
 
@@ -61,6 +71,16 @@ export function OrderSuccessScreen() {
         </div>
         <div className="rise" style={{ marginTop: 22, font: "400 13px 'Iansui'", color: '#8a7a68', animationDelay: '.5s' }}>
           {t('success.brewing')}
+        </div>
+        <div className="rise" style={{ marginTop: 4, font: "400 12px 'Space Mono'", color: '#9a8a76', animationDelay: '.5s' }}>
+          {t('success.orderNumber', { id: state.orderId })}
+        </div>
+        <div
+          onClick={goToLookup}
+          className="press rise"
+          style={{ cursor: 'pointer', marginTop: 14, font: "600 13px 'Iansui'", color: '#3d6b4f', textDecoration: 'underline', animationDelay: '.6s' }}
+        >
+          {t('success.lookupLink')}
         </div>
       </div>
     </MobileShell>

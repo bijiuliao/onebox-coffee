@@ -6,6 +6,7 @@ import { requireAdmin } from './lib/auth';
 import { notifyNewOrder } from './lib/notify';
 import { quoteDelivery, isValidLatLng } from './lib/delivery';
 import { parseBagWeightGrams } from './lib/weight';
+import { toOrderJson, type OrderRow } from './lib/orders';
 
 type ItemKind = 'drip' | 'beans' | 'special';
 type OrderType = '自取' | '外送';
@@ -109,26 +110,8 @@ export default async (req: Request, context: Context) => {
     const rows = (await db.sql`
       SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled
       FROM orders ORDER BY created_at DESC LIMIT 200
-    `) as {
-      id: number; created_at: string; customer_name: string; customer_email: string; items: unknown; total: number;
-      order_type: string; delivery_fee: number; delivery_distance_km: number | null;
-      customer_lat: number | null; customer_lng: number | null; fulfilled: boolean;
-    }[];
-    const orders = rows.map(r => ({
-      id: r.id,
-      createdAt: r.created_at,
-      customerName: r.customer_name,
-      customerEmail: r.customer_email,
-      items: typeof r.items === 'string' ? JSON.parse(r.items) : r.items,
-      total: r.total,
-      orderType: r.order_type,
-      deliveryFee: r.delivery_fee,
-      deliveryDistanceKm: r.delivery_distance_km,
-      customerLat: r.customer_lat,
-      customerLng: r.customer_lng,
-      fulfilled: r.fulfilled,
-    }));
-    return json(orders);
+    `) as OrderRow[];
+    return json(rows.map(toOrderJson));
   }
 
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);

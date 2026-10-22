@@ -273,7 +273,10 @@ export function MenuScreen() {
           <div onClick={() => navigate('/')} className="press" style={{ cursor: 'pointer', font: "500 19px 'Room205',serif", color: '#1a1714' }}>
             {BRAND_NAME}<span style={{ color: '#c98a2e' }}>.</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+            <div onClick={() => navigate('/order-lookup')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
+              {t('lookup.entryLink')}
+            </div>
             <LangToggle />
             <CartButton count={cart.count} onClick={() => navigate('/cart')} />
           </div>
