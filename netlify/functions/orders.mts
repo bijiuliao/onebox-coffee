@@ -108,7 +108,7 @@ export default async (req: Request, context: Context) => {
     if (unauthorized) return unauthorized;
 
     const rows = (await db.sql`
-      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled
+      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid
       FROM orders ORDER BY created_at DESC LIMIT 200
     `) as OrderRow[];
     return json(rows.map(toOrderJson));
@@ -186,7 +186,7 @@ export default async (req: Request, context: Context) => {
     return json({
       id: dup.id, createdAt: dup.created_at, customerName, customerEmail, items: lines, total: dup.total,
       orderType: dup.order_type, deliveryFee: dup.delivery_fee, deliveryDistanceKm: dup.delivery_distance_km,
-      fulfilled: false,
+      fulfilled: false, paid: false,
     }, 200);
   }
 
@@ -255,7 +255,7 @@ export default async (req: Request, context: Context) => {
 
   return json({
     id: order.id, createdAt: order.created_at, customerName, customerEmail, items: lines, total,
-    orderType, deliveryFee, deliveryDistanceKm, fulfilled: false,
+    orderType, deliveryFee, deliveryDistanceKm, fulfilled: false, paid: false,
   }, 201);
 };
 

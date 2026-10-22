@@ -84,6 +84,10 @@ export interface Order {
   // Whether the order has been handed to the customer - picked up in-store
   // (自取) or delivered (外送). Admin-toggled; defaults false on creation.
   fulfilled: boolean;
+  // Whether payment has been confirmed (cash on pickup, bank transfer,
+  // etc. - there's no online payment gateway). Independent of fulfilled;
+  // admin-toggled, defaults false on creation.
+  paid: boolean;
 }
 
 // Not a stored record - an aggregate computed from orders sharing the same

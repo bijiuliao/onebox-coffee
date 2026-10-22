@@ -150,6 +150,11 @@ export function CustomerDetailView() {
                         background: order.fulfilled ? '#e3f0e5' : '#faeee0',
                         color: order.fulfilled ? '#3f7a4a' : '#b5742e',
                       }}>{order.fulfilled ? '已出貨' : '待出貨'}</span>
+                      <span style={{
+                        font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10,
+                        background: order.paid ? '#e3f0e5' : '#f1e9db',
+                        color: order.paid ? '#3f7a4a' : '#8a7a68',
+                      }}>{order.paid ? '已付款' : '未付款'}</span>
                     </div>
                     <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{formatTime(order.createdAt)}</div>
                   </div>

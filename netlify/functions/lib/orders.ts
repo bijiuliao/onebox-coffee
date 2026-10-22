@@ -11,6 +11,7 @@ export interface OrderRow {
   customer_lat: number | null;
   customer_lng: number | null;
   fulfilled: boolean;
+  paid: boolean;
 }
 
 export function toOrderJson(r: OrderRow) {
@@ -27,5 +28,6 @@ export function toOrderJson(r: OrderRow) {
     customerLat: r.customer_lat,
     customerLng: r.customer_lng,
     fulfilled: r.fulfilled,
+    paid: r.paid,
   };
 }

@@ -36,6 +36,19 @@ export function OrdersView() {
     }
   }
 
+  async function togglePaid(order: Order) {
+    setTogglingId(order.id);
+    try {
+      const next = !order.paid;
+      await api.setOrderPaid(order.id, next);
+      setOrders(prev => prev && prev.map(o => (o.id === order.id ? { ...o, paid: next } : o)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新失敗');
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="orders" />
@@ -99,6 +112,11 @@ export function OrdersView() {
                     background: order.fulfilled ? '#e3f0e5' : '#faeee0',
                     color: order.fulfilled ? '#3f7a4a' : '#b5742e',
                   }}>{order.fulfilled ? '已出貨' : '待出貨'}</span>
+                  <span style={{
+                    font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10,
+                    background: order.paid ? '#e3f0e5' : '#f1e9db',
+                    color: order.paid ? '#3f7a4a' : '#8a7a68',
+                  }}>{order.paid ? '已付款' : '未付款'}</span>
                 </div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{formatTime(order.createdAt)}</div>
               </div>
@@ -125,18 +143,32 @@ export function OrdersView() {
                 )}
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid #ece5d6' }}>
-                <div
-                  onClick={() => toggleFulfilled(order)}
-                  className="press"
-                  style={{
-                    cursor: togglingId === order.id ? 'default' : 'pointer',
-                    opacity: togglingId === order.id ? 0.5 : 1,
-                    font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
-                    background: order.fulfilled ? '#fff' : '#1a1714',
-                    color: order.fulfilled ? '#8a7a68' : '#f4f1ea',
-                    border: '1px solid ' + (order.fulfilled ? '#ece5d6' : '#1a1714'),
-                  }}
-                >{order.fulfilled ? '標記為待出貨' : (order.orderType === '外送' ? '標記為已送達' : '標記為已取走')}</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div
+                    onClick={() => toggleFulfilled(order)}
+                    className="press"
+                    style={{
+                      cursor: togglingId === order.id ? 'default' : 'pointer',
+                      opacity: togglingId === order.id ? 0.5 : 1,
+                      font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
+                      background: order.fulfilled ? '#fff' : '#1a1714',
+                      color: order.fulfilled ? '#8a7a68' : '#f4f1ea',
+                      border: '1px solid ' + (order.fulfilled ? '#ece5d6' : '#1a1714'),
+                    }}
+                  >{order.fulfilled ? '標記為待出貨' : (order.orderType === '外送' ? '標記為已送達' : '標記為已取走')}</div>
+                  <div
+                    onClick={() => togglePaid(order)}
+                    className="press"
+                    style={{
+                      cursor: togglingId === order.id ? 'default' : 'pointer',
+                      opacity: togglingId === order.id ? 0.5 : 1,
+                      font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
+                      background: order.paid ? '#fff' : '#3d6b4f',
+                      color: order.paid ? '#8a7a68' : '#f4f1ea',
+                      border: '1px solid ' + (order.paid ? '#ece5d6' : '#3d6b4f'),
+                    }}
+                  >{order.paid ? '標記為未付款' : '標記為已付款'}</div>
+                </div>
                 <span style={{ font: "600 17px 'Room205'" }}>${order.total}</span>
               </div>
             </div>

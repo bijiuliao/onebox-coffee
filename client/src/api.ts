@@ -80,7 +80,13 @@ export const api = {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fulfilled }),
-    }).then(res => json<{ id: number; fulfilled: boolean }>(res)),
+    }).then(res => json<{ id: number; fulfilled: boolean; paid: boolean }>(res)),
+  setOrderPaid: (id: number, paid: boolean) =>
+    fetch(`/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ paid }),
+    }).then(res => json<{ id: number; fulfilled: boolean; paid: boolean }>(res)),
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {

@@ -18,7 +18,7 @@ export default async (req: Request) => {
 
     const db = getDb();
     const [row] = (await db.sql`
-      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled
+      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid
       FROM orders WHERE id = ${id} AND customer_email = ${email}
     `) as OrderRow[];
     if (!row) return json({ error: '找不到這筆訂單，請確認訂單編號與 Email' }, 404);
@@ -31,16 +31,25 @@ export default async (req: Request) => {
   if (unauthorized) return unauthorized;
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
-  if (typeof body.fulfilled !== 'boolean') return json({ error: 'fulfilled must be a boolean' }, 400);
+  if ('fulfilled' in body && typeof body.fulfilled !== 'boolean') return json({ error: 'fulfilled must be a boolean' }, 400);
+  if ('paid' in body && typeof body.paid !== 'boolean') return json({ error: 'paid must be a boolean' }, 400);
+  if (!('fulfilled' in body) && !('paid' in body)) return json({ error: 'fulfilled or paid is required' }, 400);
+
+  const sets: string[] = [];
+  const values: unknown[] = [];
+  let i = 1;
+  if ('fulfilled' in body) { sets.push(`fulfilled = $${i}`); values.push(body.fulfilled); i += 1; }
+  if ('paid' in body) { sets.push(`paid = $${i}`); values.push(body.paid); i += 1; }
+  values.push(id);
 
   const db = getDb();
-  const [updated] = (await db.sql`
-    UPDATE orders SET fulfilled = ${body.fulfilled} WHERE id = ${id}
-    RETURNING id, fulfilled
-  `) as { id: number; fulfilled: boolean }[];
-  if (!updated) return json({ error: 'not found' }, 404);
+  const { rows } = await db.pool.query<{ id: number; fulfilled: boolean; paid: boolean }>(
+    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${i} RETURNING id, fulfilled, paid`,
+    values,
+  );
+  if (!rows[0]) return json({ error: 'not found' }, 404);
 
-  return json(updated);
+  return json(rows[0]);
 };
 
 export const config: Config = {
