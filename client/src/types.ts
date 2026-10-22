@@ -37,6 +37,10 @@ export interface Coffee {
   // import - used only to suggest a bag-option price when a weight is
   // typed, never affects stock/checkout.
   costPerGramTwd: number | null;
+  // Whether the one-time "new bean launched" email has already been
+  // decided on (sent or explicitly skipped) for this coffee - used to show
+  // the "send launch email?" prompt only the first time it goes active.
+  launchNotified: boolean;
 }
 
 export interface Special {

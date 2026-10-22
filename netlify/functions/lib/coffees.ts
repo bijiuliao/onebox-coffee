@@ -29,6 +29,10 @@ export interface Coffee {
   archived: boolean;
   stockQty: number | null;
   costPerGramTwd: number | null;
+  // Whether the one-time "new bean launched" email has already fired for
+  // this coffee (see coffees-item.mts) - exposed so the admin UI only asks
+  // "send the launch email?" at the one moment it's actually relevant.
+  launchNotified: boolean;
 }
 
 export interface CoffeeRow {
@@ -92,6 +96,7 @@ export function toCoffee(row: CoffeeRow): Coffee {
     archived: row.archived,
     stockQty: row.stock_qty,
     costPerGramTwd: row.cost_per_gram_twd === null ? null : Number(row.cost_per_gram_twd),
+    launchNotified: row.launch_notified,
   };
 }
 

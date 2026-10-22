@@ -18,7 +18,9 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     }).then(res => json<Coffee>(res)),
-  updateCoffee: (id: string, patch: Partial<Coffee>) =>
+  // notifyOnLaunch is a one-off PATCH directive, not a stored Coffee field -
+  // see coffees-item.mts's "send the launch email?" gating.
+  updateCoffee: (id: string, patch: Partial<Coffee> & { notifyOnLaunch?: boolean }) =>
     fetch(`/api/coffees/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

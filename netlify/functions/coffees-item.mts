@@ -47,6 +47,11 @@ export default async (req: Request) => {
     // customers - gated on launch_notified so re-toggling active later
     // (e.g. temporarily taking a bean off-menu and back on) doesn't re-fire it.
     const willLaunch = body.active === true && !existingRow.active && !existingRow.launch_notified;
+    // The admin is asked at that one moment whether to actually send it;
+    // declining still consumes the one-time flag below (launch_notified is
+    // about "the first-activation decision has been made", not "an email
+    // was sent") so re-toggling later doesn't ask again.
+    const skipLaunchEmail = body.notifyOnLaunch === false;
 
     const sets: string[] = [];
     const values: unknown[] = [];
@@ -85,7 +90,7 @@ export default async (req: Request) => {
     const [updated] = (await db.sql`SELECT * FROM coffees WHERE id = ${id}`) as CoffeeRow[];
     const coffee = toCoffee(updated);
 
-    if (willLaunch) {
+    if (willLaunch && !skipLaunchEmail) {
       // Awaited (not fire-and-forget) - a serverless function's process can
       // freeze right after the response is sent, so background work isn't
       // guaranteed to finish. notifyNewBeanLaunch itself never throws.
