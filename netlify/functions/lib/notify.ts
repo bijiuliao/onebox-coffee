@@ -14,13 +14,13 @@ interface CoffeeForLaunchNotify {
 // Sent individually per recipient (not a single bulk/BCC call) so one bad
 // address can't affect anyone else's delivery, and so this never throws -
 // an email failure must not break the admin's PATCH request.
-export async function notifyNewBeanLaunch(coffee: CoffeeForLaunchNotify, recipients: string[]) {
+export async function notifyNewBeanLaunch(coffee: CoffeeForLaunchNotify, recipients: string[]): Promise<{ sent: number; failed: number }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('notifyNewBeanLaunch: RESEND_API_KEY not set, skipping email notification');
-    return;
+    return { sent: 0, failed: recipients.length };
   }
-  if (recipients.length === 0) return;
+  if (recipients.length === 0) return { sent: 0, failed: 0 };
 
   const bagRows = coffee.bagOptions
     .map(b => `<li>${escapeHtml(b.label)} — $${b.price}</li>`)
@@ -55,6 +55,7 @@ export async function notifyNewBeanLaunch(coffee: CoffeeForLaunchNotify, recipie
   if (failed > 0) {
     console.error(`notifyNewBeanLaunch: ${failed}/${recipients.length} sends failed`);
   }
+  return { sent: recipients.length - failed, failed };
 }
 
 interface OrderForNotify {

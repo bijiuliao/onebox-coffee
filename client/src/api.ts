@@ -96,6 +96,12 @@ export const api = {
   listAdminReviews: () => fetch('/api/admin/reviews').then(res => json<AdminReview[]>(res)),
   sendTestEmail: () =>
     fetch('/api/admin/test-email', { method: 'POST' }).then(res => json<{ ok: true; sentTo: string }>(res)),
+  notifyCustomerNewBean: (email: string, coffeeId: string) =>
+    fetch('/api/admin/notify-customer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, coffeeId }),
+    }).then(res => json<{ ok: true }>(res)),
   deleteAdminReview: (id: number) =>
     fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).then(res => json<{ ok: true }>(res)),
 };

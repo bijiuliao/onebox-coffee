@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api } from '../api';
-import type { Customer, Order } from '../types';
+import type { Coffee, Customer, Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
+import { useToast } from '../toast';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-TW', {
@@ -12,21 +13,43 @@ function formatTime(iso: string) {
 
 export function CustomerDetailView() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const { email: rawEmail } = useParams<{ email: string }>();
   const email = decodeURIComponent(rawEmail || '');
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [customers, setCustomers] = useState<Customer[] | null>(null);
+  const [coffees, setCoffees] = useState<Coffee[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [selectedCoffeeId, setSelectedCoffeeId] = useState('');
+  const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    Promise.all([api.listOrders(), api.listCustomers()]).then(
-      ([o, c]) => { setOrders(o); setCustomers(c); },
+    Promise.all([api.listOrders(), api.listCustomers(), api.listCoffees()]).then(
+      ([o, c, beans]) => {
+        setOrders(o); setCustomers(c); setCoffees(beans);
+        const sellable = beans.filter(b => b.sellsBeans);
+        setSelectedCoffeeId(sellable[0]?.id ?? '');
+      },
       err => setError(err instanceof Error ? err.message : '載入失敗'),
     );
   }, []);
 
-  const loaded = orders !== null && customers !== null;
+  const loaded = orders !== null && customers !== null && coffees !== null;
   const customer = loaded ? customers.find(c => c.email === email) : undefined;
+  const sellableCoffees = coffees?.filter(c => c.sellsBeans) ?? [];
+
+  async function sendNotification() {
+    if (!selectedCoffeeId || sending) return;
+    setSending(true);
+    try {
+      await api.notifyCustomerNewBean(email, selectedCoffeeId);
+      showToast('通知信已寄出');
+    } catch (err) {
+      showToast(err instanceof Error ? `寄送失敗：${err.message}` : '寄送失敗');
+    } finally {
+      setSending(false);
+    }
+  }
   // Orders carry no stable customer id - email is the join key everywhere
   // else in this codebase (customers-list.mts groups by it too), so reuse
   // that here rather than introducing a new lookup.
@@ -76,6 +99,35 @@ export function CustomerDetailView() {
                   <div style={{ font: "400 12px 'Space Mono'", color: '#4a3c2e', marginTop: 2 }}>{formatTime(customer.lastOrderAt)}</div>
                 </div>
               </div>
+            </div>
+
+            <div style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+              <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 12 }}>
+                寄送新豆通知給這位客戶
+              </div>
+              {sellableCoffees.length === 0 ? (
+                <div style={{ font: "400 13px 'Iansui'", color: '#9a8a76' }}>目前沒有開放零售的豆款可以通知</div>
+              ) : (
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <select
+                    value={selectedCoffeeId}
+                    onChange={e => setSelectedCoffeeId(e.target.value)}
+                    style={{ flex: 1, padding: '10px 12px', border: '1px solid #e2dac9', borderRadius: 10, background: '#fff', font: "400 14px 'Iansui'", color: '#1a1714', outline: 'none' }}
+                  >
+                    {sellableCoffees.map(c => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                  <div
+                    onClick={sendNotification}
+                    className="press"
+                    style={{
+                      cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.5 : 1, flex: 'none',
+                      padding: '10px 18px', borderRadius: 10, font: "600 13px 'Iansui'", background: '#1a1714', color: '#f4f1ea',
+                    }}
+                  >{sending ? '寄送中…' : '寄送通知'}</div>
+                </div>
+              )}
             </div>
 
             <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 14 }}>
