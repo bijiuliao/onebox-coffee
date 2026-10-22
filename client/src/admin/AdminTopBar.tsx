@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'reviews' | 'customers' }) {
+export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'reviews' | 'customers' | 'stock' }) {
   const navigate = useNavigate();
   const navStyle = (isActive: boolean) => ({
     cursor: 'pointer',
@@ -21,6 +21,7 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
         <div onClick={() => navigate('/admin')} className="press" style={navStyle(active === 'beans')}>豆款管理</div>
         <div onClick={() => navigate('/admin/specials')} className="press" style={navStyle(active === 'specials')}>特調管理</div>
         <div onClick={() => navigate('/admin/orders')} className="press" style={navStyle(active === 'orders')}>訂單 ORDERS</div>
+        <div onClick={() => navigate('/admin/stock')} className="press" style={navStyle(active === 'stock')}>庫存 STOCK</div>
         <div onClick={() => navigate('/admin/customers')} className="press" style={navStyle(active === 'customers')}>客戶 CUSTOMERS</div>
         <div onClick={() => navigate('/admin/reviews')} className="press" style={navStyle(active === 'reviews')}>評分 REVIEWS</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>

@@ -53,6 +53,12 @@ export interface OrderLine {
   qty: number;
   unitPrice: number;
   linePrice: number;
+  // Which coffee/special this line is for, and whether it was ordered as
+  // drip or beans - lets per-bean sales reporting group lines back to a
+  // coffee reliably (name alone isn't stable - a coffee can be renamed).
+  // Orders placed before this field existed won't have it.
+  itemId?: string;
+  kind?: ItemKind;
 }
 
 export interface Order {

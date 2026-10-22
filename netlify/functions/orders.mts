@@ -25,6 +25,14 @@ interface OrderLine {
   qty: number;
   unitPrice: number;
   linePrice: number;
+  // Which coffee/special this line is for, and whether it was ordered as
+  // drip or beans - the display name alone isn't a stable key (a coffee can
+  // be renamed later), so per-bean sales reporting needs this to reliably
+  // group lines back to a coffee. Orders placed before this field existed
+  // just won't have it - those older lines are silently left out of any
+  // per-bean aggregate rather than guessed at by name matching.
+  itemId: string;
+  kind: ItemKind;
 }
 
 const RATE_LIMIT_MAX = 5;
@@ -52,7 +60,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     const size = item.size === '大杯' ? '大杯' : '標準';
     const temp = item.temp === '冰' ? '冰' : '熱';
     const unitPrice = coffee.price + (size === '大杯' ? 20 : 0);
-    return { name: coffee.name, detail: `${temp} · ${size}`, qty, unitPrice, linePrice: unitPrice * qty };
+    return { name: coffee.name, detail: `${temp} · ${size}`, qty, unitPrice, linePrice: unitPrice * qty, itemId: coffee.id, kind: 'drip' };
   }
 
   if (item.kind === 'beans') {
@@ -75,7 +83,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
         return { error: `${coffee.name}（${bag.label}）庫存不足，只剩 ${coffee.stockQty}g` };
       }
     }
-    return { name: `${coffee.name}（豆）`, detail: bag.label, qty, unitPrice: bag.price, linePrice: bag.price * qty };
+    return { name: `${coffee.name}（豆）`, detail: bag.label, qty, unitPrice: bag.price, linePrice: bag.price * qty, itemId: coffee.id, kind: 'beans' };
   }
 
   if (item.kind === 'special') {
@@ -84,7 +92,7 @@ async function priceItem(db: ReturnType<typeof getDb>, item: CartItemInput): Pro
     const special = toSpecial(row);
     if (!special.active) return { error: `${special.name} 目前未上架` };
     const temp = item.temp === '冰' ? '冰' : '熱';
-    return { name: special.name, detail: temp, qty, unitPrice: special.price, linePrice: special.price * qty };
+    return { name: special.name, detail: temp, qty, unitPrice: special.price, linePrice: special.price * qty, itemId: special.id, kind: 'special' };
   }
 
   return { error: `unknown item kind` };
