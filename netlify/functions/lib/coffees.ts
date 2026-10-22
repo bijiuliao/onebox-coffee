@@ -58,6 +58,7 @@ export interface CoffeeRow {
   created_at: string;
   archived: boolean;
   stock_qty: number | null;
+  launch_notified: boolean;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {

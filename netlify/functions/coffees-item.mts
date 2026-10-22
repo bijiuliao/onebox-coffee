@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { toCoffee, json, pathSegments, EDITABLE_COLUMNS, JSON_COLUMNS, type CoffeeRow } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
+import { notifyNewBeanLaunch } from './lib/notify';
 
 export default async (req: Request) => {
   const db = getDb();
@@ -20,6 +21,7 @@ export default async (req: Request) => {
 
     const existing = (await db.sql`SELECT * FROM coffees WHERE id = ${id}`) as CoffeeRow[];
     if (existing.length === 0) return json({ error: 'not found' }, 404);
+    const existingRow = existing[0];
 
     const body = await req.json().catch(() => ({} as Record<string, unknown>));
 
@@ -34,6 +36,11 @@ export default async (req: Request) => {
         return json({ error: 'stockQty must be a non-negative integer or null' }, 400);
       }
     }
+
+    // First-ever activation ("上架") triggers a one-time email to past bean
+    // customers - gated on launch_notified so re-toggling active later
+    // (e.g. temporarily taking a bean off-menu and back on) doesn't re-fire it.
+    const willLaunch = body.active === true && !existingRow.active && !existingRow.launch_notified;
 
     const sets: string[] = [];
     const values: unknown[] = [];
@@ -58,13 +65,33 @@ export default async (req: Request) => {
       if ('large' in sizes) { sets.push(`large_enabled = $${i}`); values.push(!!sizes.large); i += 1; }
     }
 
+    if (willLaunch) {
+      sets.push(`launch_notified = $${i}`);
+      values.push(true);
+      i += 1;
+    }
+
     if (sets.length > 0) {
       values.push(id);
       await db.pool.query(`UPDATE coffees SET ${sets.join(', ')} WHERE id = $${i}`, values);
     }
 
     const [updated] = (await db.sql`SELECT * FROM coffees WHERE id = ${id}`) as CoffeeRow[];
-    return json(toCoffee(updated));
+    const coffee = toCoffee(updated);
+
+    if (willLaunch) {
+      // Awaited (not fire-and-forget) - a serverless function's process can
+      // freeze right after the response is sent, so background work isn't
+      // guaranteed to finish. notifyNewBeanLaunch itself never throws.
+      const recipients = (await db.sql`
+        SELECT DISTINCT customer_email FROM orders
+        WHERE customer_email <> ''
+        AND EXISTS (SELECT 1 FROM jsonb_array_elements(items) AS item WHERE item->>'kind' = 'beans')
+      `) as { customer_email: string }[];
+      await notifyNewBeanLaunch(coffee, recipients.map(r => r.customer_email));
+    }
+
+    return json(coffee);
   }
 
   return json({ error: 'method not allowed' }, 405);

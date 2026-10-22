@@ -1,3 +1,62 @@
+interface CoffeeForLaunchNotify {
+  id: string;
+  name: string;
+  roast: string;
+  process: string;
+  notes: string[];
+  desc: string;
+  bagOptions: { label: string; price: number }[];
+}
+
+// Best-effort, one-time "new bean launched" email to past bean customers -
+// see coffees-item.mts for the launch_notified gating that ensures this
+// only fires the first time a coffee goes active, not on every re-toggle.
+// Sent individually per recipient (not a single bulk/BCC call) so one bad
+// address can't affect anyone else's delivery, and so this never throws -
+// an email failure must not break the admin's PATCH request.
+export async function notifyNewBeanLaunch(coffee: CoffeeForLaunchNotify, recipients: string[]) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('notifyNewBeanLaunch: RESEND_API_KEY not set, skipping email notification');
+    return;
+  }
+  if (recipients.length === 0) return;
+
+  const bagRows = coffee.bagOptions
+    .map(b => `<li>${escapeHtml(b.label)} — $${b.price}</li>`)
+    .join('');
+
+  const html = `
+    <div style="font-family:sans-serif;color:#1a1714">
+      <h2 style="margin:0 0 8px">☕ 新豆上架：${escapeHtml(coffee.name)}</h2>
+      ${coffee.notes.length ? `<p style="margin:0 0 4px;color:#8a7a68">風味：${coffee.notes.map(escapeHtml).join(' · ')}</p>` : ''}
+      <p style="margin:0 0 4px;color:#4a3c2e">${escapeHtml(coffee.roast)} · ${escapeHtml(coffee.process)}</p>
+      ${coffee.desc ? `<p style="margin:12px 0;color:#4a3c2e">${escapeHtml(coffee.desc)}</p>` : ''}
+      ${bagRows ? `<ul style="margin:12px 0;padding-left:20px">${bagRows}</ul>` : ''}
+      <p style="margin-top:16px">歡迎回到 onebox 選購 ☕</p>
+    </div>
+  `;
+
+  const results = await Promise.allSettled(recipients.map(to =>
+    fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'onebox coffee <onboarding@resend.dev>',
+        to: [to],
+        subject: `☕ 新豆上架：${coffee.name}`,
+        html,
+      }),
+    }).then(res => {
+      if (!res.ok) throw new Error(`Resend API error ${res.status}`);
+    }),
+  ));
+  const failed = results.filter(r => r.status === 'rejected').length;
+  if (failed > 0) {
+    console.error(`notifyNewBeanLaunch: ${failed}/${recipients.length} sends failed`);
+  }
+}
+
 interface OrderForNotify {
   id: number;
   customerName: string;
