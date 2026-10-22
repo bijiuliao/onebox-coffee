@@ -28,6 +28,7 @@ export interface Coffee {
   createdAt: string;
   archived: boolean;
   stockQty: number | null;
+  costPerGramTwd: number | null;
 }
 
 export interface CoffeeRow {
@@ -59,6 +60,7 @@ export interface CoffeeRow {
   archived: boolean;
   stock_qty: number | null;
   launch_notified: boolean;
+  cost_per_gram_twd: number | string | null;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {
@@ -89,6 +91,7 @@ export function toCoffee(row: CoffeeRow): Coffee {
     createdAt: row.created_at,
     archived: row.archived,
     stockQty: row.stock_qty,
+    costPerGramTwd: row.cost_per_gram_twd === null ? null : Number(row.cost_per_gram_twd),
   };
 }
 
@@ -114,6 +117,7 @@ export const EDITABLE_COLUMNS: Record<string, string> = {
   bagOptions: 'bag_options',
   archived: 'archived',
   stockQty: 'stock_qty',
+  costPerGramTwd: 'cost_per_gram_twd',
 };
 
 // Fields whose value must be JSON.stringify'd before binding to a jsonb column.

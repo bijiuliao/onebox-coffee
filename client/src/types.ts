@@ -33,6 +33,10 @@ export interface Coffee {
   createdAt: string;
   archived: boolean;
   stockQty: number | null;
+  // Reference cost-per-gram (NT$), usually auto-filled from a loffeelabs
+  // import - used only to suggest a bag-option price when a weight is
+  // typed, never affects stock/checkout.
+  costPerGramTwd: number | null;
 }
 
 export interface Special {

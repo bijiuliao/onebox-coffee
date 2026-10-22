@@ -133,11 +133,10 @@ export function AdminPage() {
     }
   };
 
-  // Only the descriptive/profile fields - never price or weight. loffeelabs
-  // prices are in each roaster's own local currency (no currency field even
-  // given), not NT$, so auto-filling them into price/bagOptions would look
-  // like real pricing while actually being nonsense; pricing stays something
-  // the admin sets themselves either way.
+  // The descriptive/profile fields, plus a reference cost-per-gram (never
+  // the actual bag-option prices themselves, which stay something the admin
+  // sets directly - this is only a suggestion used to auto-fill a new bag's
+  // price once a weight is typed, see addBag's bagLabelDraft handler below).
   const applyLoffeelabsBean = (bean: LoffeelabsBean) => {
     const next: Partial<Coffee> = {};
     if (bean.roastName) next.name = bean.roastName;
@@ -153,6 +152,8 @@ export function AdminPage() {
         ? `${bean.minElev}–${bean.maxElev}m`
         : `${bean.minElev ?? bean.maxElev}m`;
     }
+    const twdPerGram = estimateTwdPerGram(bean);
+    if (twdPerGram !== null) next.costPerGramTwd = twdPerGram;
     patch(next);
     showToast('已從 loffeelabs 匯入資料，確認無誤後記得按「儲存」');
   };
@@ -242,7 +243,7 @@ export function AdminPage() {
         price: sel.price, color: sel.color, score: sel.score, process: sel.process, altitude: sel.altitude,
         varietal: sel.varietal, harvest: sel.harvest, desc: sel.desc, roaster: sel.roaster,
         temps: sel.temps, sizes: sel.sizes, sellsBeans: sel.sellsBeans, bagOptions: sel.bagOptions,
-        stockQty: sel.stockQty,
+        stockQty: sel.stockQty, costPerGramTwd: sel.costPerGramTwd,
       });
       showToast('已儲存 · ' + sel.name);
     } catch {
@@ -632,6 +633,23 @@ export function AdminPage() {
 
             {sel.sellsBeans && (
               <div style={{ marginTop: 18 }}>
+                <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10, display: 'block' }}>每克成本參考 NT$</label>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
+                  <input
+                    type="number"
+                    step="0.1"
+                    value={sel.costPerGramTwd ?? ''}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      patch({ costPerGramTwd: v === '' ? null : Math.max(0, Number(v) || 0) });
+                    }}
+                    placeholder="例如 0.45"
+                    style={{ width: 110, padding: '9px 12px', border: '1px solid #e2dac9', borderRadius: 10, background: '#fff', font: "500 15px 'Room205'", color: '#1a1714', outline: 'none' }}
+                  />
+                  <span style={{ font: "400 11px 'Iansui'", color: '#b0a08c' }}>
+                    通常從 loffeelabs 匯入時自動帶入，也可以手動輸入；新增重量選項輸入公克數時，會用這個數字自動算出建議售價
+                  </span>
+                </div>
                 <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10, display: 'block' }}>重量選項 BAG OPTIONS</label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
                   {sel.bagOptions.map((bag, i) => {
@@ -674,7 +692,18 @@ export function AdminPage() {
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input
                     value={bagLabelDraft}
-                    onChange={(e) => setBagLabelDraft(e.target.value)}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      setBagLabelDraft(next);
+                      // Auto-suggest a price from the known cost-per-gram
+                      // once the typed label has a recognizable weight in
+                      // it - only while the price field is still untouched,
+                      // so it never clobbers a price the admin already typed.
+                      if (!bagPriceDraft && sel.costPerGramTwd !== null) {
+                        const grams = parseBagWeightGrams(next);
+                        if (grams !== null) setBagPriceDraft(String(Math.round(sel.costPerGramTwd * grams)));
+                      }
+                    }}
                     placeholder="半磅 227g"
                     style={{ flex: 1, padding: '9px 12px', border: '1px dashed #d3c9b6', borderRadius: 10, background: '#fff', font: "400 13px 'Iansui'", color: '#1a1714', outline: 'none' }}
                   />

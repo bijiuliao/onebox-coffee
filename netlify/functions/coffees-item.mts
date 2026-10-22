@@ -37,6 +37,12 @@ export default async (req: Request) => {
       }
     }
 
+    if ('costPerGramTwd' in body && body.costPerGramTwd !== null) {
+      if (typeof body.costPerGramTwd !== 'number' || !Number.isFinite(body.costPerGramTwd) || body.costPerGramTwd < 0) {
+        return json({ error: 'costPerGramTwd must be a non-negative number or null' }, 400);
+      }
+    }
+
     // First-ever activation ("上架") triggers a one-time email to past bean
     // customers - gated on launch_notified so re-toggling active later
     // (e.g. temporarily taking a bean off-menu and back on) doesn't re-fire it.
