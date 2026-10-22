@@ -94,6 +94,8 @@ export const api = {
       body: JSON.stringify({ rating, flavorTags }),
     }).then(res => json<ReviewSummary>(res)),
   listAdminReviews: () => fetch('/api/admin/reviews').then(res => json<AdminReview[]>(res)),
+  sendTestEmail: () =>
+    fetch('/api/admin/test-email', { method: 'POST' }).then(res => json<{ ok: true; sentTo: string }>(res)),
   deleteAdminReview: (id: number) =>
     fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).then(res => json<{ ok: true }>(res)),
 };

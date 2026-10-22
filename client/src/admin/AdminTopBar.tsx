@@ -1,7 +1,26 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { api } from '../api';
+import { useToast } from '../toast';
 
 export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'reviews' | 'customers' | 'stock' }) {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const [sending, setSending] = useState(false);
+
+  async function sendTestEmail() {
+    if (sending) return;
+    setSending(true);
+    try {
+      const res = await api.sendTestEmail();
+      showToast(`測試信已寄出 → ${res.sentTo}`);
+    } catch (err) {
+      showToast(err instanceof Error ? `寄送失敗：${err.message}` : '寄送失敗');
+    } finally {
+      setSending(false);
+    }
+  }
+
   const navStyle = (isActive: boolean) => ({
     cursor: 'pointer',
     font: "700 11px 'Space Mono'",
@@ -16,6 +35,11 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <div style={{ font: "500 22px 'Room205',serif" }}>onebox<span style={{ color: '#c98a2e' }}>.</span></div>
         <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#c98a2e', border: '1px solid rgba(201,154,106,.5)', padding: '4px 9px', borderRadius: 6 }}>ADMIN</div>
+        <div
+          onClick={sendTestEmail}
+          className="press"
+          style={{ cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.5 : 1, font: "600 10px 'Iansui'", color: '#8a7a68', textDecoration: 'underline', whiteSpace: 'nowrap' }}
+        >{sending ? '寄送中…' : '寄測試信'}</div>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
         <div onClick={() => navigate('/admin')} className="press" style={navStyle(active === 'beans')}>豆款管理</div>
