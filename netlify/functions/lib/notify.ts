@@ -125,3 +125,53 @@ export async function notifyNewOrder(order: OrderForNotify) {
     console.error('notifyNewOrder: failed to send', err);
   }
 }
+
+// Best-effort order confirmation sent to the customer themselves - separate
+// from notifyNewOrder above, which alerts the shop owner instead. Includes a
+// link back to /order-lookup (id+email, no account needed) so they can check
+// status later. Never throws - a failed confirmation email must not block checkout.
+export async function notifyCustomerOrderConfirmation(order: OrderForNotify) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('notifyCustomerOrderConfirmation: RESEND_API_KEY not set, skipping email notification');
+    return;
+  }
+
+  const rows = order.items
+    .map(l => `<tr><td style="padding:4px 12px 4px 0">${escapeHtml(l.name)} × ${l.qty}</td><td style="padding:4px 0;color:#8a7a68">${escapeHtml(l.detail)}</td><td style="padding:4px 0;text-align:right">$${l.linePrice}</td></tr>`)
+    .join('');
+
+  const fulfillmentLine = order.orderType === '外送'
+    ? `外送 · 距離約 ${order.deliveryDistanceKm} 公里 · 運費 $${order.deliveryFee}`
+    : '門市自取';
+
+  const lookupUrl = `https://onebox-coffee.netlify.app/order-lookup?id=${order.id}&email=${encodeURIComponent(order.customerEmail)}`;
+
+  const html = `
+    <div style="font-family:sans-serif;color:#1a1714">
+      <h2 style="margin:0 0 4px">☕ 訂單確認 #${order.id}</h2>
+      <p style="margin:0 0 16px;color:#4a3c2e">謝謝你的訂購，${escapeHtml(order.customerName)}！<b>取貨方式：</b>${fulfillmentLine}</p>
+      <table style="border-collapse:collapse;width:100%;max-width:420px">${rows}</table>
+      <p style="margin-top:16px;font-size:18px"><b>總計：$${order.total}</b></p>
+      <p style="margin-top:20px"><a href="${lookupUrl}" style="color:#3d6b4f">查看訂單狀態 →</a></p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'onebox coffee <order@oneboxcoffee.app>',
+        to: [order.customerEmail],
+        subject: `☕ 訂單確認 #${order.id}`,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      console.error('notifyCustomerOrderConfirmation: Resend API error', res.status, await res.text().catch(() => ''));
+    }
+  } catch (err) {
+    console.error('notifyCustomerOrderConfirmation: failed to send', err);
+  }
+}

@@ -3,7 +3,7 @@ import { getDb } from './lib/db';
 import { toCoffee, json, type CoffeeRow } from './lib/coffees';
 import { toSpecial, type SpecialRow } from './lib/specials';
 import { requireAdmin } from './lib/auth';
-import { notifyNewOrder } from './lib/notify';
+import { notifyNewOrder, notifyCustomerOrderConfirmation } from './lib/notify';
 import { quoteDelivery, isValidLatLng } from './lib/delivery';
 import { parseBagWeightGrams } from './lib/weight';
 import { toOrderJson, type OrderRow } from './lib/orders';
@@ -246,10 +246,12 @@ export default async (req: Request, context: Context) => {
     client.release();
   }
 
-  await notifyNewOrder({
+  const orderForNotify = {
     id: order.id, customerName, customerEmail, items: lines, total,
     orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng,
-  });
+  };
+  await notifyNewOrder(orderForNotify);
+  await notifyCustomerOrderConfirmation(orderForNotify);
 
   return json({
     id: order.id, createdAt: order.created_at, customerName, customerEmail, items: lines, total,
