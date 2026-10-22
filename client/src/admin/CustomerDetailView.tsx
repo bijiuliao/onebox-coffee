@@ -93,6 +93,11 @@ export function CustomerDetailView() {
                         background: order.orderType === '外送' ? '#e2eef2' : '#efe7d8',
                         color: order.orderType === '外送' ? '#2b6f8a' : '#8a7a68',
                       }}>{order.orderType}</span>
+                      <span style={{
+                        font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10,
+                        background: order.fulfilled ? '#e3f0e5' : '#faeee0',
+                        color: order.fulfilled ? '#3f7a4a' : '#b5742e',
+                      }}>{order.fulfilled ? '已出貨' : '待出貨'}</span>
                     </div>
                     <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{formatTime(order.createdAt)}</div>
                   </div>

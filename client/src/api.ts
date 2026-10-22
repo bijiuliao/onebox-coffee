@@ -71,6 +71,12 @@ export const api = {
       body: JSON.stringify(order),
     }).then(res => json<Order>(res)),
   listOrders: () => fetch('/api/orders').then(res => json<Order[]>(res)),
+  setOrderFulfilled: (id: number, fulfilled: boolean) =>
+    fetch(`/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fulfilled }),
+    }).then(res => json<{ id: number; fulfilled: boolean }>(res)),
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {

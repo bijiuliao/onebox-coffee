@@ -106,12 +106,12 @@ export default async (req: Request, context: Context) => {
     if (unauthorized) return unauthorized;
 
     const rows = (await db.sql`
-      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng
+      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled
       FROM orders ORDER BY created_at DESC LIMIT 200
     `) as {
       id: number; created_at: string; customer_name: string; customer_email: string; items: unknown; total: number;
       order_type: string; delivery_fee: number; delivery_distance_km: number | null;
-      customer_lat: number | null; customer_lng: number | null;
+      customer_lat: number | null; customer_lng: number | null; fulfilled: boolean;
     }[];
     const orders = rows.map(r => ({
       id: r.id,
@@ -125,6 +125,7 @@ export default async (req: Request, context: Context) => {
       deliveryDistanceKm: r.delivery_distance_km,
       customerLat: r.customer_lat,
       customerLng: r.customer_lng,
+      fulfilled: r.fulfilled,
     }));
     return json(orders);
   }
@@ -199,6 +200,7 @@ export default async (req: Request, context: Context) => {
     return json({
       id: dup.id, createdAt: dup.created_at, customerName, customerEmail, items: lines, total: dup.total,
       orderType: dup.order_type, deliveryFee: dup.delivery_fee, deliveryDistanceKm: dup.delivery_distance_km,
+      fulfilled: false,
     }, 200);
   }
 
@@ -265,7 +267,7 @@ export default async (req: Request, context: Context) => {
 
   return json({
     id: order.id, createdAt: order.created_at, customerName, customerEmail, items: lines, total,
-    orderType, deliveryFee, deliveryDistanceKm,
+    orderType, deliveryFee, deliveryDistanceKm, fulfilled: false,
   }, 201);
 };
 

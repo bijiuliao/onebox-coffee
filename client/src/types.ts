@@ -73,6 +73,9 @@ export interface Order {
   deliveryDistanceKm: number | null;
   customerLat?: number | null;
   customerLng?: number | null;
+  // Whether the order has been handed to the customer - picked up in-store
+  // (自取) or delivered (外送). Admin-toggled; defaults false on creation.
+  fulfilled: boolean;
 }
 
 // Not a stored record - an aggregate computed from orders sharing the same

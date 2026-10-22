@@ -9,13 +9,32 @@ function formatTime(iso: string) {
   });
 }
 
+type FulfillFilter = 'pending' | 'fulfilled' | 'all';
+
 export function OrdersView() {
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [filter, setFilter] = useState<FulfillFilter>('pending');
+  const [togglingId, setTogglingId] = useState<number | null>(null);
 
   useEffect(() => {
     api.listOrders().then(setOrders, err => setError(err.message));
   }, []);
+
+  const visible = orders?.filter(o => filter === 'all' || (filter === 'fulfilled') === o.fulfilled);
+
+  async function toggleFulfilled(order: Order) {
+    setTogglingId(order.id);
+    try {
+      const next = !order.fulfilled;
+      await api.setOrderFulfilled(order.id, next);
+      setOrders(prev => prev && prev.map(o => (o.id === order.id ? { ...o, fulfilled: next } : o)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新失敗');
+    } finally {
+      setTogglingId(null);
+    }
+  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
@@ -23,7 +42,27 @@ export function OrdersView() {
       <div style={{ maxWidth: 900, minWidth: 600, margin: '0 auto', padding: '30px 30px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
           <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76' }}>訂單紀錄 / ORDERS</div>
-          {orders && <div style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{orders.length} 筆</div>}
+          {orders && <div style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{visible?.length} 筆</div>}
+        </div>
+
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {([
+            { key: 'pending', label: '待出貨' },
+            { key: 'fulfilled', label: '已出貨' },
+            { key: 'all', label: '全部' },
+          ] as const).map(tab => (
+            <div
+              key={tab.key}
+              onClick={() => setFilter(tab.key)}
+              className="press"
+              style={{
+                cursor: 'pointer', font: "600 12px 'Iansui'", padding: '7px 16px', borderRadius: 20,
+                background: filter === tab.key ? '#1a1714' : '#fff',
+                color: filter === tab.key ? '#f4f1ea' : '#8a7a68',
+                border: '1px solid ' + (filter === tab.key ? '#1a1714' : '#ece5d6'),
+              }}
+            >{tab.label}</div>
+          ))}
         </div>
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
@@ -34,9 +73,14 @@ export function OrdersView() {
             還沒有訂單
           </div>
         )}
+        {orders && orders.length > 0 && visible?.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '80px 0', color: '#9a8a76', font: "400 14px 'Iansui'" }}>
+            沒有符合的訂單
+          </div>
+        )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {orders?.map(order => (
+          {visible?.map(order => (
             <div key={order.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 16, padding: 20 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
@@ -50,6 +94,11 @@ export function OrdersView() {
                     background: order.orderType === '外送' ? '#e2eef2' : '#efe7d8',
                     color: order.orderType === '外送' ? '#2b6f8a' : '#8a7a68',
                   }}>{order.orderType}</span>
+                  <span style={{
+                    font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10,
+                    background: order.fulfilled ? '#e3f0e5' : '#faeee0',
+                    color: order.fulfilled ? '#3f7a4a' : '#b5742e',
+                  }}>{order.fulfilled ? '已出貨' : '待出貨'}</span>
                 </div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{formatTime(order.createdAt)}</div>
               </div>
@@ -75,7 +124,19 @@ export function OrdersView() {
                   </div>
                 )}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, paddingTop: 12, borderTop: '1px solid #ece5d6' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 12, borderTop: '1px solid #ece5d6' }}>
+                <div
+                  onClick={() => toggleFulfilled(order)}
+                  className="press"
+                  style={{
+                    cursor: togglingId === order.id ? 'default' : 'pointer',
+                    opacity: togglingId === order.id ? 0.5 : 1,
+                    font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
+                    background: order.fulfilled ? '#fff' : '#1a1714',
+                    color: order.fulfilled ? '#8a7a68' : '#f4f1ea',
+                    border: '1px solid ' + (order.fulfilled ? '#ece5d6' : '#1a1714'),
+                  }}
+                >{order.fulfilled ? '標記為待出貨' : (order.orderType === '外送' ? '標記為已送達' : '標記為已取走')}</div>
                 <span style={{ font: "600 17px 'Room205'" }}>${order.total}</span>
               </div>
             </div>
