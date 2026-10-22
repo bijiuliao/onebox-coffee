@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import type { Customer } from '../types';
 import { AdminTopBar } from './AdminTopBar';
@@ -10,6 +11,7 @@ function formatTime(iso: string) {
 }
 
 export function CustomersView() {
+  const navigate = useNavigate();
   const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -60,7 +62,12 @@ export function CustomersView() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {visible?.map(c => (
-            <div key={c.email} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div
+              key={c.email}
+              onClick={() => navigate(`/admin/customers/${encodeURIComponent(c.email)}`)}
+              className="press"
+              style={{ cursor: 'pointer', background: '#fff', border: '1px solid #ece5d6', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+            >
               <div style={{ minWidth: 0 }}>
                 <div style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>{c.name || '（未填寫姓名）'}</div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</div>

@@ -12,6 +12,7 @@ import { SpecialsAdminPage } from './admin/SpecialsAdminPage';
 import { OrdersView } from './admin/OrdersView';
 import { ReviewsAdminView } from './admin/ReviewsAdminView';
 import { CustomersView } from './admin/CustomersView';
+import { CustomerDetailView } from './admin/CustomerDetailView';
 import { StockView } from './admin/StockView';
 
 function App() {
@@ -31,6 +32,7 @@ function App() {
               <Route path="/admin/orders" element={<OrdersView />} />
               <Route path="/admin/stock" element={<StockView />} />
               <Route path="/admin/customers" element={<CustomersView />} />
+              <Route path="/admin/customers/:email" element={<CustomerDetailView />} />
               <Route path="/admin/reviews" element={<ReviewsAdminView />} />
             </Routes>
           </BrowserRouter>
