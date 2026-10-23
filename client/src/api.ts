@@ -116,6 +116,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ coffeeIds }),
     }).then(res => json<{ ok: true; beanCount: number; recipientCount: number; sent: number; failed: number }>(res)),
+  listBeanCustomers: () => fetch('/api/admin/notify-beans').then(res => json<{ email: string; name: string }[]>(res)),
   deleteAdminReview: (id: number) =>
     fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).then(res => json<{ ok: true }>(res)),
 

@@ -7,9 +7,11 @@ import { useToast } from '../toast';
 export function NotifyBeansView() {
   const { showToast } = useToast();
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
+  const [recipients, setRecipients] = useState<{ email: string; name: string }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
   const [sending, setSending] = useState(false);
+  const [recipientsOpen, setRecipientsOpen] = useState(false);
 
   useEffect(() => {
     api.listCoffees(true).then(
@@ -23,6 +25,10 @@ export function NotifyBeansView() {
       },
       err => setError(err instanceof Error ? err.message : '載入失敗'),
     );
+    // Fetched independently of which beans are selected - the recipient
+    // set (everyone who's ever ordered beans) doesn't depend on that, so
+    // it's shown up front, not revealed only right before sending.
+    api.listBeanCustomers().then(setRecipients, () => {});
   }, []);
 
   function toggle(id: string) {
@@ -60,6 +66,33 @@ export function NotifyBeansView() {
         <div style={{ font: "400 12px 'Iansui'", color: '#b0a08c', marginBottom: 22 }}>
           勾選要一起公告的豆子，合併成一封信寄給所有訂過豆子的客人，不會一款一款分開寄
         </div>
+
+        {recipients && (
+          <div style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 14, marginBottom: 20, overflow: 'hidden' }}>
+            <div
+              onClick={() => setRecipientsOpen(o => !o)}
+              className="press"
+              style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px' }}
+            >
+              <span style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>
+                {recipients.length === 0 ? '目前沒有訂過豆子的客人' : `將會寄給 ${recipients.length} 位客人`}
+              </span>
+              {recipients.length > 0 && (
+                <span style={{ font: "700 11px 'Space Mono'", color: '#9a8a76' }}>{recipientsOpen ? '收合 ▲' : '查看名單 ▼'}</span>
+              )}
+            </div>
+            {recipientsOpen && recipients.length > 0 && (
+              <div style={{ borderTop: '1px solid #ece5d6', maxHeight: 220, overflowY: 'auto' }}>
+                {recipients.map(r => (
+                  <div key={r.email} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 16px', font: "400 13px 'Iansui'" }}>
+                    <span style={{ color: '#1a1714' }}>{r.name || '（未填寫姓名）'}</span>
+                    <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{r.email}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
         {!error && coffees === null && <div style={{ color: '#9a8a76', font: "400 14px 'Iansui'" }}>載入中…</div>}
