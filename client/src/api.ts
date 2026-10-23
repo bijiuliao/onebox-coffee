@@ -18,9 +18,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     }).then(res => json<Coffee>(res)),
-  // notifyOnLaunch is a one-off PATCH directive, not a stored Coffee field -
-  // see coffees-item.mts's "send the launch email?" gating.
-  updateCoffee: (id: string, patch: Partial<Coffee> & { notifyOnLaunch?: boolean }) =>
+  updateCoffee: (id: string, patch: Partial<Coffee>) =>
     fetch(`/api/coffees/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -112,6 +110,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, coffeeId }),
     }).then(res => json<{ ok: true }>(res)),
+  notifyNewBeans: (coffeeIds: string[]) =>
+    fetch('/api/admin/notify-beans', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coffeeIds }),
+    }).then(res => json<{ ok: true; beanCount: number; recipientCount: number; sent: number; failed: number }>(res)),
   deleteAdminReview: (id: number) =>
     fetch(`/api/admin/reviews/${id}`, { method: 'DELETE' }).then(res => json<{ ok: true }>(res)),
 

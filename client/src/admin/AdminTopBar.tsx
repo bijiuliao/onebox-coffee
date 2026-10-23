@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useToast } from '../toast';
 
-export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'reviews' | 'customers' | 'stock' }) {
+export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'reviews' | 'customers' | 'stock' | 'notify-beans' }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [sending, setSending] = useState(false);
@@ -81,6 +81,7 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
         <div onClick={() => navigate('/admin/stock')} className="press" style={navStyle(active === 'stock')}>庫存 STOCK</div>
         <div onClick={() => navigate('/admin/customers')} className="press" style={navStyle(active === 'customers')}>客戶 CUSTOMERS</div>
         <div onClick={() => navigate('/admin/reviews')} className="press" style={navStyle(active === 'reviews')}>評分 REVIEWS</div>
+        <div onClick={() => navigate('/admin/notify-beans')} className="press" style={navStyle(active === 'notify-beans')}>新豆公告</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
           <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#c98a2e', display: 'flex', alignItems: 'center', justifyContent: 'center', font: "600 14px 'Iansui'", color: '#1a1714' }}>主</div>
           <span style={{ font: "500 13px 'Iansui'" }}>店長</span>

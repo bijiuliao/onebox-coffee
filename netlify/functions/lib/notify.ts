@@ -6,34 +6,61 @@ interface CoffeeForLaunchNotify {
   notes: string[];
   desc: string;
   bagOptions: { label: string; price: number }[];
+  coverUrl: string | null;
 }
 
-// Best-effort, one-time "new bean launched" email to past bean customers -
-// see coffees-item.mts for the launch_notified gating that ensures this
-// only fires the first time a coffee goes active, not on every re-toggle.
-// Sent individually per recipient (not a single bulk/BCC call) so one bad
-// address can't affect anyone else's delivery, and so this never throws -
-// an email failure must not break the admin's PATCH request.
-export async function notifyNewBeanLaunch(coffee: CoffeeForLaunchNotify, recipients: string[]): Promise<{ sent: number; failed: number }> {
+const SITE_URL = 'https://onebox-coffee.netlify.app';
+
+// coverUrl can be a bare /api/cover-image/... path (see coffees-item.mts's
+// validation) - email clients can't resolve that relatively, so it needs
+// the full site origin in front of it.
+function absoluteCoverUrl(coverUrl: string | null): string | null {
+  if (!coverUrl) return null;
+  return coverUrl.startsWith('/') ? `${SITE_URL}${coverUrl}` : coverUrl;
+}
+
+// Best-effort "new beans" announcement to past bean customers - the admin
+// picks which beans to include and triggers this manually (see
+// admin-notify-beans.mts), so several same-day launches go out as ONE
+// combined email instead of one per bean. Sent individually per recipient
+// (not a single bulk/BCC call) so one bad address can't affect anyone
+// else's delivery, and so this never throws.
+export async function notifyNewBeanLaunch(coffees: CoffeeForLaunchNotify[], recipients: string[]): Promise<{ sent: number; failed: number }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.warn('notifyNewBeanLaunch: RESEND_API_KEY not set, skipping email notification');
     return { sent: 0, failed: recipients.length };
   }
-  if (recipients.length === 0) return { sent: 0, failed: 0 };
+  if (recipients.length === 0 || coffees.length === 0) return { sent: 0, failed: 0 };
 
-  const bagRows = coffee.bagOptions
-    .map(b => `<li>${escapeHtml(b.label)} — $${b.price}</li>`)
-    .join('');
+  const beanBlocks = coffees.map(coffee => {
+    const img = absoluteCoverUrl(coffee.coverUrl);
+    const bagRows = coffee.bagOptions
+      .map(b => `<li>${escapeHtml(b.label)} — $${b.price}</li>`)
+      .join('');
+    return `
+      <div style="margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid #ece5d6">
+        ${img ? `<img src="${img}" alt="${escapeHtml(coffee.name)}" style="width:100%;max-width:420px;height:auto;border-radius:12px;margin-bottom:12px;display:block">` : ''}
+        <h3 style="margin:0 0 6px;font-size:18px">${escapeHtml(coffee.name)}</h3>
+        ${coffee.notes.length ? `<p style="margin:0 0 4px;color:#8a7a68">風味：${coffee.notes.map(escapeHtml).join(' · ')}</p>` : ''}
+        <p style="margin:0 0 4px;color:#4a3c2e">${escapeHtml(coffee.roast)} · ${escapeHtml(coffee.process)}</p>
+        ${coffee.desc ? `<p style="margin:10px 0;color:#4a3c2e">${escapeHtml(coffee.desc)}</p>` : ''}
+        ${bagRows ? `<ul style="margin:10px 0;padding-left:20px">${bagRows}</ul>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  const title = coffees.length === 1 ? `☕ 新豆上架：${escapeHtml(coffees[0].name)}` : `☕ 新豆上架：${coffees.length} 款新豆`;
+  const namesJoined = coffees.length <= 3
+    ? coffees.map(c => c.name).join('、')
+    : `${coffees.slice(0, 2).map(c => c.name).join('、')}等 ${coffees.length} 款新豆`;
+  const subject = `☕ 新豆上架：${namesJoined}`;
 
   const html = `
-    <div style="font-family:sans-serif;color:#1a1714">
-      <h2 style="margin:0 0 8px">☕ 新豆上架：${escapeHtml(coffee.name)}</h2>
-      ${coffee.notes.length ? `<p style="margin:0 0 4px;color:#8a7a68">風味：${coffee.notes.map(escapeHtml).join(' · ')}</p>` : ''}
-      <p style="margin:0 0 4px;color:#4a3c2e">${escapeHtml(coffee.roast)} · ${escapeHtml(coffee.process)}</p>
-      ${coffee.desc ? `<p style="margin:12px 0;color:#4a3c2e">${escapeHtml(coffee.desc)}</p>` : ''}
-      ${bagRows ? `<ul style="margin:12px 0;padding-left:20px">${bagRows}</ul>` : ''}
-      <p style="margin-top:16px">歡迎回到 onebox 選購 ☕</p>
+    <div style="font-family:sans-serif;color:#1a1714;max-width:480px">
+      <h2 style="margin:0 0 16px">${title}</h2>
+      ${beanBlocks}
+      <p style="margin-top:4px">歡迎回到 onebox 選購 ☕</p>
     </div>
   `;
 
@@ -44,7 +71,7 @@ export async function notifyNewBeanLaunch(coffee: CoffeeForLaunchNotify, recipie
       body: JSON.stringify({
         from: 'onebox coffee <news@oneboxcoffee.app>',
         to: [to],
-        subject: `☕ 新豆上架：${coffee.name}`,
+        subject,
         html,
       }),
     }).then(res => {

@@ -220,17 +220,6 @@ export function AdminPage() {
 
   const toggleActive = () => {
     const next = !sel.active;
-    // First-ever activation offers a one-time choice of whether to email
-    // past bean customers about it (see coffees-item.mts's launch_notified
-    // gating) - re-toggling later never asks again, whichever was picked.
-    if (next && !sel.launchNotified) {
-      const notifyOnLaunch = window.confirm(`這是「${sel.name}」第一次上架，要寄信通知所有訂過豆子的客人嗎？`);
-      patch({ active: next });
-      api.updateCoffee(sel.id, { active: next, notifyOnLaunch })
-        .then(updated => setBeans(prev => prev!.map(b => (b.id === sel.id ? { ...b, active: updated.active, launchNotified: updated.launchNotified } : b))))
-        .catch(() => patch({ active: !next }));
-      return;
-    }
     patch({ active: next });
     persist(sel.id, { active: next }).catch(() => patch({ active: !next }));
   };

@@ -5,10 +5,10 @@ import { requireAdmin } from './lib/auth';
 import { notifyNewBeanLaunch } from './lib/notify';
 
 // Manual, admin-triggered send of the "new bean" email to one specific
-// customer - separate from the automatic one-time broadcast in
-// coffees-item.mts (not gated by launch_notified, so it also works for a
-// bean that's already been on-menu a while, e.g. "tell this one customer
-// about a bean they haven't tried").
+// customer - separate from the batch announcement tool in
+// admin-notify-beans.mts (not gated by launch_notified, so it also works
+// for a bean that's already been on-menu a while, e.g. "tell this one
+// customer about a bean they haven't tried").
 export default async (req: Request) => {
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
   const unauthorized = requireAdmin(req);
@@ -24,7 +24,7 @@ export default async (req: Request) => {
   const [row] = (await db.sql`SELECT * FROM coffees WHERE id = ${coffeeId}`) as CoffeeRow[];
   if (!row) return json({ error: 'coffee not found' }, 404);
 
-  const result = await notifyNewBeanLaunch(toCoffee(row), [email]);
+  const result = await notifyNewBeanLaunch([toCoffee(row)], [email]);
   if (result.sent === 0) return json({ error: '寄送失敗，請確認寄信設定' }, 502);
   return json({ ok: true });
 };

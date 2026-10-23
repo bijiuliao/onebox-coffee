@@ -15,6 +15,7 @@ import { ReviewsAdminView } from './admin/ReviewsAdminView';
 import { CustomersView } from './admin/CustomersView';
 import { CustomerDetailView } from './admin/CustomerDetailView';
 import { StockView } from './admin/StockView';
+import { NotifyBeansView } from './admin/NotifyBeansView';
 
 function App() {
   return (
@@ -36,6 +37,7 @@ function App() {
               <Route path="/admin/customers" element={<CustomersView />} />
               <Route path="/admin/customers/:email" element={<CustomerDetailView />} />
               <Route path="/admin/reviews" element={<ReviewsAdminView />} />
+              <Route path="/admin/notify-beans" element={<NotifyBeansView />} />
             </Routes>
           </BrowserRouter>
         </CartProvider>
