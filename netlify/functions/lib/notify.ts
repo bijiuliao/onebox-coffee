@@ -39,14 +39,19 @@ export async function notifyNewBeanLaunch(coffees: CoffeeForLaunchNotify[], reci
     const bagRows = coffee.bagOptions
       .map(b => `<li>${escapeHtml(b.label)} — $${b.price}</li>`)
       .join('');
+      
+    // 組合該支咖啡豆的專屬網址
+    const coffeeUrl = `${SITE_URL}/coffee/${coffee.id}`;
+
     return `
       <div style="margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid #ece5d6">
-        ${img ? `<img src="${img}" alt="${escapeHtml(coffee.name)}" style="width:100%;max-width:420px;height:auto;border-radius:12px;margin-bottom:12px;display:block">` : ''}
-        <h3 style="margin:0 0 6px;font-size:18px">${escapeHtml(coffee.name)}</h3>
+        ${img ? `<a href="${coffeeUrl}" target="_blank"><img src="${img}" alt="${escapeHtml(coffee.name)}" style="width:100%;max-width:420px;height:auto;border-radius:12px;margin-bottom:12px;display:block;border:none;"></a>` : ''}
+        <h3 style="margin:0 0 6px;font-size:18px"><a href="${coffeeUrl}" target="_blank" style="color:#1a1714;text-decoration:none;">${escapeHtml(coffee.name)}</a></h3>
         ${coffee.notes.length ? `<p style="margin:0 0 4px;color:#8a7a68">風味：${coffee.notes.map(escapeHtml).join(' · ')}</p>` : ''}
         <p style="margin:0 0 4px;color:#4a3c2e">${escapeHtml(coffee.roast)} · ${escapeHtml(coffee.process)}</p>
         ${coffee.desc ? `<p style="margin:10px 0;color:#4a3c2e">${escapeHtml(coffee.desc)}</p>` : ''}
         ${bagRows ? `<ul style="margin:10px 0;padding-left:20px">${bagRows}</ul>` : ''}
+        <a href="${coffeeUrl}" target="_blank" style="display:inline-block; background-color:#4a3c2e; color:#ffffff; text-decoration:none; padding:10px 24px; border-radius:6px; font-size:16px; margin-top:12px; font-weight:bold;">立即選購</a>
       </div>
     `;
   }).join('');
