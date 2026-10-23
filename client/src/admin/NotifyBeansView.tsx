@@ -10,6 +10,7 @@ export function NotifyBeansView() {
   const [recipients, setRecipients] = useState<{ email: string; name: string }[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [selectedRecipients, setSelectedRecipients] = useState<Set<string>>(() => new Set());
   const [sending, setSending] = useState(false);
   const [recipientsOpen, setRecipientsOpen] = useState(false);
 
@@ -26,9 +27,18 @@ export function NotifyBeansView() {
       err => setError(err instanceof Error ? err.message : '載入失敗'),
     );
     // Fetched independently of which beans are selected - the recipient
-    // set (everyone who's ever ordered beans) doesn't depend on that, so
-    // it's shown up front, not revealed only right before sending.
-    api.listBeanCustomers().then(setRecipients, () => {});
+    // set doesn't depend on that, so it's shown up front, not revealed
+    // only right before sending.
+    api.listBeanCustomers().then(
+      list => {
+        setRecipients(list);
+        // Default to everyone, matching the "announce to all customers"
+        // behavior before per-recipient picking existed - deselecting is
+        // still just a click away for a smaller or test send.
+        setSelectedRecipients(new Set(list.map(r => r.email)));
+      },
+      () => {},
+    );
   }, []);
 
   function toggle(id: string) {
@@ -39,12 +49,25 @@ export function NotifyBeansView() {
     });
   }
 
+  function toggleRecipient(email: string) {
+    setSelectedRecipients(prev => {
+      const next = new Set(prev);
+      if (next.has(email)) next.delete(email); else next.add(email);
+      return next;
+    });
+  }
+
+  function toggleAllRecipients() {
+    if (!recipients) return;
+    setSelectedRecipients(prev => (prev.size === recipients.length ? new Set() : new Set(recipients.map(r => r.email))));
+  }
+
   async function send() {
-    if (selected.size === 0 || sending) return;
+    if (selected.size === 0 || selectedRecipients.size === 0 || sending) return;
     setSending(true);
     try {
-      const res = await api.notifyNewBeans(Array.from(selected));
-      showToast(res.recipientCount === 0 ? '已標記，但目前沒有任何客人可以通知' : `已寄出，共通知 ${res.recipientCount} 位客人`);
+      const res = await api.notifyNewBeans(Array.from(selected), Array.from(selectedRecipients));
+      showToast(`已寄出，共通知 ${res.recipientCount} 位客人`);
       setCoffees(prev => prev && prev.map(c => (selected.has(c.id) ? { ...c, launchNotified: true } : c)));
       setSelected(new Set());
     } catch (err) {
@@ -75,20 +98,53 @@ export function NotifyBeansView() {
               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px' }}
             >
               <span style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>
-                {recipients.length === 0 ? '目前沒有任何客人' : `將會寄給 ${recipients.length} 位客人`}
+                {recipients.length === 0 ? '目前沒有任何客人' : `已選 ${selectedRecipients.size} / ${recipients.length} 位客人`}
               </span>
               {recipients.length > 0 && (
-                <span style={{ font: "700 11px 'Space Mono'", color: '#9a8a76' }}>{recipientsOpen ? '收合 ▲' : '查看名單 ▼'}</span>
+                <span style={{ font: "700 11px 'Space Mono'", color: '#9a8a76' }}>{recipientsOpen ? '收合 ▲' : '選擇收件人 ▼'}</span>
               )}
             </div>
             {recipientsOpen && recipients.length > 0 && (
-              <div style={{ borderTop: '1px solid #ece5d6', maxHeight: 220, overflowY: 'auto' }}>
-                {recipients.map(r => (
-                  <div key={r.email} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '9px 16px', font: "400 13px 'Iansui'" }}>
-                    <span style={{ color: '#1a1714' }}>{r.name || '（未填寫姓名）'}</span>
-                    <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{r.email}</span>
-                  </div>
-                ))}
+              <div style={{ borderTop: '1px solid #ece5d6' }}>
+                <div
+                  onClick={toggleAllRecipients}
+                  className="press"
+                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', borderBottom: '1px solid #ece5d6', background: '#faf7f0' }}
+                >
+                  <span style={{
+                    width: 15, height: 15, borderRadius: 5, flex: 'none',
+                    border: selectedRecipients.size === recipients.length ? 'none' : '1px solid #c2b9a6',
+                    background: selectedRecipients.size === recipients.length ? '#1a1714' : 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 10px sans-serif", color: '#fff',
+                  }}>{selectedRecipients.size === recipients.length ? '✓' : ''}</span>
+                  <span style={{ font: "600 12px 'Iansui'", color: '#4a3c2e' }}>
+                    {selectedRecipients.size === recipients.length ? '取消全選' : '全選'}
+                  </span>
+                </div>
+                <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                  {recipients.map(r => {
+                    const checked = selectedRecipients.has(r.email);
+                    return (
+                      <div
+                        key={r.email}
+                        onClick={() => toggleRecipient(r.email)}
+                        className="press"
+                        style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px' }}
+                      >
+                        <span style={{
+                          width: 15, height: 15, borderRadius: 5, flex: 'none',
+                          border: checked ? 'none' : '1px solid #c2b9a6',
+                          background: checked ? '#1a1714' : 'transparent',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 10px sans-serif", color: '#fff',
+                        }}>{checked ? '✓' : ''}</span>
+                        <div style={{ flex: 1, display: 'flex', justifyContent: 'space-between', gap: 10, font: "400 13px 'Iansui'" }}>
+                          <span style={{ color: '#1a1714' }}>{r.name || '（未填寫姓名）'}</span>
+                          <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{r.email}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
           </div>
@@ -146,14 +202,16 @@ export function NotifyBeansView() {
         <div style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#1a1714', padding: '16px 30px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ width: '100%', maxWidth: 840, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
             <div style={{ color: '#c2b9a6', font: "400 13px 'Iansui'", minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {selected.size === 0 ? '還沒選擇豆子' : `已選 ${selected.size} 款：${selectedCoffees.map(c => c.name).join('、')}`}
+              {selected.size === 0
+                ? '還沒選擇豆子'
+                : `已選 ${selected.size} 款：${selectedCoffees.map(c => c.name).join('、')} · ${selectedRecipients.size} 位客人`}
             </div>
             <div
               onClick={send}
               className="press"
               style={{
-                cursor: selected.size === 0 || sending ? 'default' : 'pointer',
-                opacity: selected.size === 0 || sending ? 0.5 : 1, flex: 'none',
+                cursor: selected.size === 0 || selectedRecipients.size === 0 || sending ? 'default' : 'pointer',
+                opacity: selected.size === 0 || selectedRecipients.size === 0 || sending ? 0.5 : 1, flex: 'none',
                 padding: '12px 24px', borderRadius: 12, font: "600 14px 'Iansui'", background: '#c98a2e', color: '#1a1714',
               }}
             >{sending ? '寄送中…' : '寄送合併公告信'}</div>

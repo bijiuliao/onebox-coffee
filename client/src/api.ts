@@ -110,11 +110,11 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, coffeeId }),
     }).then(res => json<{ ok: true }>(res)),
-  notifyNewBeans: (coffeeIds: string[]) =>
+  notifyNewBeans: (coffeeIds: string[], recipientEmails: string[]) =>
     fetch('/api/admin/notify-beans', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ coffeeIds }),
+      body: JSON.stringify({ coffeeIds, recipientEmails }),
     }).then(res => json<{ ok: true; beanCount: number; recipientCount: number; sent: number; failed: number }>(res)),
   listBeanCustomers: () => fetch('/api/admin/notify-beans').then(res => json<{ email: string; name: string }[]>(res)),
   deleteAdminReview: (id: number) =>

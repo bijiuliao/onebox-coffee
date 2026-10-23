@@ -47,18 +47,24 @@ export default async (req: Request) => {
   const coffeeIds = Array.isArray(body.coffeeIds) ? body.coffeeIds.filter((v: unknown): v is string => typeof v === 'string') : [];
   if (coffeeIds.length === 0) return json({ error: 'coffeeIds is required' }, 400);
 
+  // Admin picks which of the customers (see the GET preview above) actually
+  // get this one - not hardcoded to "everyone" so a smaller or test send is
+  // possible.
+  const recipientEmails = Array.isArray(body.recipientEmails)
+    ? body.recipientEmails.filter((v: unknown): v is string => typeof v === 'string' && v.length > 0)
+    : [];
+  if (recipientEmails.length === 0) return json({ error: 'recipientEmails is required' }, 400);
+
   const { rows } = await db.pool.query<CoffeeRow>('SELECT * FROM coffees WHERE id = ANY($1)', [coffeeIds]);
   if (rows.length === 0) return json({ error: 'no matching coffees found' }, 404);
 
-  const recipients = await getAllCustomers(db);
-
   const coffees = rows.map(toCoffee);
-  const result = await notifyNewBeanLaunch(coffees, recipients.map(r => r.email));
-  if (result.sent === 0 && recipients.length > 0) return json({ error: '寄送失敗，請確認寄信設定' }, 502);
+  const result = await notifyNewBeanLaunch(coffees, recipientEmails);
+  if (result.sent === 0) return json({ error: '寄送失敗，請確認寄信設定' }, 502);
 
   await db.pool.query('UPDATE coffees SET launch_notified = true WHERE id = ANY($1)', [rows.map((r: CoffeeRow) => r.id)]);
 
-  return json({ ok: true, beanCount: coffees.length, recipientCount: recipients.length, sent: result.sent, failed: result.failed });
+  return json({ ok: true, beanCount: coffees.length, recipientCount: recipientEmails.length, sent: result.sent, failed: result.failed });
 };
 
 export const config: Config = {
