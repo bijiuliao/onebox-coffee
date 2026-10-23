@@ -26,7 +26,7 @@ export function CoverScreen() {
           <div className="rise" style={{ font: "700 10px 'Space Mono'", letterSpacing: 3, color: '#3d6b4f', marginBottom: 22, animationDelay: '.05s' }}>
             SINGLE ORIGIN · HAND DRIP BAR
           </div>
-          <div className="rise" style={{ font: "600 46px/1.08 'Iansui',serif", color: '#1a1714', letterSpacing: '.01em', animationDelay: '.16s' }}>
+          <div className="rise" style={{ font: "600 46px/1.08 'Iansui',serif", color: '#1a1714', letterSpacing: '-.02em', animationDelay: '.16s' }}>
             one box&nbsp;<br />coffee
           </div>
 

@@ -268,7 +268,10 @@ export function MenuScreen() {
 
   return (
     <MobileShell wide>
-      <div style={{ position: 'sticky', top: 0, zIndex: 20, background: '#f4f1ea', padding: `20px ${PAD_X} 12px`, borderBottom: '1px solid #e4ddcd' }}>
+      <div style={{
+        position: 'sticky', top: 0, zIndex: 20, padding: `20px ${PAD_X} 12px`, borderBottom: '1px solid rgba(228,221,205,.7)',
+        background: 'rgba(244,241,234,.78)', backdropFilter: 'blur(16px) saturate(140%)', WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div onClick={() => navigate('/')} className="press" style={{ cursor: 'pointer', font: "500 19px 'Room205',serif", color: '#1a1714' }}>
             {BRAND_NAME}<span style={{ color: '#c98a2e' }}>.</span>
