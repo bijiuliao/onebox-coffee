@@ -59,7 +59,7 @@ input, textarea { font-family: inherit; }
   to { opacity: 1; transform: none; }
 }
 @keyframes successPop {
-  0% { transform: scale(0); opacity: 0; }
+  0% { transform: scale(.9); opacity: 0; }
   60% { transform: scale(1.08); opacity: 1; }
   100% { transform: scale(1); opacity: 1; }
 }
@@ -79,7 +79,7 @@ input, textarea { font-family: inherit; }
   to { transform: none; }
 }
 
-.rise { animation: rise .6s ease both; }
+.rise { animation: rise .6s cubic-bezier(.16,.8,.2,1) both; }
 .screen-in { animation: screenIn .42s cubic-bezier(.2,.7,.2,1) both; }
 .slide-in-left { animation: slideInLeft .7s cubic-bezier(.16,.8,.2,1) both; }
 .rise-from-below { animation: riseFromBelow .75s cubic-bezier(.16,.8,.2,1) both; }
@@ -98,7 +98,9 @@ input, textarea { font-family: inherit; }
 .press:active { transform: scale(.95); }
 
 .lift { transition: transform .22s ease, box-shadow .22s ease; }
-.lift:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -18px rgba(30,22,16,.4); }
+@media (hover: hover) and (pointer: fine) {
+  .lift:hover { transform: translateY(-3px); box-shadow: 0 16px 30px -18px rgba(30,22,16,.4); }
+}
 
 .row { transition: background .15s ease; }
 .row:hover { background: #f2ece0; }

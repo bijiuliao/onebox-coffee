@@ -183,7 +183,11 @@ export function DetailScreen() {
       )}
 
       {mode === 'drip' && (
-        <Reveal>
+        // Plain conditional render, not Reveal - this swaps every time the
+        // customer taps the 手沖/買豆子 toggle above (a frequent,
+        // comparison-shopping interaction), so it shouldn't replay a
+        // scroll-reveal-style entrance animation on every tap.
+        <>
           <div style={{ padding: '22px 24px 0' }}>
             <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.temperature')}</div>
             <div style={{ display: 'flex', gap: 10 }}>
@@ -201,11 +205,11 @@ export function DetailScreen() {
               ))}
             </div>
           </div>
-        </Reveal>
+        </>
       )}
 
       {mode === 'beans' && (
-        <Reveal style={{ padding: '22px 24px 0' }}>
+        <div style={{ padding: '22px 24px 0' }}>
           <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.weight')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {coffee.bagOptions.map(b => {
@@ -230,7 +234,7 @@ export function DetailScreen() {
               );
             })}
           </div>
-        </Reveal>
+        </div>
       )}
 
       <Reveal style={{ padding: '22px 24px 0' }}>
