@@ -125,6 +125,15 @@ function cheapestBagPrice(c: Coffee): number | null {
   return c.bagOptions.length ? Math.min(...c.bagOptions.map(b => b.price)) : null;
 }
 
+// Surfaces the full price spread across bag sizes on the listing card itself
+// (onyx coffee lab shows every size up front) instead of just the largest
+// bag's price, so a customer can tell at a glance that cheaper sizes exist.
+function bagPriceRange(c: Coffee): { min: number; max: number } | null {
+  if (c.bagOptions.length === 0) return null;
+  const prices = c.bagOptions.map(b => b.price);
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
 // Prefer the weight-normalized rate; if no bag label had a parseable
 // weight, fall back to comparing raw bag price rather than excluding
 // the coffee from sorting entirely.
@@ -466,6 +475,7 @@ export function MenuScreen() {
               {visibleCoffees.map(c => {
                 const soldOut = isBeansSoldOut(c);
                 const bag = largestBagOption(c);
+                const priceRange = bagPriceRange(c);
                 return (
                   <div
                     key={c.id}
@@ -488,10 +498,14 @@ export function MenuScreen() {
                     <div style={{ padding: '12px 12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>
                       <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: c.color }}>{c.originEN} · {c.roast}</div>
                       <div style={{ font: "500 17px/1.2 'Room205',serif", color: '#1a1714', marginTop: 5 }}>{c.name}</div>
-                      {bag ? (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10 }}>
-                          <span style={{ font: "400 11px 'Space Mono'", color: '#9a8a76' }}>{bag.label}</span>
-                          <span style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>${bag.price}</span>
+                      {bag && priceRange ? (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginTop: 10, paddingTop: 10, borderTop: '1px solid #ece5d6' }}>
+                          <span style={{ font: "400 11px 'Space Mono'", color: '#9a8a76' }}>
+                            {c.bagOptions.length > 1 ? t('menu.bagOptionsCount', { count: c.bagOptions.length }) : bag.label}
+                          </span>
+                          <span style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>
+                            {priceRange.min === priceRange.max ? `$${priceRange.min}` : `$${priceRange.min}–${priceRange.max}`}
+                          </span>
                         </div>
                       ) : (
                         <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 10 }}>{t('menu.noBagOptions')}</div>

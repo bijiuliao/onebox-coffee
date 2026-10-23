@@ -60,6 +60,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'common.sizeLarge': { zh: '大杯', en: 'Large' },
   'menu.noDripMatch': { zh: '沒有符合篩選條件的咖啡，試試看調整篩選條件', en: 'No coffee matches your filters — try adjusting them' },
   'menu.noBagOptions': { zh: '尚未設定零售重量', en: 'Weight options coming soon' },
+  'menu.bagOptionsCount': { zh: '{count} 種包裝可選', en: '{count} sizes available' },
   'menu.noBeansAtAll': { zh: '目前沒有開放零售的豆子', en: 'No beans available for retail right now' },
   'menu.noBeansMatch': { zh: '沒有符合篩選條件的豆子，試試看調整篩選條件', en: 'No beans match your filters — try adjusting them' },
   'menu.noSpecialsToday': { zh: '今天還沒有特調', en: 'No specials today' },
