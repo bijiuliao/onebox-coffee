@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, CartButton, LangToggle, NoteChip, Reveal } from '../components';
 import { SHOW_SCORES } from '../constants';
@@ -17,6 +17,7 @@ export function DetailScreen() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const cart = useCart();
   const { t } = useLang();
   const { showToast } = useToast();
@@ -34,7 +35,10 @@ export function DetailScreen() {
     if (!coffee) return;
     const canDrip = dripEnabled && (coffee.temps.hot || coffee.temps.ice);
     const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
-    const requested = (location.state as { mode?: Mode } | null)?.mode;
+    // location.state carries the mode when navigated to in-app (e.g. from
+    // the menu grid); a ?mode=beans query param is the fallback for a link
+    // landed on cold, like the "前往購買" link in the new-bean-launch email.
+    const requested = (location.state as { mode?: Mode } | null)?.mode ?? (searchParams.get('mode') as Mode | null);
     setMode(requested === 'beans' && canBeans ? 'beans' : canDrip ? 'drip' : 'beans');
     setTemp(coffee.temps.hot ? '熱' : '冰');
     setSize(coffee.sizes.std ? '標準' : '大杯');
@@ -44,7 +48,7 @@ export function DetailScreen() {
     const firstAvailable = coffee.bagOptions.find(b => isBagAvailable(coffee, b));
     setBagLabel((firstAvailable ?? coffee.bagOptions[0])?.label ?? null);
     setQty(1);
-  }, [coffee, location.state, dripEnabled]);
+  }, [coffee, location.state, searchParams, dripEnabled]);
 
   // Re-clamp qty whenever it would outrun the selected bag's remaining
   // stock - covers switching to a smaller-capacity bag after bumping qty up
