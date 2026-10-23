@@ -4,16 +4,19 @@ import { toCoffee, json, type CoffeeRow } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
 import { notifyNewBeanLaunch } from './lib/notify';
 
-// Shared by the GET preview and the POST send, so the admin's "who will
-// this go to" preview always matches exactly who actually gets emailed.
-async function getBeanCustomers(db: ReturnType<typeof getDb>) {
+// Every customer who's ever placed an order (same definition as
+// customers-list.mts's /api/customers), not just past bean buyers - someone
+// who's only ordered hand-drip in-store might still want to hear about a
+// new bean they could take home. Shared by the GET preview and the POST
+// send, so the admin's "who will this go to" preview always matches
+// exactly who actually gets emailed.
+async function getAllCustomers(db: ReturnType<typeof getDb>) {
   const rows = (await db.sql`
     SELECT
       customer_email,
       (ARRAY_AGG(customer_name ORDER BY created_at DESC))[1] AS latest_name
     FROM orders
     WHERE customer_email <> ''
-    AND EXISTS (SELECT 1 FROM jsonb_array_elements(items) AS item WHERE item->>'kind' = 'beans')
     GROUP BY customer_email
     ORDER BY customer_email
   `) as { customer_email: string; latest_name: string }[];
@@ -22,8 +25,8 @@ async function getBeanCustomers(db: ReturnType<typeof getDb>) {
 
 // Manual, admin-picked batch announcement: the admin selects however many
 // newly-launched beans belong together and this sends ONE combined email
-// per past-bean-customer covering all of them, instead of one email per
-// bean (see client's NotifyBeansView - this replaced an earlier design that
+// per customer covering all of them, instead of one email per bean (see
+// client's NotifyBeansView - this replaced an earlier design that
 // auto-sent on each bean's first activation, which could fire several
 // separate emails on a busy launch day).
 export default async (req: Request) => {
@@ -35,7 +38,7 @@ export default async (req: Request) => {
   if (req.method === 'GET') {
     // Recipient preview - who a send would currently go to, shown before
     // the admin commits to sending.
-    return json(await getBeanCustomers(db));
+    return json(await getAllCustomers(db));
   }
 
   if (req.method !== 'POST') return json({ error: 'method not allowed' }, 405);
@@ -47,7 +50,7 @@ export default async (req: Request) => {
   const { rows } = await db.pool.query<CoffeeRow>('SELECT * FROM coffees WHERE id = ANY($1)', [coffeeIds]);
   if (rows.length === 0) return json({ error: 'no matching coffees found' }, 404);
 
-  const recipients = await getBeanCustomers(db);
+  const recipients = await getAllCustomers(db);
 
   const coffees = rows.map(toCoffee);
   const result = await notifyNewBeanLaunch(coffees, recipients.map(r => r.email));

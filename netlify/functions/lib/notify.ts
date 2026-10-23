@@ -19,12 +19,13 @@ function absoluteCoverUrl(coverUrl: string | null): string | null {
   return coverUrl.startsWith('/') ? `${SITE_URL}${coverUrl}` : coverUrl;
 }
 
-// Best-effort "new beans" announcement to past bean customers - the admin
-// picks which beans to include and triggers this manually (see
-// admin-notify-beans.mts), so several same-day launches go out as ONE
-// combined email instead of one per bean. Sent individually per recipient
-// (not a single bulk/BCC call) so one bad address can't affect anyone
-// else's delivery, and so this never throws.
+// Best-effort "new beans" announcement to the given recipients (see
+// admin-notify-beans.mts, which sends it to every past customer - not just
+// past bean buyers). The admin picks which beans to include and triggers
+// this manually, so several same-day launches go out as ONE combined email
+// instead of one per bean. Sent individually per recipient (not a single
+// bulk/BCC call) so one bad address can't affect anyone else's delivery,
+// and so this never throws.
 export async function notifyNewBeanLaunch(coffees: CoffeeForLaunchNotify[], recipients: string[]): Promise<{ sent: number; failed: number }> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {

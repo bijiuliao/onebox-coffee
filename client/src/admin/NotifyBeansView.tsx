@@ -44,7 +44,7 @@ export function NotifyBeansView() {
     setSending(true);
     try {
       const res = await api.notifyNewBeans(Array.from(selected));
-      showToast(res.recipientCount === 0 ? '已標記，但目前沒有訂過豆子的客人可以通知' : `已寄出，共通知 ${res.recipientCount} 位客人`);
+      showToast(res.recipientCount === 0 ? '已標記，但目前沒有任何客人可以通知' : `已寄出，共通知 ${res.recipientCount} 位客人`);
       setCoffees(prev => prev && prev.map(c => (selected.has(c.id) ? { ...c, launchNotified: true } : c)));
       setSelected(new Set());
     } catch (err) {
@@ -64,7 +64,7 @@ export function NotifyBeansView() {
           <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76' }}>新豆公告 / NOTIFY BEANS</div>
         </div>
         <div style={{ font: "400 12px 'Iansui'", color: '#b0a08c', marginBottom: 22 }}>
-          勾選要一起公告的豆子，合併成一封信寄給所有訂過豆子的客人，不會一款一款分開寄
+          勾選要一起公告的豆子，合併成一封信寄給所有訂過的客人，不會一款一款分開寄
         </div>
 
         {recipients && (
@@ -75,7 +75,7 @@ export function NotifyBeansView() {
               style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px' }}
             >
               <span style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>
-                {recipients.length === 0 ? '目前沒有訂過豆子的客人' : `將會寄給 ${recipients.length} 位客人`}
+                {recipients.length === 0 ? '目前沒有任何客人' : `將會寄給 ${recipients.length} 位客人`}
               </span>
               {recipients.length > 0 && (
                 <span style={{ font: "700 11px 'Space Mono'", color: '#9a8a76' }}>{recipientsOpen ? '收合 ▲' : '查看名單 ▼'}</span>
