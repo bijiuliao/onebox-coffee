@@ -23,7 +23,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         <div
           style={{
             position: 'fixed', bottom: 40, left: '50%', transform: 'translateX(-50%)',
-            zIndex: 80, background: '#1a1714', color: '#f4f1ea', padding: '14px 22px',
+            zIndex: 80, background: '#1a1714', color: '#faf8f3', padding: '14px 22px',
             borderRadius: 16, font: "500 14px 'Iansui'", boxShadow: '0 14px 30px -12px rgba(0,0,0,.5)',
             animation: 'toastIn .3s ease both', whiteSpace: 'nowrap',
           }}

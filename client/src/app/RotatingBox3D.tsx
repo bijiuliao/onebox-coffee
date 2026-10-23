@@ -20,7 +20,7 @@ const LABEL_RECT = { x: 1040, y: 793, width: 921, height: 621 };
 // the dot left turns this face toward the camera on the right-hand side,
 // upright and not mirrored, same as the front face).
 const SIDE_LABEL_RECT = { x: 13, y: 812, width: 778, height: 532 };
-const LABEL_INK = '#f4f1ea';
+const LABEL_INK = '#faf8f3';
 
 // coffee.originEN is free-typed in the admin (plain English country name,
 // e.g. "ETHIOPIA") - COUNTRY_SHAPES keys are the source dataset's own

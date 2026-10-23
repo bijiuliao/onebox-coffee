@@ -105,7 +105,7 @@ export function CartScreen() {
 
   const seg = (active: boolean) => ({
     flex: 1, cursor: 'pointer', textAlign: 'center' as const, padding: 13, borderRadius: 14, font: "600 14px 'Iansui'",
-    background: active ? '#1a1714' : '#fff', color: active ? '#f4f1ea' : '#4a3c2e',
+    background: active ? '#1a1714' : '#fff', color: active ? '#faf8f3' : '#4a3c2e',
     border: active ? 'none' : '1px solid #e4ddcd',
   });
 
@@ -209,7 +209,7 @@ export function CartScreen() {
             <div
               onClick={checkout}
               className="press"
-              style={{ cursor: (placing || !canCheckout) ? 'default' : 'pointer', opacity: (placing || !canCheckout) ? .6 : 1, background: '#1a1714', color: '#f4f1ea', borderRadius: 20, padding: 19, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+              style={{ cursor: (placing || !canCheckout) ? 'default' : 'pointer', opacity: (placing || !canCheckout) ? .6 : 1, background: '#1a1714', color: '#faf8f3', borderRadius: 20, padding: 19, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <span style={{ font: "600 16px 'Iansui'" }}>{placing ? t('cart.placing') : t('cart.placeOrder')}</span>
               <span style={{ font: "700 11px 'Space Mono'", letterSpacing: 1, color: '#c98a2e' }}>${total} · PLACE ORDER →</span>
@@ -221,7 +221,7 @@ export function CartScreen() {
           <div style={{ font: "600 60px 'Room205'", color: '#e0d7c5' }}>∅</div>
           <div style={{ font: "600 20px 'Iansui'", color: '#1a1714', marginTop: 16 }}>{t('cart.empty.title')}</div>
           <div style={{ font: "400 14px 'Iansui'", color: '#8a7a68', marginTop: 8 }}>{t('cart.empty.subtitle')}</div>
-          <div onClick={() => navigate('/menu')} className="press" style={{ cursor: 'pointer', marginTop: 24, background: '#1a1714', color: '#f4f1ea', borderRadius: 16, padding: '14px 28px', font: "600 15px 'Iansui'" }}>{t('cart.empty.cta')}</div>
+          <div onClick={() => navigate('/menu')} className="press" style={{ cursor: 'pointer', marginTop: 24, background: '#1a1714', color: '#faf8f3', borderRadius: 16, padding: '14px 28px', font: "600 15px 'Iansui'" }}>{t('cart.empty.cta')}</div>
         </div>
       )}
     </MobileShell>

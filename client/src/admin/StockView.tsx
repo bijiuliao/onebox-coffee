@@ -54,7 +54,7 @@ export function StockView() {
   const totalRevenue = rows.reduce((sum, r) => sum + r.soldRevenue, 0);
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="stock" />
       <div style={{ maxWidth: 900, minWidth: 600, margin: '0 auto', padding: '30px 30px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -109,7 +109,7 @@ export function StockView() {
               ))}
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderRadius: 14, background: '#1a1714', color: '#f4f1ea' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderRadius: 14, background: '#1a1714', color: '#faf8f3' }}>
               <span style={{ font: "600 13px 'Iansui'" }}>豆子零售總銷售額</span>
               <span style={{ font: "600 22px 'Room205'" }}>${totalRevenue}</span>
             </div>

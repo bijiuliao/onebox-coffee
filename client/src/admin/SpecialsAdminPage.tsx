@@ -25,7 +25,7 @@ export function SpecialsAdminPage() {
 
   if (!specials || specials.length === 0 || !selectedId) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f4f1ea', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: '#faf8f3', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
         <AdminTopBar active="specials" />
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 0', color: '#9a8a76' }}>
           {specials === null ? (
@@ -40,7 +40,7 @@ export function SpecialsAdminPage() {
                   setSelectedId(created.id);
                 }}
                 className="press"
-                style={{ cursor: 'pointer', background: '#1a1714', color: '#f4f1ea', borderRadius: 11, padding: '12px 22px', font: "600 14px 'Iansui'" }}
+                style={{ cursor: 'pointer', background: '#1a1714', color: '#faf8f3', borderRadius: 11, padding: '12px 22px', font: "600 14px 'Iansui'" }}
               >
                 ＋ 新增特調
               </div>
@@ -119,7 +119,7 @@ export function SpecialsAdminPage() {
 
   const pillStyle = (active: boolean, accent: string) => ({
     cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '11px 18px', borderRadius: 12,
-    font: "600 14px 'Iansui'", background: active ? accent : '#f4f1ea', color: active ? '#fff' : '#8a7a68',
+    font: "600 14px 'Iansui'", background: active ? accent : '#faf8f3', color: active ? '#fff' : '#8a7a68',
     border: active ? 'none' : '1px solid #e2dac9',
   });
 
@@ -127,7 +127,7 @@ export function SpecialsAdminPage() {
   const sectionTitle = { font: "700 11px 'Space Mono'", letterSpacing: 3, color: '#1a1714', whiteSpace: 'nowrap' as const, marginBottom: 18 };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="specials" />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1380, minWidth: 1200, margin: '0 auto' }}>
@@ -137,7 +137,7 @@ export function SpecialsAdminPage() {
               <span style={{ font: "600 17px 'Iansui'" }}>特調</span>
               <span style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{specials.length} 款</span>
             </div>
-            <div onClick={addSpecial} className="press" style={{ cursor: 'pointer', marginTop: 14, background: '#1a1714', color: '#f4f1ea', borderRadius: 11, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: "600 14px 'Iansui'" }}>
+            <div onClick={addSpecial} className="press" style={{ cursor: 'pointer', marginTop: 14, background: '#1a1714', color: '#faf8f3', borderRadius: 11, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: "600 14px 'Iansui'" }}>
               <span style={{ font: "400 18px 'Room205'" }}>＋</span> 新增特調
             </div>
           </div>
@@ -212,7 +212,7 @@ export function SpecialsAdminPage() {
                     key={c}
                     onClick={() => patch({ color: c })}
                     className="press"
-                    style={{ cursor: 'pointer', width: 34, height: 34, borderRadius: 10, background: c, boxShadow: c === sel.color ? `0 0 0 3px #f4f1ea, 0 0 0 5px ${c}` : 'none' }}
+                    style={{ cursor: 'pointer', width: 34, height: 34, borderRadius: 10, background: c, boxShadow: c === sel.color ? `0 0 0 3px #faf8f3, 0 0 0 5px ${c}` : 'none' }}
                   />
                 ))}
               </div>
@@ -249,7 +249,7 @@ export function SpecialsAdminPage() {
 
         <div style={{ width: 372, flex: 'none', position: 'sticky', top: 62, height: 'calc(100vh - 62px)', overflowY: 'auto', borderLeft: '1px solid #e4ddcd', background: '#efe9dd', padding: '24px 22px' }}>
           <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 14 }}>即時預覽 / LIVE PREVIEW</div>
-          <div style={{ borderRadius: 22, overflow: 'hidden', background: '#f4f1ea', boxShadow: '0 20px 40px -22px rgba(30,22,16,.45)', border: '1px solid #e4ddcd' }}>
+          <div style={{ borderRadius: 22, overflow: 'hidden', background: '#faf8f3', boxShadow: '0 20px 40px -22px rgba(30,22,16,.45)', border: '1px solid #e4ddcd' }}>
             <div style={{ padding: 18, background: soft(sel.color) }}>
               <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: sel.color }}>SPECIAL · 特調</span>
             </div>
@@ -261,7 +261,7 @@ export function SpecialsAdminPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 18 }}>
                 <span style={{ font: "600 24px 'Room205'", color: '#1a1714' }}>${sel.price}</span>
-                <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>加入購物車</div>
+                <div style={{ background: '#1a1714', color: '#faf8f3', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>加入購物車</div>
               </div>
             </div>
           </div>

@@ -60,7 +60,7 @@ export function OrdersView() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="orders" />
       <div style={{ maxWidth: 900, minWidth: 600, margin: '0 auto', padding: '30px 30px 80px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 20 }}>
@@ -81,7 +81,7 @@ export function OrdersView() {
               style={{
                 cursor: 'pointer', font: "600 12px 'Iansui'", padding: '7px 16px', borderRadius: 20,
                 background: filter === tab.key ? '#1a1714' : '#fff',
-                color: filter === tab.key ? '#f4f1ea' : '#8a7a68',
+                color: filter === tab.key ? '#faf8f3' : '#8a7a68',
                 border: '1px solid ' + (filter === tab.key ? '#1a1714' : '#ece5d6'),
               }}
             >{tab.label}</div>
@@ -101,7 +101,7 @@ export function OrdersView() {
               style={{
                 cursor: 'pointer', font: "600 12px 'Iansui'", padding: '7px 16px', borderRadius: 20,
                 background: paidFilter === tab.key ? '#3d6b4f' : '#fff',
-                color: paidFilter === tab.key ? '#f4f1ea' : '#8a7a68',
+                color: paidFilter === tab.key ? '#faf8f3' : '#8a7a68',
                 border: '1px solid ' + (paidFilter === tab.key ? '#3d6b4f' : '#ece5d6'),
               }}
             >{tab.label}</div>
@@ -123,7 +123,7 @@ export function OrdersView() {
         )}
 
         {visible && visible.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderRadius: 14, background: '#1a1714', color: '#f4f1ea', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 20px', borderRadius: 14, background: '#1a1714', color: '#faf8f3', marginBottom: 20 }}>
             <span style={{ font: "600 13px 'Iansui'" }}>豆子銷售額（目前篩選）</span>
             <span style={{ font: "600 20px 'Room205'" }}>${beansTotal}</span>
           </div>
@@ -189,7 +189,7 @@ export function OrdersView() {
                       opacity: togglingId === order.id ? 0.5 : 1,
                       font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
                       background: order.fulfilled ? '#fff' : '#1a1714',
-                      color: order.fulfilled ? '#8a7a68' : '#f4f1ea',
+                      color: order.fulfilled ? '#8a7a68' : '#faf8f3',
                       border: '1px solid ' + (order.fulfilled ? '#ece5d6' : '#1a1714'),
                     }}
                   >{order.fulfilled ? '標記為待出貨' : (order.orderType === '外送' ? '標記為已送達' : '標記為已取走')}</div>
@@ -201,7 +201,7 @@ export function OrdersView() {
                       opacity: togglingId === order.id ? 0.5 : 1,
                       font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
                       background: order.paid ? '#fff' : '#3d6b4f',
-                      color: order.paid ? '#8a7a68' : '#f4f1ea',
+                      color: order.paid ? '#8a7a68' : '#faf8f3',
                       border: '1px solid ' + (order.paid ? '#ece5d6' : '#3d6b4f'),
                     }}
                   >{order.paid ? '標記為未付款' : '標記為已付款'}</div>

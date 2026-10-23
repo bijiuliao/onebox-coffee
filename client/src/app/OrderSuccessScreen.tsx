@@ -42,7 +42,7 @@ export function OrderSuccessScreen() {
   if (!state) return null;
 
   return (
-    <MobileShell style={{ background: 'radial-gradient(115% 80% at 50% 30%,#fbf8f1 0%,#f1ebdd 55%,#e9e1cf 100%)' }}>
+    <MobileShell style={{ background: 'radial-gradient(115% 80% at 50% 30%,#fcfaf6 0%,#f7f3ec 55%,#f2ece0 100%)' }}>
       <div
         onClick={() => navigate('/', { replace: true })}
         style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', cursor: 'pointer', padding: '0 30px' }}

@@ -10,7 +10,7 @@ export function CoverScreen() {
   const enter = () => navigate('/menu');
 
   return (
-    <MobileShell style={{ background: 'radial-gradient(115% 80% at 50% 12%,#fbf8f1 0%,#f1ebdd 55%,#e9e1cf 100%)' }}>
+    <MobileShell style={{ background: 'radial-gradient(115% 80% at 50% 12%,#fcfaf6 0%,#f7f3ec 55%,#f2ece0 100%)' }}>
       <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '100vh', padding: '0 30px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '24px 0 0' }}>
           <div style={{ font: "500 21px 'Room205',serif", color: '#1a1714', letterSpacing: '-.01em' }}>
@@ -59,7 +59,7 @@ export function CoverScreen() {
           onClick={enter}
           className="press rise"
           style={{
-            cursor: 'pointer', margin: '0 0 30px', background: '#1a1714', color: '#f4f1ea', borderRadius: 20,
+            cursor: 'pointer', margin: '0 0 30px', background: '#1a1714', color: '#faf8f3', borderRadius: 20,
             padding: 19, display: 'flex', justifyContent: 'space-between', alignItems: 'center', animationDelay: '.54s',
           }}
         >

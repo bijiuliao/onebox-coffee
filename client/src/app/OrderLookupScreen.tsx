@@ -92,7 +92,7 @@ export function OrderLookupScreen() {
             className="press"
             style={{
               cursor: searching ? 'default' : 'pointer', opacity: searching ? .6 : 1, textAlign: 'center',
-              marginTop: 4, padding: 14, borderRadius: 14, background: '#1a1714', color: '#f4f1ea', font: "600 15px 'Iansui'",
+              marginTop: 4, padding: 14, borderRadius: 14, background: '#1a1714', color: '#faf8f3', font: "600 15px 'Iansui'",
             }}
           >
             {searching ? t('lookup.searching') : t('lookup.submit')}

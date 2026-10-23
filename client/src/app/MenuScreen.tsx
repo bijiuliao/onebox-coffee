@@ -24,7 +24,7 @@ function PillOptions<T extends string>({ options, value, onChange }: {
           style={{
             padding: '9px 16px', borderRadius: 22, font: "600 13px 'Iansui'",
             background: value === o.key ? '#1a1714' : '#fff',
-            color: value === o.key ? '#f4f1ea' : '#4a3c2e',
+            color: value === o.key ? '#faf8f3' : '#4a3c2e',
             border: value === o.key ? 'none' : '1px solid #e4ddcd',
           }}
         >
@@ -312,7 +312,7 @@ export function MenuScreen() {
     <MobileShell wide>
       <div style={{
         position: 'sticky', top: 0, zIndex: 20, padding: `20px ${PAD_X} 12px`, borderBottom: '1px solid rgba(228,221,205,.7)',
-        background: 'rgba(244,241,234,.78)', backdropFilter: 'blur(16px) saturate(140%)', WebkitBackdropFilter: 'blur(16px) saturate(140%)',
+        background: 'rgba(250,248,243,.78)', backdropFilter: 'blur(16px) saturate(140%)', WebkitBackdropFilter: 'blur(16px) saturate(140%)',
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div onClick={() => navigate('/')} className="press" style={{ cursor: 'pointer', font: "500 19px 'Room205',serif", color: '#1a1714' }}>
@@ -337,7 +337,7 @@ export function MenuScreen() {
             style={{
               flex: 1, textAlign: 'center', padding: '11px 8px', borderRadius: 14, font: "600 13px 'Iansui'",
               background: category === c.key ? '#1a1714' : '#fff',
-              color: category === c.key ? '#f4f1ea' : '#4a3c2e',
+              color: category === c.key ? '#faf8f3' : '#4a3c2e',
               border: category === c.key ? 'none' : '1px solid #e4ddcd',
             }}
           >
@@ -369,12 +369,12 @@ export function MenuScreen() {
             style={{
               cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, padding: '10px 18px', borderRadius: 22,
               background: filterOpen ? '#1a1714' : '#fff', border: filterOpen ? 'none' : '1px solid #e4ddcd',
-              font: "700 12px 'Space Mono'", letterSpacing: 1, color: filterOpen ? '#f4f1ea' : '#4a3c2e', transition: 'all .2s ease',
+              font: "700 12px 'Space Mono'", letterSpacing: 1, color: filterOpen ? '#faf8f3' : '#4a3c2e', transition: 'all .2s ease',
             }}
           >
             {t('filter.button')}
             {activeFilterCount > 0 && (
-              <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: filterOpen ? '#f4f1ea' : '#1a1714', color: filterOpen ? '#1a1714' : '#fff', font: "700 10px 'Space Mono'", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <span style={{ minWidth: 18, height: 18, padding: '0 4px', borderRadius: 9, background: filterOpen ? '#faf8f3' : '#1a1714', color: filterOpen ? '#1a1714' : '#fff', font: "700 10px 'Space Mono'", display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {activeFilterCount}
               </span>
             )}
@@ -385,7 +385,7 @@ export function MenuScreen() {
       {filterOpen && createPortal(
         <div className="mobile-shell mobile-shell-wide" style={{ position: 'fixed', inset: 0, margin: '0 auto', zIndex: 40, overflow: 'hidden' }}>
           <div onClick={() => setFilterOpen(false)} className="filter-backdrop" style={{ position: 'absolute', inset: 0, background: 'rgba(26,23,20,.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />
-          <div className="filter-drawer" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '80%', maxWidth: 360, background: '#f4f1ea', zIndex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '24px 0 50px -20px rgba(30,22,16,.4)' }}>
+          <div className="filter-drawer" style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: '80%', maxWidth: 360, background: '#faf8f3', zIndex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '24px 0 50px -20px rgba(30,22,16,.4)' }}>
             <div style={{ padding: '22px 22px 16px', borderBottom: '1px solid #e4ddcd' }}>
               <span style={{ font: "700 18px 'Iansui'" }}>{t('filter.title')}</span>
               <div style={{ font: "600 12px 'Space Mono'", color: '#9a8a76', marginTop: 6 }}>{t('filter.results', { count: visibleCoffees.length })}</div>
@@ -422,7 +422,7 @@ export function MenuScreen() {
                   {t('filter.clearAll')}
                 </div>
               )}
-              <div onClick={() => setFilterOpen(false)} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', background: '#1a1714', color: '#f4f1ea', borderRadius: 16, padding: 16, font: "600 15px 'Iansui'" }}>
+              <div onClick={() => setFilterOpen(false)} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', background: '#1a1714', color: '#faf8f3', borderRadius: 16, padding: 16, font: "600 15px 'Iansui'" }}>
                 {t('filter.done')}
               </div>
             </div>

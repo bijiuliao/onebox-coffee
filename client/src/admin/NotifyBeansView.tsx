@@ -80,7 +80,7 @@ export function NotifyBeansView() {
   const selectedCoffees = (coffees ?? []).filter(c => selected.has(c.id));
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="notify-beans" />
       <div style={{ maxWidth: 900, minWidth: 600, margin: '0 auto', padding: '30px 30px 100px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>

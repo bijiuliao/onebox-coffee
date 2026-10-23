@@ -36,7 +36,7 @@ export function AdminPage() {
   }, []);
 
   if (!beans) {
-    return <div style={{ minHeight: '100vh', background: '#f4f1ea', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9a8a76' }}>載入中…</div>;
+    return <div style={{ minHeight: '100vh', background: '#faf8f3', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#9a8a76' }}>載入中…</div>;
   }
 
   const switchView = (v: 'active' | 'archived') => {
@@ -166,14 +166,14 @@ export function AdminPage() {
           <span style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{beans.length} 款</span>
         </div>
         <div style={{ display: 'flex', gap: 6, marginTop: 14 }}>
-          <div onClick={() => switchView('active')} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 10, font: "600 12px 'Iansui'", background: viewFilter === 'active' ? '#1a1714' : '#fff', color: viewFilter === 'active' ? '#f4f1ea' : '#8a7a68', border: viewFilter === 'active' ? 'none' : '1px solid #e2dac9' }}>
+          <div onClick={() => switchView('active')} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 10, font: "600 12px 'Iansui'", background: viewFilter === 'active' ? '#1a1714' : '#fff', color: viewFilter === 'active' ? '#faf8f3' : '#8a7a68', border: viewFilter === 'active' ? 'none' : '1px solid #e2dac9' }}>
             使用中 {activeBeans.length}
           </div>
-          <div onClick={() => switchView('archived')} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 10, font: "600 12px 'Iansui'", background: viewFilter === 'archived' ? '#1a1714' : '#fff', color: viewFilter === 'archived' ? '#f4f1ea' : '#8a7a68', border: viewFilter === 'archived' ? 'none' : '1px solid #e2dac9' }}>
+          <div onClick={() => switchView('archived')} className="press" style={{ cursor: 'pointer', flex: 1, textAlign: 'center', padding: '9px 6px', borderRadius: 10, font: "600 12px 'Iansui'", background: viewFilter === 'archived' ? '#1a1714' : '#fff', color: viewFilter === 'archived' ? '#faf8f3' : '#8a7a68', border: viewFilter === 'archived' ? 'none' : '1px solid #e2dac9' }}>
             封存 {archivedBeans.length}
           </div>
         </div>
-        <div onClick={addBean} className="press" style={{ cursor: 'pointer', marginTop: 10, background: '#1a1714', color: '#f4f1ea', borderRadius: 11, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: "600 14px 'Iansui'" }}>
+        <div onClick={addBean} className="press" style={{ cursor: 'pointer', marginTop: 10, background: '#1a1714', color: '#faf8f3', borderRadius: 11, padding: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, font: "600 14px 'Iansui'" }}>
           <span style={{ font: "400 18px 'Room205'" }}>＋</span> 新增豆款
         </div>
       </div>
@@ -206,7 +206,7 @@ export function AdminPage() {
 
   if (!sel) {
     return (
-      <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+      <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
         <AdminTopBar active="beans" />
         <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1380, minWidth: 1200, margin: '0 auto' }}>
           {sidebar}
@@ -289,7 +289,7 @@ export function AdminPage() {
 
   const pillStyle = (active: boolean, accent: string) => ({
     cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 7, padding: '11px 18px', borderRadius: 12,
-    font: "600 14px 'Iansui'", background: active ? accent : '#f4f1ea', color: active ? '#fff' : '#8a7a68',
+    font: "600 14px 'Iansui'", background: active ? accent : '#faf8f3', color: active ? '#fff' : '#8a7a68',
     border: active ? 'none' : '1px solid #e2dac9',
   });
 
@@ -319,7 +319,7 @@ export function AdminPage() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="beans" />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1380, minWidth: 1200, margin: '0 auto' }}>
@@ -334,7 +334,7 @@ export function AdminPage() {
                   {sel.active ? '● 上架中' : '○ 未上架'}
                 </div>
               )}
-              <div onClick={toggleArchived} className="press" style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '11px 16px', borderRadius: 11, font: "600 13px 'Iansui'", background: sel.archived ? '#efe7d8' : '#f4f1ea', color: '#8a7a68', border: '1px solid #e2dac9' }}>
+              <div onClick={toggleArchived} className="press" style={{ cursor: 'pointer', whiteSpace: 'nowrap', padding: '11px 16px', borderRadius: 11, font: "600 13px 'Iansui'", background: sel.archived ? '#efe7d8' : '#faf8f3', color: '#8a7a68', border: '1px solid #e2dac9' }}>
                 {sel.archived ? '↺ 取消封存' : '🗄 封存'}
               </div>
               <div onClick={save} className="press" style={{ cursor: 'pointer', background: '#3d6b4f', color: '#fff', borderRadius: 11, padding: '11px 22px', font: "600 14px 'Iansui'" }}>儲存</div>
@@ -367,7 +367,7 @@ export function AdminPage() {
                 className="press"
                 style={{
                   cursor: importing ? 'default' : 'pointer', whiteSpace: 'nowrap', padding: '11px 18px', borderRadius: 10,
-                  font: "600 13px 'Iansui'", background: '#1a1714', color: '#f4f1ea', opacity: importing || !importUrl.trim() ? .5 : 1,
+                  font: "600 13px 'Iansui'", background: '#1a1714', color: '#faf8f3', opacity: importing || !importUrl.trim() ? .5 : 1,
                 }}
               >
                 {importing ? '抓取中…' : '抓取並填入'}
@@ -393,7 +393,7 @@ export function AdminPage() {
                 className="press"
                 style={{
                   cursor: loffeelabsLoading ? 'default' : 'pointer', whiteSpace: 'nowrap', padding: '11px 18px', borderRadius: 10,
-                  font: "600 13px 'Iansui'", background: '#1a1714', color: '#f4f1ea', opacity: loffeelabsLoading || !loffeelabsRoaster.trim() ? .5 : 1,
+                  font: "600 13px 'Iansui'", background: '#1a1714', color: '#faf8f3', opacity: loffeelabsLoading || !loffeelabsRoaster.trim() ? .5 : 1,
                 }}
               >
                 {loffeelabsLoading ? '搜尋中…' : '搜尋'}
@@ -468,7 +468,7 @@ export function AdminPage() {
                       style={{
                         cursor: loffeelabsSelected ? 'pointer' : 'default', marginTop: 10, textAlign: 'center',
                         padding: '11px 18px', borderRadius: 10, font: "600 13px 'Iansui'",
-                        background: '#1a1714', color: '#f4f1ea', opacity: loffeelabsSelected ? 1 : .5,
+                        background: '#1a1714', color: '#faf8f3', opacity: loffeelabsSelected ? 1 : .5,
                       }}
                     >
                       匯入選取的豆子
@@ -546,7 +546,7 @@ export function AdminPage() {
                     key={c}
                     onClick={() => patch({ color: c })}
                     className="press"
-                    style={{ cursor: 'pointer', width: 34, height: 34, borderRadius: 10, background: c, boxShadow: c === sel.color ? `0 0 0 3px #f4f1ea, 0 0 0 5px ${c}` : 'none' }}
+                    style={{ cursor: 'pointer', width: 34, height: 34, borderRadius: 10, background: c, boxShadow: c === sel.color ? `0 0 0 3px #faf8f3, 0 0 0 5px ${c}` : 'none' }}
                   />
                 ))}
               </div>
@@ -715,7 +715,7 @@ export function AdminPage() {
                     placeholder="380"
                     style={{ width: 100, padding: '9px 12px', border: '1px dashed #d3c9b6', borderRadius: 10, background: '#fff', font: "400 13px 'Iansui'", color: '#1a1714', outline: 'none' }}
                   />
-                  <div onClick={addBag} className="press" style={{ cursor: 'pointer', padding: '9px 16px', borderRadius: 10, background: '#1a1714', color: '#f4f1ea', font: "600 13px 'Iansui'", whiteSpace: 'nowrap' }}>新增</div>
+                  <div onClick={addBag} className="press" style={{ cursor: 'pointer', padding: '9px 16px', borderRadius: 10, background: '#1a1714', color: '#faf8f3', font: "600 13px 'Iansui'", whiteSpace: 'nowrap' }}>新增</div>
                 </div>
               </div>
             )}
@@ -734,8 +734,8 @@ export function AdminPage() {
 
         <div style={{ width: 372, flex: 'none', position: 'sticky', top: 62, height: 'calc(100vh - 62px)', overflowY: 'auto', borderLeft: '1px solid #e4ddcd', background: '#efe9dd', padding: '24px 22px' }}>
           <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 14 }}>即時預覽 / LIVE PREVIEW</div>
-          <div style={{ borderRadius: 22, overflow: 'hidden', background: '#f4f1ea', boxShadow: '0 20px 40px -22px rgba(30,22,16,.45)', border: '1px solid #e4ddcd' }}>
-            <div style={{ padding: 22, background: `linear-gradient(180deg,${soft(sel.color)} 0%,#f4f1ea 100%)` }}>
+          <div style={{ borderRadius: 22, overflow: 'hidden', background: '#faf8f3', boxShadow: '0 20px 40px -22px rgba(30,22,16,.45)', border: '1px solid #e4ddcd' }}>
+            <div style={{ padding: 22, background: `linear-gradient(180deg,${soft(sel.color)} 0%,#faf8f3 100%)` }}>
               <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: sel.color }}>{sel.originEN}</div>
               <div style={{ font: "500 30px/1.1 'Room205',serif", color: '#1a1714', marginTop: 8 }}>{sel.name}</div>
               <div style={{ display: 'inline-flex', marginTop: 12, padding: '4px 11px', borderRadius: 20, background: sel.color, color: '#fff', font: "700 11px 'Space Mono'" }}>⌾ CUP {sel.score}</div>
@@ -763,7 +763,7 @@ export function AdminPage() {
                     {/* This card is the hand-drip preview - stock no longer
                         gates drip (only retail bean bags), so the button here
                         is never greyed out by stockQty. */}
-                    <div style={{ background: '#1a1714', color: '#f4f1ea', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>
+                    <div style={{ background: '#1a1714', color: '#faf8f3', borderRadius: 12, padding: '11px 18px', font: "600 13px 'Iansui'" }}>
                       加入購物車
                     </div>
                   </div>

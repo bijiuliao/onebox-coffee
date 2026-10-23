@@ -283,7 +283,7 @@ export function DetailScreen() {
           className="press"
           style={{
             cursor: unavailable ? 'default' : 'pointer', opacity: unavailable ? .5 : 1,
-            background: '#1a1714', color: '#f4f1ea', borderRadius: 20, padding: '18px 22px',
+            background: '#1a1714', color: '#faf8f3', borderRadius: 20, padding: '18px 22px',
             display: 'flex', justifyContent: 'space-between', alignItems: 'center',
           }}
         >

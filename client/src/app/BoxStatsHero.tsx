@@ -428,7 +428,7 @@ export function BoxStatsHero({
                 <span style={{
                   width: 24, height: 24, borderRadius: '50%', background: '#1a1714',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  font: "400 10px 'Space Mono'", color: '#f4f1ea', letterSpacing: 2,
+                  font: "400 10px 'Space Mono'", color: '#faf8f3', letterSpacing: 2,
                 }}>
                   &lt;&gt;
                 </span>

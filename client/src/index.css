@@ -19,7 +19,9 @@ html, body, #root { height: 100%; }
 
 body {
   margin: 0;
-  background: #e7e2d8;
+  /* Matches the shell's own background (AppShell.tsx) so wide viewports
+     show no seam between the page and the margin outside it. */
+  background: #faf8f3;
   font-family: 'Iansui', 'Archivo', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   color: #1a1714;
@@ -111,7 +113,7 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
 .catimg { transition: transform .5s cubic-bezier(.2,.7,.2,1); }
 
 ::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-thumb { background: #d8cfbd; border-radius: 6px; border: 3px solid #f4f1ea; }
+::-webkit-scrollbar-thumb { background: #d8cfbd; border-radius: 6px; border: 3px solid #faf8f3; }
 
 /* Promo marquee above the header - two identical copies back-to-back inside
    .ticker-track so translateX(-50%) always wraps seamlessly, however long
@@ -119,7 +121,7 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
 .ticker { background: #1a1714; overflow: hidden; }
 .ticker-track { display: flex; width: max-content; animation: ticker-scroll 24s linear infinite; }
 .ticker:hover .ticker-track { animation-play-state: paused; }
-.ticker-seg { display: flex; align-items: center; flex: none; padding: 10px 0; white-space: nowrap; font: 700 10px 'Space Mono', monospace; letter-spacing: 1.5px; color: #f4f1ea; text-transform: uppercase; }
+.ticker-seg { display: flex; align-items: center; flex: none; padding: 10px 0; white-space: nowrap; font: 700 10px 'Space Mono', monospace; letter-spacing: 1.5px; color: #faf8f3; text-transform: uppercase; }
 @keyframes ticker-scroll { from { transform: translateX(0); } to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }

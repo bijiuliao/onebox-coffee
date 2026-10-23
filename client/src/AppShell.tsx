@@ -17,7 +17,7 @@ export function MobileShell({ children, style, wide }: { children: ReactNode; st
         style={{
           margin: '0 auto',
           minHeight: '100vh',
-          background: '#f4f1ea',
+          background: '#faf8f3',
           position: 'relative',
           ...style,
         }}

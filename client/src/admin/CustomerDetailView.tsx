@@ -58,7 +58,7 @@ export function CustomerDetailView() {
     : [];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f1ea', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="customers" />
       <div style={{ maxWidth: 900, minWidth: 600, margin: '0 auto', padding: '30px 30px 80px' }}>
         <div
@@ -123,7 +123,7 @@ export function CustomerDetailView() {
                     className="press"
                     style={{
                       cursor: sending ? 'default' : 'pointer', opacity: sending ? 0.5 : 1, flex: 'none',
-                      padding: '10px 18px', borderRadius: 10, font: "600 13px 'Iansui'", background: '#1a1714', color: '#f4f1ea',
+                      padding: '10px 18px', borderRadius: 10, font: "600 13px 'Iansui'", background: '#1a1714', color: '#faf8f3',
                     }}
                   >{sending ? '寄送中…' : '寄送通知'}</div>
                 </div>
