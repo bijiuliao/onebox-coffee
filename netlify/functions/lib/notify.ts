@@ -210,3 +210,68 @@ export async function notifyCustomerOrderConfirmation(order: OrderForNotify) {
     console.error('notifyCustomerOrderConfirmation: failed to send', err);
   }
 }
+
+interface FeedbackCoffee {
+  name: string;
+  token: string;
+}
+
+// 30-days-later "how was it" follow-up (see feedback-reminder.mts). Each
+// coffee in the order gets its own row of 5 one-click star links - no form
+// to fill in, since most email clients can't submit one anyway. Clicking a
+// star hits GET /api/feedback?token=...&rating=N directly, which both
+// records the rating and shows a thank-you page - see feedback.mts.
+export async function notifyFeedbackRequest(customerName: string, customerEmail: string, orderId: number, coffees: FeedbackCoffee[]): Promise<boolean> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
+    console.warn('notifyFeedbackRequest: RESEND_API_KEY not set, skipping email notification');
+    return false;
+  }
+  if (coffees.length === 0) return false;
+
+  const coffeeBlocks = coffees.map(c => {
+    const stars = [1, 2, 3, 4, 5].map(n => {
+      const url = `${SITE_URL}/api/feedback?token=${encodeURIComponent(c.token)}&rating=${n}`;
+      return `<a href="${url}" style="text-decoration:none;color:#c98a2e;font-size:26px;padding:0 2px">${'★'.repeat(n)}${'☆'.repeat(5 - n)}</a>`;
+    });
+    // Each link is the FULL star row at its own rating (1 star ... 5 stars),
+    // stacked so tapping one visually-correct row is a single click, not a
+    // picker - simplest thing that works in plain HTML email.
+    return `
+      <div style="margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #ece5d6">
+        <p style="margin:0 0 10px;font-weight:bold">${escapeHtml(c.name)}</p>
+        <div style="display:flex;flex-direction:column;gap:4px">${stars.map(s => `<div>${s}</div>`).join('')}</div>
+      </div>
+    `;
+  }).join('');
+
+  const html = `
+    <div style="font-family:sans-serif;color:#1a1714;max-width:480px">
+      <h2 style="margin:0 0 6px">☕ ${escapeHtml(customerName)}，上次買的豆子還喜歡嗎？</h2>
+      <p style="margin:0 0 20px;color:#4a3c2e">訂單 #${orderId} 大概是一個月前的事了，點一下星星幫這支豆子評分，一秒完成：</p>
+      ${coffeeBlocks}
+      <p style="margin-top:4px;color:#8a7a68">評分會直接顯示在商品頁的公開評分上，謝謝你的回饋 🙏</p>
+    </div>
+  `;
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'onebox coffee <order@oneboxcoffee.app>',
+        to: [customerEmail],
+        subject: `☕ 這支豆子你還喜歡嗎？（訂單 #${orderId}）`,
+        html,
+      }),
+    });
+    if (!res.ok) {
+      console.error('notifyFeedbackRequest: Resend API error', res.status, await res.text().catch(() => ''));
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.error('notifyFeedbackRequest: failed to send', err);
+    return false;
+  }
+}
