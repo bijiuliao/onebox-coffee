@@ -348,7 +348,14 @@ export function MenuScreen() {
 
       <div className="rise" style={{ padding: `20px ${PAD_X} 6px`, animationDelay: '.08s' }}>
         <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#8a7a68' }}>{title.eyebrow}</div>
-        <div style={{ font: "600 34px/1.1 'Iansui',serif", color: '#1a1714', marginTop: 10 }}>{title.heading[0]}<br />{title.heading[1]}</div>
+        <div style={{
+          font: category === 'beans' ? "600 34px/1.1 'Room205',serif" : "600 34px/1.1 'Iansui',serif",
+          letterSpacing: category === 'beans' ? '-.02em' : undefined,
+          color: '#1a1714', marginTop: 10,
+        }}>
+          {title.heading[0]}
+          {title.heading[1] && <><br />{title.heading[1]}</>}
+        </div>
         {category === 'history' && (
           <div style={{ font: "400 13px 'Iansui'", color: '#9a8a76', marginTop: 10 }}>{t('menu.historyHint')}</div>
         )}
