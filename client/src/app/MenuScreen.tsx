@@ -6,7 +6,7 @@ import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isBeansSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
-import { useArchivedCoffees, useCoffees, useSettings, useSpecials } from '../useCoffees';
+import { useArchivedCoffees, useCoffees, useLeaderboard, useSettings, useSpecials } from '../useCoffees';
 import type { BagOption, Coffee } from '../types';
 
 function PillOptions<T extends string>({ options, value, onChange }: {
@@ -195,6 +195,8 @@ export function MenuScreen() {
   const { specials } = useSpecials();
   const { coffees: archivedCoffees } = useArchivedCoffees();
   const { settings } = useSettings();
+  const { leaderboard } = useLeaderboard();
+  const leaderTeaser = leaderboard?.[0];
   const dripEnabled = settings?.dripEnabled ?? true;
   const [searchParams, setSearchParams] = useSearchParams();
   // Returning from a coffee's detail page (via its back button) restores
@@ -322,13 +324,35 @@ export function MenuScreen() {
             <div onClick={() => navigate('/order-lookup')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
               {t('lookup.entryLink')}
             </div>
-            <div onClick={() => navigate('/leaderboard')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
-              {t('leaderboard.entryLink')}
-            </div>
             <LangToggle />
             <CartButton count={cart.count} onClick={() => navigate('/cart')} />
           </div>
         </div>
+      </div>
+
+      <div
+        onClick={() => navigate('/leaderboard')}
+        className="press lift rise"
+        style={{
+          cursor: 'pointer', margin: `16px ${PAD_X} 0`, padding: '15px 18px', borderRadius: 20,
+          display: 'flex', alignItems: 'center', gap: 14,
+          background: 'linear-gradient(120deg,#c98a2e,#e0a84f)', boxShadow: '0 16px 30px -18px rgba(201,138,46,.6)',
+          animationDelay: '.02s',
+        }}
+      >
+        <span style={{
+          flex: 'none', width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.22)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 19px 'Iansui'", color: '#fff',
+        }}>
+          王
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ font: "700 15px 'Iansui'", color: '#fff' }}>{t('leaderboard.bannerTitle')}</div>
+          <div style={{ font: "400 12px 'Iansui'", color: 'rgba(255,255,255,.88)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {leaderTeaser ? t('leaderboard.bannerTeaser', { name: leaderTeaser.name, amount: leaderTeaser.totalSpent }) : t('leaderboard.bannerTeaserEmpty')}
+          </div>
+        </div>
+        <span style={{ flex: 'none', font: "700 18px 'Room205'", color: '#fff' }}>→</span>
       </div>
 
       <div className="rise" style={{ display: 'flex', gap: 8, padding: `18px ${PAD_X} 0`, maxWidth: 560, animationDelay: '.04s' }}>
