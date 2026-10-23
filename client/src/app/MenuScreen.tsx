@@ -1,6 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
@@ -169,6 +169,12 @@ function isCategoryKey(v: unknown): v is CategoryKey {
   return typeof v === 'string' && (CATEGORY_KEYS as readonly string[]).includes(v);
 }
 
+function parseKeySet<T extends string>(raw: string | null, valid: readonly T[]): Set<T> {
+  if (!raw) return new Set();
+  const validSet = new Set<string>(valid);
+  return new Set(raw.split(',').filter((v): v is T => validSet.has(v)));
+}
+
 type FilterSection = 'roast' | 'origin' | 'roaster' | 'sort';
 
 export function MenuScreen() {
@@ -181,11 +187,16 @@ export function MenuScreen() {
   const { coffees: archivedCoffees } = useArchivedCoffees();
   const { settings } = useSettings();
   const dripEnabled = settings?.dripEnabled ?? true;
+  const [searchParams, setSearchParams] = useSearchParams();
   // Returning from a coffee's detail page (via its back button) restores
   // whichever tab the customer actually came from, instead of always
-  // bouncing back to 手沖咖啡.
+  // bouncing back to 手沖咖啡. A shared/reloaded link's `category` query
+  // param is the next priority, so a filtered link stays filtered on refresh.
   const initialCategory = (location.state as { category?: unknown } | null)?.category;
-  const [category, setCategory] = useState<CategoryKey>(isCategoryKey(initialCategory) ? initialCategory : 'drip');
+  const urlCategory = searchParams.get('category');
+  const [category, setCategory] = useState<CategoryKey>(
+    isCategoryKey(initialCategory) ? initialCategory : isCategoryKey(urlCategory) ? urlCategory : 'drip'
+  );
 
   // Settings load after first render, and the shop might have paused drip
   // service - once that's known, bounce off the 手沖咖啡 tab rather than
@@ -194,21 +205,43 @@ export function MenuScreen() {
     if (settings && !settings.dripEnabled && category === 'drip') setCategory('beans');
   }, [settings]);
   // Empty set == no restriction on that category (matches every coffee),
-  // same convention onyx coffee lab's filter checkboxes use.
-  const [roastFilter, setRoastFilter] = useState<Set<RoastFilterKey>>(() => new Set());
-  const [originFilter, setOriginFilter] = useState<Set<string>>(() => new Set());
-  const [roasterFilter, setRoasterFilter] = useState<Set<string>>(() => new Set());
-  const [sortKey, setSortKey] = useState<SortKey>('default');
+  // same convention onyx coffee lab's filter checkboxes use. Restored from
+  // the URL on first load so a shared/reloaded filtered link stays filtered.
+  const [roastFilter, setRoastFilter] = useState<Set<RoastFilterKey>>(() => parseKeySet(searchParams.get('roast'), ROAST_FILTER_KEYS));
+  const [originFilter, setOriginFilter] = useState<Set<string>>(() => new Set((searchParams.get('origin') ?? '').split(',').filter(Boolean)));
+  const [roasterFilter, setRoasterFilter] = useState<Set<string>>(() => new Set((searchParams.get('roaster') ?? '').split(',').filter(Boolean)));
+  const [sortKey, setSortKey] = useState<SortKey>(() => {
+    const s = searchParams.get('sort');
+    return (SORT_KEYS as readonly string[]).includes(s ?? '') ? (s as SortKey) : 'default';
+  });
   const [filterOpen, setFilterOpen] = useState(false);
   const [openSections, setOpenSections] = useState<Set<FilterSection>>(() => new Set(['roast']));
 
+  // Clears filters on an actual category switch only, never on first mount -
+  // otherwise this would immediately wipe out the state just restored from
+  // the URL above.
+  const prevCategoryRef = useRef(category);
   useEffect(() => {
+    if (prevCategoryRef.current === category) return;
+    prevCategoryRef.current = category;
     setRoastFilter(new Set());
     setOriginFilter(new Set());
     setRoasterFilter(new Set());
     setSortKey('default');
     setFilterOpen(false);
   }, [category]);
+
+  // Keeps the URL in sync with the current filters so the page's state is
+  // shareable and survives a refresh, without polluting browser history.
+  useEffect(() => {
+    const next = new URLSearchParams();
+    next.set('category', category);
+    if (roastFilter.size) next.set('roast', Array.from(roastFilter).join(','));
+    if (originFilter.size) next.set('origin', Array.from(originFilter).join(','));
+    if (roasterFilter.size) next.set('roaster', Array.from(roasterFilter).join(','));
+    if (sortKey !== 'default') next.set('sort', sortKey);
+    setSearchParams(next, { replace: true });
+  }, [category, roastFilter, originFilter, roasterFilter, sortKey, setSearchParams]);
 
   useEffect(() => {
     if (!filterOpen) return;
