@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import type { Coffee, Settings, Special } from './types';
+import type { Coffee, LeaderboardEntry, Settings, Special } from './types';
 
 export function useCoffees(all = false) {
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
@@ -81,4 +81,20 @@ export function useSpecials(all = false) {
   }, [all]);
 
   return { specials, error };
+}
+
+export function useLeaderboard() {
+  const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    api.getLeaderboard().then(
+      list => { if (!cancelled) setLeaderboard(list); },
+      err => { if (!cancelled) setError(err.message); },
+    );
+    return () => { cancelled = true; };
+  }, []);
+
+  return { leaderboard, error };
 }

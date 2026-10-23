@@ -153,6 +153,12 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'lookup.fulfilledPickup': { zh: '已取貨', en: 'Picked Up' },
   'lookup.fulfilledDelivery': { zh: '已送達', en: 'Delivered' },
   'lookup.pending': { zh: '準備中', en: 'In Progress' },
+  'leaderboard.entryLink': { zh: '排行榜', en: 'Leaderboard' },
+  'leaderboard.eyebrow': { zh: 'LEADERBOARD · 購買力排行榜', en: 'LEADERBOARD' },
+  'leaderboard.heading': { zh: '購買力排行榜', en: 'Spending Leaderboard' },
+  'leaderboard.hint': { zh: '依歷史累計消費總額排序，顯示前 20 名（姓名部分字元已隱藏）', en: 'Ranked by all-time total spend, top 20 (names are partially masked)' },
+  'leaderboard.orderCount': { zh: '{count} 筆訂單', en: '{count} orders' },
+  'leaderboard.empty': { zh: '還沒有任何訂單紀錄', en: 'No orders yet' },
 
   'a11y.cartEmpty': { zh: '購物車', en: 'Cart' },
   'a11y.cartCount': { zh: '購物車，{count} 件商品', en: 'Cart, {count} items' },

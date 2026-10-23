@@ -322,6 +322,9 @@ export function MenuScreen() {
             <div onClick={() => navigate('/order-lookup')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
               {t('lookup.entryLink')}
             </div>
+            <div onClick={() => navigate('/leaderboard')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
+              {t('leaderboard.entryLink')}
+            </div>
             <LangToggle />
             <CartButton count={cart.count} onClick={() => navigate('/cart')} />
           </div>

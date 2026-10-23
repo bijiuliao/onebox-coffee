@@ -102,6 +102,16 @@ export interface Customer {
   lastOrderAt: string;
 }
 
+// Public top-20 ranking by historical total spend (see
+// netlify/functions/leaderboard.mts). name arrives already masked
+// server-side (e.g. "王**") - the real name is never sent to the client.
+export interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  orderCount: number;
+  totalSpent: number;
+}
+
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)
 // for the admin to browse and import from - not a onebox record itself.
 export interface LoffeelabsBean {
