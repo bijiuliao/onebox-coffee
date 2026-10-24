@@ -7,8 +7,15 @@ import { parseBagWeightGrams } from '../weight';
 interface StockRow {
   id: string;
   name: string;
+  roaster: string;
   archived: boolean;
   remainingGrams: number | null;
+  soldGrams: number;
+  soldRevenue: number;
+}
+
+interface RoasterRow {
+  roaster: string;
   soldGrams: number;
   soldRevenue: number;
 }
@@ -46,12 +53,27 @@ export function StockView() {
             if (grams !== null) soldGrams += grams * line.qty;
           }
         }
-        return { id: c.id, name: c.name, archived: c.archived, remainingGrams: c.stockQty, soldGrams, soldRevenue };
+        return { id: c.id, name: c.name, roaster: c.roaster, archived: c.archived, remainingGrams: c.stockQty, soldGrams, soldRevenue };
       })
       .sort((a, b) => b.soldRevenue - a.soldRevenue)
     : [];
 
   const totalRevenue = rows.reduce((sum, r) => sum + r.soldRevenue, 0);
+
+  // Same soldGrams/soldRevenue numbers as the per-coffee rows above, just
+  // rolled up by roaster (a coffee's roaster can be blank if never set, so
+  // those fall into a shared "未設定" bucket rather than being dropped).
+  const roasterRows: RoasterRow[] = loaded
+    ? Object.values(
+      rows.reduce<Record<string, RoasterRow>>((acc, r) => {
+        const key = r.roaster.trim() || '未設定';
+        if (!acc[key]) acc[key] = { roaster: key, soldGrams: 0, soldRevenue: 0 };
+        acc[key].soldGrams += r.soldGrams;
+        acc[key].soldRevenue += r.soldRevenue;
+        return acc;
+      }, {}),
+    ).sort((a, b) => b.soldRevenue - a.soldRevenue)
+    : [];
 
   return (
     <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
@@ -71,6 +93,23 @@ export function StockView() {
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
         {!error && !loaded && <div style={{ color: '#9a8a76', font: "400 14px 'Iansui'" }}>載入中…</div>}
+
+        {loaded && roasterRows.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 10 }}>依烘豆商彙總 / BY ROASTER</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {roasterRows.map(r => (
+                <div key={r.roaster} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ font: "600 14px 'Iansui'", color: '#1a1714' }}>{r.roaster}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{r.soldGrams}g</span>
+                    <span style={{ font: "500 15px 'Room205',serif", color: '#1a1714', minWidth: 70, textAlign: 'right' }}>${r.soldRevenue}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {loaded && rows.length === 0 && (
           <div style={{ textAlign: 'center', padding: '80px 0', color: '#9a8a76', font: "400 14px 'Iansui'" }}>
