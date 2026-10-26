@@ -11,6 +11,7 @@ interface SuccessState {
   customerEmail: string;
   total: number;
   orderType: OrderType;
+  hasBrewedItems: boolean;
 }
 
 export function OrderSuccessScreen() {
@@ -70,7 +71,9 @@ export function OrderSuccessScreen() {
           {t('success.total')}{state.total}
         </div>
         <div className="rise" style={{ marginTop: 22, font: "400 13px 'Iansui'", color: '#8a7a68', animationDelay: '.5s' }}>
-          {t('success.brewing')}
+          {state.hasBrewedItems
+            ? t('success.brewing')
+            : (state.orderType === '外送' ? t('cart.noteBeansDelivery') : t('cart.noteBeansPickup'))}
         </div>
         <div className="rise" style={{ marginTop: 4, font: "400 12px 'Space Mono'", color: '#9a8a76', animationDelay: '.5s' }}>
           {t('success.orderNumber', { id: state.orderId })}

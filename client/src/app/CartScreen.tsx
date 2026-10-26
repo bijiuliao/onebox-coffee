@@ -95,7 +95,7 @@ export function CartScreen() {
       localStorage.setItem(NAME_STORAGE_KEY, name);
       localStorage.setItem(EMAIL_STORAGE_KEY, email);
       cart.clear();
-      navigate('/order-success', { state: { orderId: order.id, customerName: name, customerEmail: email, total: order.total, orderType } });
+      navigate('/order-success', { state: { orderId: order.id, customerName: name, customerEmail: email, total: order.total, orderType, hasBrewedItems } });
     } catch (err) {
       showToast(err instanceof Error ? err.message : t('cart.placeFailed'));
     } finally {
@@ -172,11 +172,11 @@ export function CartScreen() {
           </div>
 
           <div style={{ padding: '20px 22px 0' }}>
-            <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 8, display: 'block' }}>{t('cart.nameLabel')}</label>
+            <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 8, display: 'block' }}>{hasBrewedItems ? t('cart.nameLabel') : t('cart.nameLabelBeans')}</label>
             <input
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
-              placeholder={t('cart.namePlaceholder')}
+              placeholder={hasBrewedItems ? t('cart.namePlaceholder') : t('cart.namePlaceholderBeans')}
               maxLength={40}
               style={{ width: '100%', padding: '13px 16px', border: '1px solid #e4ddcd', borderRadius: 14, background: '#fff', font: "400 15px 'Iansui'", color: '#1a1714', outline: 'none' }}
             />
