@@ -3,6 +3,14 @@ import { getDb } from './lib/db';
 import { json, pathSegments } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
 import { toOrderJson, type OrderRow } from './lib/orders';
+import { parseBagWeightGrams } from './lib/weight';
+
+interface StoredOrderLine {
+  itemId?: string;
+  kind?: string;
+  detail?: string;
+  qty?: number;
+}
 
 export default async (req: Request) => {
   const id = Number(pathSegments(req)[2]);
@@ -34,9 +42,46 @@ export default async (req: Request) => {
 
   if (req.method === 'DELETE') {
     // For removing test/junk orders from admin, not a customer-facing
-    // cancellation flow - permanent, no soft-delete/undo.
-    const { rowCount } = await db.pool.query('DELETE FROM orders WHERE id = $1', [id]);
-    if (!rowCount) return json({ error: 'not found' }, 404);
+    // cancellation flow - permanent, no soft-delete/undo. Mirrors the stock
+    // deduction in orders.mts's checkout handler, in reverse: restore the
+    // grams this order drew down (where stock is tracked at all) before
+    // removing the row, so deleting a test order doesn't leave stock
+    // permanently short.
+    const [row] = (await db.sql`SELECT items FROM orders WHERE id = ${id}`) as { items: unknown }[];
+    if (!row) return json({ error: 'not found' }, 404);
+    const items = (typeof row.items === 'string' ? JSON.parse(row.items) : row.items) as StoredOrderLine[];
+
+    const stockToRestore = new Map<string, number>();
+    for (const line of items) {
+      if (line.kind !== 'beans' || !line.itemId) continue;
+      const grams = parseBagWeightGrams(line.detail ?? '');
+      if (grams === null) continue;
+      const qty = Math.max(1, Math.floor(Number(line.qty) || 1));
+      stockToRestore.set(line.itemId, (stockToRestore.get(line.itemId) ?? 0) + grams * qty);
+    }
+
+    const client = await db.pool.connect();
+    try {
+      await client.query('BEGIN');
+      for (const [coffeeId, grams] of stockToRestore) {
+        await client.query(
+          'UPDATE coffees SET stock_qty = stock_qty + $1 WHERE id = $2 AND stock_qty IS NOT NULL',
+          [grams, coffeeId],
+        );
+      }
+      const { rowCount } = await client.query('DELETE FROM orders WHERE id = $1', [id]);
+      if (!rowCount) {
+        await client.query('ROLLBACK');
+        return json({ error: 'not found' }, 404);
+      }
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
+    }
+
     return json({ id, deleted: true });
   }
 
