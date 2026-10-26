@@ -5,8 +5,13 @@ import { BackButton } from '../components';
 import { useLang } from '../i18n';
 import { api } from '../api';
 import type { MemberLevel } from '../types';
+import { REWARD_OPTIONS } from '../memberLevel';
 
 const EMAIL_STORAGE_KEY = 'onebox-customer-email';
+
+function formatTime(iso: string) {
+  return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
 
 export function MemberLevelScreen() {
   const navigate = useNavigate();
@@ -16,6 +21,7 @@ export function MemberLevelScreen() {
   const [result, setResult] = useState<MemberLevel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   const search = async () => {
     const em = email.trim();
@@ -34,6 +40,24 @@ export function MemberLevelScreen() {
       setError(t('memberLevel.failed'));
     } finally {
       setSearching(false);
+    }
+  };
+
+  // Re-fetches after a successful pick, which naturally reveals the next
+  // unclaimed level if a single order jumped several at once - the
+  // customer claims them one at a time rather than all in one screen.
+  const claim = async (rewardKey: string) => {
+    const em = email.trim();
+    if (!result?.unclaimedLevel || claiming) return;
+    setClaiming(true);
+    try {
+      await api.claimMemberReward(em, result.unclaimedLevel, rewardKey);
+      const refreshed = await api.getMemberLevel(em);
+      setResult(refreshed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('memberLevel.claimFailed'));
+    } finally {
+      setClaiming(false);
     }
   };
 
@@ -98,6 +122,57 @@ export function MemberLevelScreen() {
               <div style={{ height: 8, borderRadius: 4, background: '#f1ece2', overflow: 'hidden' }}>
                 <div style={{ height: '100%', borderRadius: 4, width: `${progressPct}%`, background: '#c98a2e' }} />
               </div>
+            </div>
+          </div>
+        )}
+
+        {result?.unclaimedLevel && (
+          <div className="rise" style={{
+            marginTop: 20, borderRadius: 20, padding: '22px 20px',
+            background: 'linear-gradient(150deg,#1a1714,#332b22)', textAlign: 'center',
+          }}>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#c98a2e' }}>{t('memberLevel.levelUpEyebrow')}</div>
+            <div style={{ font: "700 20px 'Iansui',serif", color: '#faf8f3', marginTop: 6 }}>
+              {t('memberLevel.levelUpHeading', { level: result.unclaimedLevel })}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, textAlign: 'left' }}>
+              {REWARD_OPTIONS.map(r => (
+                <div
+                  key={r.key}
+                  onClick={() => claim(r.key)}
+                  className="press"
+                  style={{
+                    cursor: claiming ? 'default' : 'pointer', opacity: claiming ? .5 : 1,
+                    background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 14, padding: '13px 16px',
+                  }}
+                >
+                  <div style={{ font: "600 14px 'Iansui'", color: '#faf8f3' }}>{r.label}</div>
+                  <div style={{ font: "400 11px 'Iansui'", color: 'rgba(250,248,243,.7)', marginTop: 3 }}>{r.desc}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {result && result.rewards.length > 0 && (
+          <div style={{ marginTop: 24 }}>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 10 }}>{t('memberLevel.rewardHistory')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {result.rewards.map(r => {
+                const option = REWARD_OPTIONS.find(o => o.key === r.rewardKey);
+                return (
+                  <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {option?.label ?? r.rewardKey}</div>
+                      <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatTime(r.chosenAt)}</div>
+                    </div>
+                    <span style={{
+                      font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
+                      background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
+                    }}>{r.redeemedAt ? t('memberLevel.redeemed') : t('memberLevel.pending')}</span>
+                  </div>
+                );
+              })}
             </div>
           </div>
         )}

@@ -113,14 +113,28 @@ export interface LeaderboardEntry {
   totalSpent: number;
 }
 
+// A "skill" the member picked on reaching a given level - see
+// netlify/functions/member-level-claim.mts. redeemedAt is set by admin
+// once actually handed out, never automatically.
+export interface MemberRewardChoice {
+  id: number;
+  level: number;
+  rewardKey: string;
+  chosenAt: string;
+  redeemedAt: string | null;
+}
+
 // Public per-email member level lookup (see netlify/functions/member-level.mts).
 // level/toNextLevel are derived server-side from the same $500-per-level
 // formula as client/src/memberLevel.ts, so the client never needs beansSpent
-// alone to compute them.
+// alone to compute them. unclaimedLevel is the lowest level (above 1) the
+// customer has reached but hasn't picked a reward for yet, or null if none.
 export interface MemberLevel {
   beansSpent: number;
   level: number;
   toNextLevel: number;
+  rewards: MemberRewardChoice[];
+  unclaimedLevel: number | null;
 }
 
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)

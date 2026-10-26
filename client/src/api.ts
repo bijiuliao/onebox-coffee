@@ -90,6 +90,18 @@ export const api = {
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
   getMemberLevel: (email: string) => fetch(`/api/member-level?email=${encodeURIComponent(email)}`).then(res => json<MemberLevel>(res)),
+  claimMemberReward: (email: string, level: number, rewardKey: string) =>
+    fetch('/api/member-level/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, level, rewardKey }),
+    }).then(res => json<{ ok: boolean; level: number; rewardKey: string }>(res)),
+  setMemberRewardRedeemed: (id: number, redeemed: boolean) =>
+    fetch(`/api/admin/member-rewards/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ redeemed }),
+    }).then(res => json<{ id: number; redeemedAt: string | null }>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {
       method: 'POST',

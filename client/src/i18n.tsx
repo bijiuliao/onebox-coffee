@@ -177,6 +177,12 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'memberLevel.currentLevel': { zh: '目前等級', en: 'Current Level' },
   'memberLevel.beansSpent': { zh: '豆子累計消費 ${amount}', en: '${amount} spent on beans' },
   'memberLevel.toNext': { zh: '距離 Lv.{level} 還差 ${amount}', en: '${amount} to Lv.{level}' },
+  'memberLevel.claimFailed': { zh: '選擇失敗，請稍後再試', en: 'Something went wrong — please try again' },
+  'memberLevel.levelUpEyebrow': { zh: 'LEVEL UP · 升級了', en: 'LEVEL UP' },
+  'memberLevel.levelUpHeading': { zh: '升到 Lv.{level} 了！選一個技能', en: 'You reached Lv.{level}! Pick a skill' },
+  'memberLevel.rewardHistory': { zh: '已選技能', en: 'Skills Chosen' },
+  'memberLevel.redeemed': { zh: '已兌換', en: 'Redeemed' },
+  'memberLevel.pending': { zh: '待兌換', en: 'Pending' },
 
   'a11y.cartEmpty': { zh: '購物車', en: 'Cart' },
   'a11y.cartCount': { zh: '購物車，{count} 件商品', en: 'Cart, {count} items' },
