@@ -25,10 +25,20 @@ export default async (req: Request) => {
     return json(toOrderJson(row));
   }
 
-  if (req.method !== 'PATCH') return json({ error: 'method not allowed' }, 405);
+  if (req.method !== 'PATCH' && req.method !== 'DELETE') return json({ error: 'method not allowed' }, 405);
 
   const unauthorized = requireAdmin(req);
   if (unauthorized) return unauthorized;
+
+  const db = getDb();
+
+  if (req.method === 'DELETE') {
+    // For removing test/junk orders from admin, not a customer-facing
+    // cancellation flow - permanent, no soft-delete/undo.
+    const { rowCount } = await db.pool.query('DELETE FROM orders WHERE id = $1', [id]);
+    if (!rowCount) return json({ error: 'not found' }, 404);
+    return json({ id, deleted: true });
+  }
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   if ('fulfilled' in body && typeof body.fulfilled !== 'boolean') return json({ error: 'fulfilled must be a boolean' }, 400);
@@ -42,7 +52,6 @@ export default async (req: Request) => {
   if ('paid' in body) { sets.push(`paid = $${i}`); values.push(body.paid); i += 1; }
   values.push(id);
 
-  const db = getDb();
   const { rows } = await db.pool.query<{ id: number; fulfilled: boolean; paid: boolean }>(
     `UPDATE orders SET ${sets.join(', ')} WHERE id = $${i} RETURNING id, fulfilled, paid`,
     values,

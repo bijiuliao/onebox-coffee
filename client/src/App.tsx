@@ -16,6 +16,7 @@ import { ReviewsAdminView } from './admin/ReviewsAdminView';
 import { CustomersView } from './admin/CustomersView';
 import { CustomerDetailView } from './admin/CustomerDetailView';
 import { StockView } from './admin/StockView';
+import { StockDetailView } from './admin/StockDetailView';
 import { NotifyBeansView } from './admin/NotifyBeansView';
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
               <Route path="/admin/specials" element={<SpecialsAdminPage />} />
               <Route path="/admin/orders" element={<OrdersView />} />
               <Route path="/admin/stock" element={<StockView />} />
+              <Route path="/admin/stock/:id" element={<StockDetailView />} />
               <Route path="/admin/customers" element={<CustomersView />} />
               <Route path="/admin/customers/:email" element={<CustomerDetailView />} />
               <Route path="/admin/reviews" element={<ReviewsAdminView />} />

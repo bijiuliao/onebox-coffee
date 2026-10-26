@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import type { Coffee, Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
@@ -21,6 +22,7 @@ interface RoasterRow {
 }
 
 export function StockView() {
+  const navigate = useNavigate();
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -121,7 +123,12 @@ export function StockView() {
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
               {rows.map(r => (
-                <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div
+                  key={r.id}
+                  onClick={() => navigate(`/admin/stock/${encodeURIComponent(r.id)}`)}
+                  className="press"
+                  style={{ cursor: 'pointer', background: '#fff', border: '1px solid #ece5d6', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
+                >
                   <div style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>{r.name}</div>
                     {r.archived && (

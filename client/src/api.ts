@@ -85,6 +85,8 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ paid }),
     }).then(res => json<{ id: number; fulfilled: boolean; paid: boolean }>(res)),
+  deleteOrder: (id: number) =>
+    fetch(`/api/orders/${id}`, { method: 'DELETE' }).then(res => json<{ id: number; deleted: boolean }>(res)),
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>

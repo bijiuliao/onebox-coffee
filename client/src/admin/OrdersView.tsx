@@ -59,6 +59,19 @@ export function OrdersView() {
     }
   }
 
+  async function removeOrder(order: Order) {
+    if (!window.confirm(`確定要刪除訂單 #${order.id}（${order.customerName || '未填寫姓名'}）嗎？這個動作無法復原。`)) return;
+    setTogglingId(order.id);
+    try {
+      await api.deleteOrder(order.id);
+      setOrders(prev => prev && prev.filter(o => o.id !== order.id));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '刪除失敗');
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   return (
     <div style={{ minHeight: '100vh', background: '#faf8f3', color: '#1a1714', fontFamily: "'Iansui','Archivo',system-ui,sans-serif" }}>
       <AdminTopBar active="orders" />
@@ -205,6 +218,16 @@ export function OrdersView() {
                       border: '1px solid ' + (order.paid ? '#ece5d6' : '#3d6b4f'),
                     }}
                   >{order.paid ? '標記為未付款' : '標記為已付款'}</div>
+                  <div
+                    onClick={() => togglingId === null && removeOrder(order)}
+                    className="press"
+                    style={{
+                      cursor: togglingId === null ? 'pointer' : 'default',
+                      opacity: togglingId === order.id ? 0.5 : 1,
+                      font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
+                      background: '#fff', color: '#c8342b', border: '1px solid #ece5d6',
+                    }}
+                  >刪除</div>
                 </div>
                 <span style={{ font: "600 17px 'Room205'" }}>${order.total}</span>
               </div>
