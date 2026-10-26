@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, Order, OrderType, ReviewSummary, Settings, Special } from './types';
+import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, Order, OrderType, ReviewSummary, Settings, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -89,6 +89,7 @@ export const api = {
     fetch(`/api/orders/${id}`, { method: 'DELETE' }).then(res => json<{ id: number; deleted: boolean }>(res)),
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
+  getMemberLevel: (email: string) => fetch(`/api/member-level?email=${encodeURIComponent(email)}`).then(res => json<MemberLevel>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {
       method: 'POST',

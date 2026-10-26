@@ -113,6 +113,16 @@ export interface LeaderboardEntry {
   totalSpent: number;
 }
 
+// Public per-email member level lookup (see netlify/functions/member-level.mts).
+// level/toNextLevel are derived server-side from the same $500-per-level
+// formula as client/src/memberLevel.ts, so the client never needs beansSpent
+// alone to compute them.
+export interface MemberLevel {
+  beansSpent: number;
+  level: number;
+  toNextLevel: number;
+}
+
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)
 // for the admin to browse and import from - not a onebox record itself.
 export interface LoffeelabsBean {

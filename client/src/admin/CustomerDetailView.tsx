@@ -4,7 +4,7 @@ import { api } from '../api';
 import type { Coffee, Customer, Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
-import { getMemberTier, getNextMemberTier, MEMBER_TIERS } from '../memberTiers';
+import { getMemberLevel, spendToNextLevel, LEVEL_STEP } from '../memberLevel';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-TW', {
@@ -38,8 +38,8 @@ export function CustomerDetailView() {
   const loaded = orders !== null && customers !== null && coffees !== null;
   const customer = loaded ? customers.find(c => c.email === email) : undefined;
   const sellableCoffees = coffees?.filter(c => c.sellsBeans) ?? [];
-  const memberTier = customer ? getMemberTier(customer.beansSpent) : null;
-  const nextTier = customer ? getNextMemberTier(customer.beansSpent) : null;
+  const memberLevel = customer ? getMemberLevel(customer.beansSpent) : null;
+  const toNextLevel = customer ? spendToNextLevel(customer.beansSpent) : 0;
 
   async function sendNotification() {
     if (!selectedCoffeeId || sending) return;
@@ -88,9 +88,7 @@ export function CustomerDetailView() {
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ font: "500 20px 'Room205',serif", color: '#1a1714' }}>{customer.name || '（未填寫姓名）'}</div>
-                    {memberTier && (
-                      <span style={{ font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, background: memberTier.color + '22', color: memberTier.color, flexShrink: 0 }}>{memberTier.label}</span>
-                    )}
+                    <span style={{ font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, background: '#c98a2e22', color: '#c98a2e', flexShrink: 0 }}>Lv.{memberLevel}</span>
                   </div>
                   <div style={{ font: "400 13px 'Space Mono'", color: '#9a8a76', marginTop: 4 }}>{customer.email}</div>
                 </div>
@@ -116,16 +114,16 @@ export function CustomerDetailView() {
 
               <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #ece5d6' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
-                  <span style={{ font: "600 12px 'Iansui'", color: memberTier?.color ?? '#9a8a76' }}>{memberTier ? memberTier.label : '尚未達會員門檻'}</span>
+                  <span style={{ font: "600 12px 'Iansui'", color: '#c98a2e' }}>Lv.{memberLevel}</span>
                   <span style={{ font: "400 11px 'Space Mono'", color: '#9a8a76' }}>
-                    {nextTier ? `距離 ${nextTier.label} 還差 $${nextTier.threshold - customer.beansSpent}` : '已達最高等級'}
+                    距離 Lv.{(memberLevel ?? 1) + 1} 還差 ${toNextLevel}
                   </span>
                 </div>
                 <div style={{ height: 6, borderRadius: 3, background: '#f1ece2', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: 3,
-                    width: `${Math.min(100, (customer.beansSpent / (nextTier?.threshold ?? MEMBER_TIERS[MEMBER_TIERS.length - 1].threshold)) * 100)}%`,
-                    background: memberTier?.color ?? '#c2b9a6',
+                    width: `${((LEVEL_STEP - toNextLevel) / LEVEL_STEP) * 100}%`,
+                    background: '#c98a2e',
                   }} />
                 </div>
               </div>

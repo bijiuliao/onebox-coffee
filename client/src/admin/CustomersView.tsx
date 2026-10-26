@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import type { Customer } from '../types';
 import { AdminTopBar } from './AdminTopBar';
-import { getMemberTier } from '../memberTiers';
+import { getMemberLevel } from '../memberLevel';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-TW', {
@@ -63,7 +63,7 @@ export function CustomersView() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {visible?.map(c => {
-            const tier = getMemberTier(c.beansSpent);
+            const level = getMemberLevel(c.beansSpent);
             return (
             <div
               key={c.email}
@@ -74,9 +74,7 @@ export function CustomersView() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>{c.name || '（未填寫姓名）'}</div>
-                  {tier && (
-                    <span style={{ font: "600 10px 'Iansui'", padding: '2px 8px', borderRadius: 10, background: tier.color + '22', color: tier.color, flexShrink: 0 }}>{tier.label}</span>
-                  )}
+                  <span style={{ font: "600 10px 'Iansui'", padding: '2px 8px', borderRadius: 10, background: '#c98a2e22', color: '#c98a2e', flexShrink: 0 }}>Lv.{level}</span>
                 </div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</div>
               </div>

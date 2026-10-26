@@ -9,6 +9,7 @@ import { CartScreen } from './app/CartScreen';
 import { OrderSuccessScreen } from './app/OrderSuccessScreen';
 import { OrderLookupScreen } from './app/OrderLookupScreen';
 import { LeaderboardScreen } from './app/LeaderboardScreen';
+import { MemberLevelScreen } from './app/MemberLevelScreen';
 import { AdminPage } from './admin/AdminPage';
 import { SpecialsAdminPage } from './admin/SpecialsAdminPage';
 import { OrdersView } from './admin/OrdersView';
@@ -33,6 +34,7 @@ function App() {
               <Route path="/order-success" element={<OrderSuccessScreen />} />
               <Route path="/order-lookup" element={<OrderLookupScreen />} />
               <Route path="/leaderboard" element={<LeaderboardScreen />} />
+              <Route path="/member-level" element={<MemberLevelScreen />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/admin/specials" element={<SpecialsAdminPage />} />
               <Route path="/admin/orders" element={<OrdersView />} />
