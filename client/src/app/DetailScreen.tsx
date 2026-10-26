@@ -7,6 +7,7 @@ import { isBeansSoldOut, isBagAvailable, maxBagQty, useCart, dripPrice } from '.
 import { useLang } from '../i18n';
 import { useCoffee, useSettings } from '../useCoffees';
 import { useToast } from '../toast';
+import { parseBagWeightGrams } from '../weight';
 import type { Size, Temp } from '../types';
 import { BoxStatsHero } from './BoxStatsHero';
 import { ReviewSection } from './ReviewSection';
@@ -74,6 +75,19 @@ export function DetailScreen() {
   const canDrip = dripEnabled && (coffee.temps.hot || coffee.temps.ice);
   const canBeans = coffee.sellsBeans && coffee.bagOptions.length > 0;
   const bag = coffee.bagOptions.find(b => b.label === bagLabel) ?? coffee.bagOptions[0] ?? null;
+  // Admin adds these in whatever order occurs to them (see AdminPage's bag
+  // editor), which can land oddly for a customer - shown smallest to
+  // largest instead, a size list reads naturally that way. Labels with no
+  // parseable weight (parseBagWeightGrams) sort to the end rather than
+  // being dropped.
+  const sortedBagOptions = [...coffee.bagOptions].sort((a, b) => {
+    const ga = parseBagWeightGrams(a.label);
+    const gb = parseBagWeightGrams(b.label);
+    if (ga === null && gb === null) return 0;
+    if (ga === null) return 1;
+    if (gb === null) return -1;
+    return ga - gb;
+  });
   // Stock is tracked in grams and only limits retail bean bags - a coffee
   // can be out of beans to sell while hand-drip (brewed to order, not drawn
   // from a bag) stays available, so this only blocks ordering while viewing
@@ -216,7 +230,7 @@ export function DetailScreen() {
         <div style={{ padding: '22px 24px 0' }}>
           <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 10 }}>{t('detail.weight')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {coffee.bagOptions.map(b => {
+            {sortedBagOptions.map(b => {
               // A bag size can be individually out of stock even while the
               // coffee overall still has grams left - e.g. 100g remaining
               // but this option is a 227g bag. Greyed out and unclickable
