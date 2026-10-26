@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import type { Customer } from '../types';
 import { AdminTopBar } from './AdminTopBar';
+import { getMemberTier } from '../memberTiers';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-TW', {
@@ -61,7 +62,9 @@ export function CustomersView() {
         )}
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {visible?.map(c => (
+          {visible?.map(c => {
+            const tier = getMemberTier(c.beansSpent);
+            return (
             <div
               key={c.email}
               onClick={() => navigate(`/admin/customers/${encodeURIComponent(c.email)}`)}
@@ -69,7 +72,12 @@ export function CustomersView() {
               style={{ cursor: 'pointer', background: '#fff', border: '1px solid #ece5d6', borderRadius: 14, padding: '16px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}
             >
               <div style={{ minWidth: 0 }}>
-                <div style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>{c.name || '（未填寫姓名）'}</div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div style={{ font: "500 16px 'Room205',serif", color: '#1a1714' }}>{c.name || '（未填寫姓名）'}</div>
+                  {tier && (
+                    <span style={{ font: "600 10px 'Iansui'", padding: '2px 8px', borderRadius: 10, background: tier.color + '22', color: tier.color, flexShrink: 0 }}>{tier.label}</span>
+                  )}
+                </div>
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</div>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 'none' }}>
@@ -81,13 +89,18 @@ export function CustomersView() {
                   <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>總消費</div>
                   <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>${c.totalSpent}</div>
                 </div>
+                <div style={{ textAlign: 'right' }}>
+                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>豆子消費</div>
+                  <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>${c.beansSpent}</div>
+                </div>
                 <div style={{ textAlign: 'right', minWidth: 120 }}>
                   <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>最後上門</div>
                   <div style={{ font: "400 12px 'Space Mono'", color: '#4a3c2e', marginTop: 2 }}>{formatTime(c.lastOrderAt)}</div>
                 </div>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

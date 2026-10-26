@@ -99,6 +99,7 @@ export interface Customer {
   name: string;
   orderCount: number;
   totalSpent: number;
+  beansSpent: number;
   lastOrderAt: string;
 }
 

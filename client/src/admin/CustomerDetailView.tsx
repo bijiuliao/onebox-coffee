@@ -4,6 +4,7 @@ import { api } from '../api';
 import type { Coffee, Customer, Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
+import { getMemberTier, getNextMemberTier, MEMBER_TIERS } from '../memberTiers';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-TW', {
@@ -37,6 +38,8 @@ export function CustomerDetailView() {
   const loaded = orders !== null && customers !== null && coffees !== null;
   const customer = loaded ? customers.find(c => c.email === email) : undefined;
   const sellableCoffees = coffees?.filter(c => c.sellsBeans) ?? [];
+  const memberTier = customer ? getMemberTier(customer.beansSpent) : null;
+  const nextTier = customer ? getNextMemberTier(customer.beansSpent) : null;
 
   async function sendNotification() {
     if (!selectedCoffeeId || sending) return;
@@ -80,23 +83,50 @@ export function CustomerDetailView() {
 
         {loaded && customer && (
           <>
-            <div style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 16, padding: 20, marginBottom: 24, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ font: "500 20px 'Room205',serif", color: '#1a1714' }}>{customer.name || '（未填寫姓名）'}</div>
-                <div style={{ font: "400 13px 'Space Mono'", color: '#9a8a76', marginTop: 4 }}>{customer.email}</div>
+            <div style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ font: "500 20px 'Room205',serif", color: '#1a1714' }}>{customer.name || '（未填寫姓名）'}</div>
+                    {memberTier && (
+                      <span style={{ font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, background: memberTier.color + '22', color: memberTier.color, flexShrink: 0 }}>{memberTier.label}</span>
+                    )}
+                  </div>
+                  <div style={{ font: "400 13px 'Space Mono'", color: '#9a8a76', marginTop: 4 }}>{customer.email}</div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 'none' }}>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>訂單數</div>
+                    <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>{customer.orderCount}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>總消費</div>
+                    <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>${customer.totalSpent}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>豆子消費</div>
+                    <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>${customer.beansSpent}</div>
+                  </div>
+                  <div style={{ textAlign: 'right', minWidth: 120 }}>
+                    <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>最後上門</div>
+                    <div style={{ font: "400 12px 'Space Mono'", color: '#4a3c2e', marginTop: 2 }}>{formatTime(customer.lastOrderAt)}</div>
+                  </div>
+                </div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 28, flex: 'none' }}>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>訂單數</div>
-                  <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>{customer.orderCount}</div>
+
+              <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid #ece5d6' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 }}>
+                  <span style={{ font: "600 12px 'Iansui'", color: memberTier?.color ?? '#9a8a76' }}>{memberTier ? memberTier.label : '尚未達會員門檻'}</span>
+                  <span style={{ font: "400 11px 'Space Mono'", color: '#9a8a76' }}>
+                    {nextTier ? `距離 ${nextTier.label} 還差 $${nextTier.threshold - customer.beansSpent}` : '已達最高等級'}
+                  </span>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>總消費</div>
-                  <div style={{ font: "500 16px 'Room205'", color: '#1a1714', marginTop: 2 }}>${customer.totalSpent}</div>
-                </div>
-                <div style={{ textAlign: 'right', minWidth: 120 }}>
-                  <div style={{ font: "700 9px 'Space Mono'", letterSpacing: 1, color: '#9a8a76' }}>最後上門</div>
-                  <div style={{ font: "400 12px 'Space Mono'", color: '#4a3c2e', marginTop: 2 }}>{formatTime(customer.lastOrderAt)}</div>
+                <div style={{ height: 6, borderRadius: 3, background: '#f1ece2', overflow: 'hidden' }}>
+                  <div style={{
+                    height: '100%', borderRadius: 3,
+                    width: `${Math.min(100, (customer.beansSpent / (nextTier?.threshold ?? MEMBER_TIERS[MEMBER_TIERS.length - 1].threshold)) * 100)}%`,
+                    background: memberTier?.color ?? '#c2b9a6',
+                  }} />
                 </div>
               </div>
             </div>
