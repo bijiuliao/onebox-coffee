@@ -166,8 +166,27 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
 .label-buyer { font: 600 15px 'Iansui', sans-serif; color: #1a1714; }
 .label-meta { font: 400 10px 'Space Mono', monospace; color: #b0a08c; margin-top: 4px; }
 
+/* Order receipt (OrderReceiptView) - a single narrow dashed-border card,
+   not a grid of many like the bag labels. */
+.receipt-card { background: #fff; border: 1px dashed #c9bfa8; border-radius: 12px; padding: 26px 24px; }
+.receipt-brand { font: 700 22px 'Room205', serif; text-align: center; color: #1a1714; }
+.receipt-sub { font: 700 10px 'Space Mono', monospace; letter-spacing: 2px; text-align: center; color: #9a8a76; margin-top: 4px; }
+.receipt-divider { border-top: 1px dashed #d3c9b6; margin: 16px 0; }
+.receipt-row { display: flex; justify-content: space-between; gap: 10px; font: 400 13px 'Iansui', sans-serif; margin-bottom: 7px; color: #4a3c2e; }
+.receipt-row span:first-child { color: #9a8a76; flex: none; }
+.receipt-row span:last-child { text-align: right; }
+.receipt-items { display: flex; flex-direction: column; gap: 10px; }
+.receipt-item { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.receipt-item-left { min-width: 0; }
+.receipt-item-name { font: 400 13px 'Iansui', sans-serif; color: #1a1714; }
+.receipt-item-detail { font: 400 11px 'Space Mono', monospace; color: #9a8a76; margin-top: 2px; }
+.receipt-item-price { font: 500 13px 'Room205', serif; color: #1a1714; flex: none; }
+.receipt-total { display: flex; justify-content: space-between; font: 700 19px 'Room205', serif; color: #1a1714; }
+.receipt-footer { text-align: center; font: 400 11px 'Iansui', sans-serif; color: #9a8a76; margin-top: 20px; }
+
 @media print {
   .no-print { display: none !important; }
   body { background: #fff; }
   .label-card { border: 1px solid #000; }
+  .receipt-card { border: 1px solid #000; }
 }

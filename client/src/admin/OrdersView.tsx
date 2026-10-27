@@ -231,6 +231,14 @@ export function OrdersView() {
                     >列印標籤</div>
                   )}
                   <div
+                    onClick={() => navigate(`/admin/orders/${order.id}/receipt`)}
+                    className="press"
+                    style={{
+                      cursor: 'pointer', font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
+                      background: '#fff', color: '#6b5c4a', border: '1px solid #ece5d6',
+                    }}
+                  >列印收據</div>
+                  <div
                     onClick={() => togglingId === null && removeOrder(order)}
                     className="press"
                     style={{
