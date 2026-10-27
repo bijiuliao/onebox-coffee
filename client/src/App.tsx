@@ -14,6 +14,7 @@ import { AdminPage } from './admin/AdminPage';
 import { SpecialsAdminPage } from './admin/SpecialsAdminPage';
 import { OrdersView } from './admin/OrdersView';
 import { OrderLabelsView } from './admin/OrderLabelsView';
+import { PackingView } from './admin/PackingView';
 import { ReviewsAdminView } from './admin/ReviewsAdminView';
 import { CustomersView } from './admin/CustomersView';
 import { CustomerDetailView } from './admin/CustomerDetailView';
@@ -40,6 +41,7 @@ function App() {
               <Route path="/admin/specials" element={<SpecialsAdminPage />} />
               <Route path="/admin/orders" element={<OrdersView />} />
               <Route path="/admin/orders/:id/labels" element={<OrderLabelsView />} />
+              <Route path="/admin/packing" element={<PackingView />} />
               <Route path="/admin/stock" element={<StockView />} />
               <Route path="/admin/stock/:id" element={<StockDetailView />} />
               <Route path="/admin/customers" element={<CustomersView />} />

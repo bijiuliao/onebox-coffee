@@ -10,6 +10,12 @@ interface StoredOrderLine {
   kind?: string;
   detail?: string;
   qty?: number;
+  // Set true once this beans line has actually been bagged - lets the
+  // packing queue (PackingView) remember a partial pack across visits
+  // instead of re-offering lines that are already done. Index-addressed
+  // (not a separate id) since an order's items array never reorders after
+  // creation.
+  packed?: boolean;
 }
 
 export default async (req: Request) => {
@@ -88,22 +94,44 @@ export default async (req: Request) => {
   const body = await req.json().catch(() => ({} as Record<string, unknown>));
   if ('fulfilled' in body && typeof body.fulfilled !== 'boolean') return json({ error: 'fulfilled must be a boolean' }, 400);
   if ('paid' in body && typeof body.paid !== 'boolean') return json({ error: 'paid must be a boolean' }, 400);
-  if (!('fulfilled' in body) && !('paid' in body)) return json({ error: 'fulfilled or paid is required' }, 400);
+  const packedLineIndexes = Array.isArray(body.packedLineIndexes)
+    ? body.packedLineIndexes.filter((v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0)
+    : [];
+  if (!('fulfilled' in body) && !('paid' in body) && packedLineIndexes.length === 0) {
+    return json({ error: 'fulfilled, paid, or packedLineIndexes is required' }, 400);
+  }
 
   const sets: string[] = [];
   const values: unknown[] = [];
   let i = 1;
   if ('fulfilled' in body) { sets.push(`fulfilled = $${i}`); values.push(body.fulfilled); i += 1; }
   if ('paid' in body) { sets.push(`paid = $${i}`); values.push(body.paid); i += 1; }
+
+  // Packing the queue (PackingView) marks specific beans lines done rather
+  // than replacing the whole items array, so a concurrent edit elsewhere
+  // can't clobber lines this request never touched.
+  if (packedLineIndexes.length > 0) {
+    const [row] = (await db.sql`SELECT items FROM orders WHERE id = ${id}`) as { items: unknown }[];
+    if (!row) return json({ error: 'not found' }, 404);
+    const items = (typeof row.items === 'string' ? JSON.parse(row.items) : row.items) as StoredOrderLine[];
+    for (const idx of packedLineIndexes) {
+      if (items[idx]) items[idx].packed = true;
+    }
+    sets.push(`items = $${i}`);
+    values.push(JSON.stringify(items));
+    i += 1;
+  }
+
   values.push(id);
+  await db.pool.query(`UPDATE orders SET ${sets.join(', ')} WHERE id = $${i}`, values);
 
-  const { rows } = await db.pool.query<{ id: number; fulfilled: boolean; paid: boolean }>(
-    `UPDATE orders SET ${sets.join(', ')} WHERE id = $${i} RETURNING id, fulfilled, paid`,
-    values,
-  );
-  if (!rows[0]) return json({ error: 'not found' }, 404);
+  const [updated] = (await db.sql`
+    SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid
+    FROM orders WHERE id = ${id}
+  `) as OrderRow[];
+  if (!updated) return json({ error: 'not found' }, 404);
 
-  return json(rows[0]);
+  return json(toOrderJson(updated));
 };
 
 export const config: Config = {

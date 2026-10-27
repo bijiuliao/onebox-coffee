@@ -87,6 +87,12 @@ export const api = {
     }).then(res => json<{ id: number; fulfilled: boolean; paid: boolean }>(res)),
   deleteOrder: (id: number) =>
     fetch(`/api/orders/${id}`, { method: 'DELETE' }).then(res => json<{ id: number; deleted: boolean }>(res)),
+  packOrderLines: (id: number, lineIndexes: number[], opts?: { fulfilled?: boolean }) =>
+    fetch(`/api/orders/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ packedLineIndexes: lineIndexes, ...opts }),
+    }).then(res => json<Order>(res)),
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
   getMemberLevel: (email: string) => fetch(`/api/member-level?email=${encodeURIComponent(email)}`).then(res => json<MemberLevel>(res)),

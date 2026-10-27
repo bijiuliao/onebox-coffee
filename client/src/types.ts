@@ -69,6 +69,9 @@ export interface OrderLine {
   // Orders placed before this field existed won't have it.
   itemId?: string;
   kind?: ItemKind;
+  // Set once this beans line has actually been bagged during packing (see
+  // PackingView) - lets a partial pack remember what's left across visits.
+  packed?: boolean;
 }
 
 export interface Order {
