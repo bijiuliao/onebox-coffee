@@ -189,6 +189,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'account.loginSubmit': { zh: '登入', en: 'Log In' },
   'account.loginNeedEmail': { zh: '請輸入 Email', en: 'Please enter your email' },
   'account.logout': { zh: '登出', en: 'Log Out' },
+  'account.rewardAvailable': { zh: '有技能可以選擇', en: 'A reward is ready to pick' },
 
   'a11y.cartEmpty': { zh: '購物車', en: 'Cart' },
   'a11y.cartCount': { zh: '購物車，{count} 件商品', en: 'Cart, {count} items' },

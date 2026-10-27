@@ -184,13 +184,28 @@ export function AccountButton() {
         className="press"
         role="button"
         style={{
-          height: 40, minWidth: 40, padding: '0 14px', borderRadius: 20,
+          position: 'relative', height: 40, minWidth: 40, padding: '0 14px', borderRadius: 20,
           background: '#fff', border: '1px solid #e4ddcd',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           font: "700 12px 'Space Mono'", letterSpacing: .5, color: '#1a1714', whiteSpace: 'nowrap',
         }}
       >
         {email ? (memberLevel ? `Lv.${memberLevel.level}` : '···') : t('account.login')}
+        {/* A level-up reward is waiting to be picked (unclaimedLevel set) -
+            flagged right on the header button so a customer notices without
+            having to think to open the member-level page on their own. */}
+        {memberLevel?.unclaimedLevel && (
+          <span
+            aria-label={t('account.rewardAvailable')}
+            style={{
+              position: 'absolute', top: -4, right: -4, width: 17, height: 17, borderRadius: '50%',
+              background: '#c8342b', color: '#fff', font: "700 11px 'Iansui'",
+              display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 0 0 2px #faf8f3',
+            }}
+          >
+            !
+          </span>
+        )}
       </div>
 
       {open && createPortal(

@@ -101,6 +101,7 @@ export interface Customer {
   totalSpent: number;
   beansSpent: number;
   lastOrderAt: string;
+  rewards: MemberRewardChoice[];
 }
 
 // Public top-20 ranking by historical total spend (see
