@@ -159,7 +159,9 @@ input:focus, textarea:focus { border-color: #1a1714 !important; }
 .label-sheet { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
 .label-card { border: 1px dashed #c9bfa8; border-radius: 10px; padding: 14px 16px; break-inside: avoid; }
 .label-coffee { font: 700 16px 'Room205', serif; color: #1a1714; }
+.label-roaster { font: 600 11px 'Iansui', sans-serif; color: #c98a2e; margin-top: 2px; }
 .label-detail { font: 400 12px 'Space Mono', monospace; color: #8a7a68; margin-top: 2px; }
+.label-origin { font: 400 11px 'Iansui', sans-serif; color: #8a7a68; margin-top: 3px; }
 .label-divider { height: 1px; background: #ece5d6; margin: 10px 0; }
 .label-buyer { font: 600 15px 'Iansui', sans-serif; color: #1a1714; }
 .label-meta { font: 400 10px 'Space Mono', monospace; color: #b0a08c; margin-top: 4px; }
