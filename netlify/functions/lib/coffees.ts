@@ -131,7 +131,12 @@ export const JSON_COLUMNS = new Set(['notes', 'bagOptions']);
 export function json(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'content-type': 'application/json' },
+    // Without an explicit charset, a browser that's navigated straight to
+    // an API URL (not fetched by the app's own JS, which always treats a
+    // JSON response body as UTF-8 per the Fetch spec regardless of this
+    // header) can fall back to the OS's legacy default encoding to render
+    // it as a document - garbling any CJK text in the response.
+    headers: { 'content-type': 'application/json; charset=utf-8' },
   });
 }
 
