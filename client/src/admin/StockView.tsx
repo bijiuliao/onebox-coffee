@@ -21,6 +21,18 @@ interface RoasterRow {
   soldRevenue: number;
 }
 
+interface ProfitRow {
+  id: string;
+  name: string;
+  paidRevenue: number;
+  paidGrams: number;
+  // null when the bean has no 每克成本 set on its edit page - cost (and so
+  // profit) for it is unknown rather than assumed zero, so a bean nobody's
+  // priced out yet doesn't silently inflate the total.
+  cost: number | null;
+  profit: number | null;
+}
+
 export function StockView() {
   const navigate = useNavigate();
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
@@ -62,6 +74,35 @@ export function StockView() {
 
   const totalRevenue = rows.reduce((sum, r) => sum + r.soldRevenue, 0);
 
+  // Settlement figure: paid orders only (unpaid is money not actually in
+  // hand yet), beans retail only (hand-drip/specials have no cost basis to
+  // subtract - see Coffee.costPerGramTwd's own comment). A bean with no
+  // cost-per-gram set keeps profit as null rather than treating its cost
+  // as $0, which would overstate the total.
+  const profitRows: ProfitRow[] = loaded
+    ? coffees
+      .map(c => {
+        let paidRevenue = 0;
+        let paidGrams = 0;
+        for (const order of orders) {
+          if (!order.paid) continue;
+          for (const line of order.items) {
+            if (line.kind !== 'beans' || line.itemId !== c.id) continue;
+            paidRevenue += line.linePrice;
+            const grams = parseBagWeightGrams(line.detail);
+            if (grams !== null) paidGrams += grams * line.qty;
+          }
+        }
+        const cost = c.costPerGramTwd !== null ? Math.round(c.costPerGramTwd * paidGrams) : null;
+        return { id: c.id, name: c.name, paidRevenue, paidGrams, cost, profit: cost !== null ? paidRevenue - cost : null };
+      })
+      .filter(r => r.paidRevenue > 0)
+      .sort((a, b) => b.paidRevenue - a.paidRevenue)
+    : [];
+  const unknownCostCount = profitRows.filter(r => r.profit === null).length;
+  const totalPaidRevenue = profitRows.reduce((s, r) => s + r.paidRevenue, 0);
+  const totalProfit = profitRows.reduce((s, r) => s + (r.profit ?? 0), 0);
+
   // Same soldGrams/soldRevenue numbers as the per-coffee rows above, just
   // rolled up by roaster (a coffee's roaster can be blank if never set, so
   // those fall into a shared "未設定" bucket rather than being dropped).
@@ -95,6 +136,34 @@ export function StockView() {
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
         {!error && !loaded && <div style={{ color: '#9a8a76', font: "400 14px 'Iansui'" }}>載入中…</div>}
+
+        {loaded && profitRows.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 10 }}>盈餘結算（已付款）/ PROFIT</div>
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginBottom: 10 }}>
+              只算已付款的豆子零售；成本用豆單編輯頁的「每克成本」估算
+              {unknownCostCount > 0 && `，${unknownCostCount} 款豆子還沒設定成本，不列入下面的盈餘加總`}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+              {profitRows.map(r => (
+                <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ font: "600 14px 'Iansui'", color: '#1a1714' }}>{r.name}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>營收 ${r.paidRevenue}</span>
+                    <span style={{ font: "400 12px 'Space Mono'", color: '#9a8a76' }}>{r.cost === null ? '未設定成本' : `成本 $${r.cost}`}</span>
+                    <span style={{ font: "500 15px 'Room205',serif", color: r.profit === null ? '#b0a08c' : '#1a1714', minWidth: 70, textAlign: 'right' }}>
+                      {r.profit === null ? '—' : `$${r.profit}`}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderRadius: 14, background: '#3d6b4f', color: '#faf8f3' }}>
+              <span style={{ font: "600 13px 'Iansui'" }}>總盈餘（已付款，不含未設定成本的豆子）</span>
+              <span style={{ font: "600 22px 'Room205'" }}>${totalProfit}<span style={{ font: "400 12px 'Space Mono'", opacity: .7, marginLeft: 10 }}>/ 營收 ${totalPaidRevenue}</span></span>
+            </div>
+          </div>
+        )}
 
         {loaded && roasterRows.length > 0 && (
           <div style={{ marginBottom: 24 }}>
