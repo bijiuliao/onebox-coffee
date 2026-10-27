@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { AccountButton, CartButton, LangToggle, NoteChip, RoastDots } from '../components';
+import { WhatsNewModal } from './WhatsNewModal';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isBeansSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
@@ -312,6 +313,7 @@ export function MenuScreen() {
 
   return (
     <MobileShell wide>
+      <WhatsNewModal />
       <div style={{
         position: 'sticky', top: 0, zIndex: 20, padding: `20px ${PAD_X} 12px`, borderBottom: '1px solid rgba(228,221,205,.7)',
         background: 'rgba(250,248,243,.78)', backdropFilter: 'blur(16px) saturate(140%)', WebkitBackdropFilter: 'blur(16px) saturate(140%)',

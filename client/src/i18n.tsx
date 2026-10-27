@@ -191,6 +191,18 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'account.logout': { zh: '登出', en: 'Log Out' },
   'account.rewardAvailable': { zh: '有技能可以選擇', en: 'A reward is ready to pick' },
 
+  'whatsNew.eyebrow': { zh: "WHAT'S NEW · 近期更新", en: "WHAT'S NEW" },
+  'whatsNew.heading': { zh: '這陣子多了幾個新功能', en: "Here's what's new" },
+  'whatsNew.dismiss': { zh: '知道了', en: 'Got it' },
+  'whatsNew.leaderboardTitle': { zh: '購買力排行榜', en: 'Spending Leaderboard' },
+  'whatsNew.leaderboardDesc': { zh: '看看誰買最多豆子，進去還有頒獎台', en: 'See who buys the most beans — with a podium page' },
+  'whatsNew.levelTitle': { zh: '會員等級', en: 'Member Levels' },
+  'whatsNew.levelDesc': { zh: '豆子累計消費每 $500 升一級，沒有上限', en: 'Every $500 spent on beans levels you up — no cap' },
+  'whatsNew.rewardTitle': { zh: '升級選技能', en: 'Pick a Skill on Level Up' },
+  'whatsNew.rewardDesc': { zh: '升等後可以選一個獎勵：下一單打9折、多送10克、或神秘豆一包', en: 'Pick a reward on level up: 10% off, +10g of beans, or a mystery bag' },
+  'whatsNew.loginTitle': { zh: '登入一次就記住', en: 'Log In Once, Stay Logged In' },
+  'whatsNew.loginDesc': { zh: '右上角登入後，查訂單、看等級都不用再輸入 Email', en: 'Log in from the top right and your email is remembered everywhere' },
+
   'a11y.cartEmpty': { zh: '購物車', en: 'Cart' },
   'a11y.cartCount': { zh: '購物車，{count} 件商品', en: 'Cart, {count} items' },
   'a11y.back': { zh: '返回', en: 'Back' },
