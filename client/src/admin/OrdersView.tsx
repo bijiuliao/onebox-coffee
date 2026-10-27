@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import type { Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
@@ -13,6 +14,7 @@ type FulfillFilter = 'pending' | 'fulfilled' | 'all';
 type PaidFilter = 'unpaid' | 'paid' | 'all';
 
 export function OrdersView() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FulfillFilter>('pending');
@@ -218,6 +220,16 @@ export function OrdersView() {
                       border: '1px solid ' + (order.paid ? '#ece5d6' : '#3d6b4f'),
                     }}
                   >{order.paid ? '標記為未付款' : '標記為已付款'}</div>
+                  {order.items.some(l => l.kind === 'beans') && (
+                    <div
+                      onClick={() => navigate(`/admin/orders/${order.id}/labels`)}
+                      className="press"
+                      style={{
+                        cursor: 'pointer', font: "600 12px 'Iansui'", padding: '7px 14px', borderRadius: 10,
+                        background: '#fff', color: '#6b5c4a', border: '1px solid #ece5d6',
+                      }}
+                    >列印標籤</div>
+                  )}
                   <div
                     onClick={() => togglingId === null && removeOrder(order)}
                     className="press"
