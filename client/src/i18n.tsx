@@ -184,6 +184,12 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'memberLevel.redeemed': { zh: '已兌換', en: 'Redeemed' },
   'memberLevel.pending': { zh: '待兌換', en: 'Pending' },
 
+  'account.login': { zh: '登入', en: 'Log In' },
+  'account.loginHeading': { zh: '輸入下單時的 Email', en: 'Enter the email you order with' },
+  'account.loginSubmit': { zh: '登入', en: 'Log In' },
+  'account.loginNeedEmail': { zh: '請輸入 Email', en: 'Please enter your email' },
+  'account.logout': { zh: '登出', en: 'Log Out' },
+
   'a11y.cartEmpty': { zh: '購物車', en: 'Cart' },
   'a11y.cartCount': { zh: '購物車，{count} 件商品', en: 'Cart, {count} items' },
   'a11y.back': { zh: '返回', en: 'Back' },

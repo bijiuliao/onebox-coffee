@@ -4,6 +4,7 @@ import { MobileShell } from '../AppShell';
 import { BackButton } from '../components';
 import { useLang } from '../i18n';
 import { api } from '../api';
+import { getStoredEmail } from '../customerSession';
 import type { Order } from '../types';
 
 function formatTime(iso: string) {
@@ -17,7 +18,7 @@ export function OrderLookupScreen() {
   const { t } = useLang();
   const [searchParams] = useSearchParams();
   const [orderId, setOrderId] = useState(searchParams.get('id') ?? '');
-  const [email, setEmail] = useState(searchParams.get('email') ?? '');
+  const [email, setEmail] = useState(searchParams.get('email') ?? getStoredEmail());
   const [order, setOrder] = useState<Order | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);

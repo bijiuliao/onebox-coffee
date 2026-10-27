@@ -6,8 +6,7 @@ import { useLang } from '../i18n';
 import { api } from '../api';
 import type { MemberLevel } from '../types';
 import { REWARD_OPTIONS } from '../memberLevel';
-
-const EMAIL_STORAGE_KEY = 'onebox-customer-email';
+import { getStoredEmail } from '../customerSession';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -17,7 +16,7 @@ export function MemberLevelScreen() {
   const navigate = useNavigate();
   const { t } = useLang();
   const [searchParams] = useSearchParams();
-  const [email, setEmail] = useState(searchParams.get('email') ?? localStorage.getItem(EMAIL_STORAGE_KEY) ?? '');
+  const [email, setEmail] = useState(searchParams.get('email') ?? getStoredEmail());
   const [result, setResult] = useState<MemberLevel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
@@ -61,10 +60,11 @@ export function MemberLevelScreen() {
     }
   };
 
-  // Arriving here via a link that already carries ?email= (e.g. from the
-  // menu header after checkout) searches right away.
+  // Arriving here with ?email= in the URL, or already "logged in" (email
+  // remembered from a past checkout / the header's account button),
+  // searches right away instead of making them retype and press the button.
   useEffect(() => {
-    if (searchParams.get('email')) search();
+    if (email) search();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
+import { useNavigate } from 'react-router-dom';
 import { useLang } from './i18n';
-import { useCoffees } from './useCoffees';
+import { useCoffees, useMemberLevel } from './useCoffees';
+import { clearStoredEmail, getStoredEmail, setStoredEmail } from './customerSession';
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Fades/slides a section in once it scrolls into view (and stays revealed -
 // the observer disconnects after the first trigger so it never re-hides).
@@ -138,6 +143,103 @@ export function LangToggle({ translucent = false }: { translucent?: boolean }) {
       }}
     >
       {lang === 'zh' ? 'EN' : '中'}
+    </div>
+  );
+}
+
+// Replaces the old pair of separate "查詢訂單" / "我的等級" header links with
+// one button: logged out it reads "登入" and opens an email prompt; once an
+// email is remembered (same localStorage key checkout already writes to),
+// it shows the customer's level and opens a small menu (level / order
+// lookup / log out) instead of making them retype their email every visit.
+export function AccountButton() {
+  const { t } = useLang();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState(() => getStoredEmail());
+  const [open, setOpen] = useState(false);
+  const [loginInput, setLoginInput] = useState('');
+  const [loginError, setLoginError] = useState(false);
+  const { memberLevel } = useMemberLevel(email);
+
+  const login = () => {
+    const em = loginInput.trim().toLowerCase();
+    if (!EMAIL_RE.test(em)) { setLoginError(true); return; }
+    setStoredEmail(em);
+    setEmail(em);
+    setLoginInput('');
+    setLoginError(false);
+    setOpen(false);
+  };
+
+  const logout = () => {
+    clearStoredEmail();
+    setEmail('');
+    setOpen(false);
+  };
+
+  return (
+    <>
+      <div
+        onClick={() => setOpen(true)}
+        className="press"
+        role="button"
+        style={{
+          height: 40, minWidth: 40, padding: '0 14px', borderRadius: 20,
+          background: '#fff', border: '1px solid #e4ddcd',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          font: "700 12px 'Space Mono'", letterSpacing: .5, color: '#1a1714', whiteSpace: 'nowrap',
+        }}
+      >
+        {email ? (memberLevel ? `Lv.${memberLevel.level}` : '···') : t('account.login')}
+      </div>
+
+      {open && createPortal(
+        <div className="mobile-shell mobile-shell-wide" style={{ position: 'fixed', inset: 0, margin: '0 auto', zIndex: 45, overflow: 'hidden' }}>
+          <div onClick={() => setOpen(false)} style={{ position: 'absolute', inset: 0, background: 'rgba(26,23,20,.45)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)' }} />
+          <div style={{ position: 'absolute', top: 68, right: 20, width: 230, background: '#fff', borderRadius: 16, boxShadow: '0 20px 50px -20px rgba(30,22,16,.4)', overflow: 'hidden' }}>
+            {email ? (
+              <>
+                <AccountMenuRow label={t('memberLevel.entryLink')} onClick={() => { setOpen(false); navigate('/member-level'); }} />
+                <AccountMenuRow label={t('lookup.entryLink')} onClick={() => { setOpen(false); navigate('/order-lookup'); }} />
+                <AccountMenuRow label={t('account.logout')} onClick={logout} danger />
+              </>
+            ) : (
+              <div style={{ padding: 16 }}>
+                <div style={{ font: "600 12px 'Iansui'", color: '#6b5c4a', marginBottom: 10 }}>{t('account.loginHeading')}</div>
+                <input
+                  value={loginInput}
+                  onChange={(e) => { setLoginInput(e.target.value); setLoginError(false); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter') login(); }}
+                  type="email"
+                  autoFocus
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `1px solid ${loginError ? '#c8342b' : '#e2dac9'}`, borderRadius: 10, font: "400 14px 'Iansui'", color: '#1a1714', outline: 'none' }}
+                />
+                {loginError && <div style={{ font: "400 11px 'Iansui'", color: '#c8342b', marginTop: 6 }}>{t('account.loginNeedEmail')}</div>}
+                <div
+                  onClick={login}
+                  className="press"
+                  style={{ marginTop: 10, textAlign: 'center', padding: 11, borderRadius: 10, background: '#1a1714', color: '#faf8f3', font: "600 13px 'Iansui'", cursor: 'pointer' }}
+                >
+                  {t('account.loginSubmit')}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body,
+      )}
+    </>
+  );
+}
+
+function AccountMenuRow({ label, onClick, danger = false }: { label: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <div
+      onClick={onClick}
+      className="press"
+      style={{ padding: '13px 16px', font: "600 13px 'Iansui'", color: danger ? '#c8342b' : '#1a1714', cursor: 'pointer', borderBottom: '1px solid #f1ece2' }}
+    >
+      {label}
     </div>
   );
 }

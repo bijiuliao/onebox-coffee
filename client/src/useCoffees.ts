@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from './api';
-import type { Coffee, LeaderboardEntry, Settings, Special } from './types';
+import type { Coffee, LeaderboardEntry, MemberLevel, Settings, Special } from './types';
 
 export function useCoffees(all = false) {
   const [coffees, setCoffees] = useState<Coffee[] | null>(null);
@@ -97,4 +97,24 @@ export function useLeaderboard() {
   }, []);
 
   return { leaderboard, error };
+}
+
+// Only fetches once an email is known (the header's account button calls
+// this with '' until a customer "logs in") - a blank email would otherwise
+// fire a request that always comes back Lv.1/$0 for nobody in particular.
+export function useMemberLevel(email: string) {
+  const [memberLevel, setMemberLevel] = useState<MemberLevel | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!email) { setMemberLevel(null); return; }
+    let cancelled = false;
+    api.getMemberLevel(email).then(
+      data => { if (!cancelled) setMemberLevel(data); },
+      err => { if (!cancelled) setError(err.message); },
+    );
+    return () => { cancelled = true; };
+  }, [email]);
+
+  return { memberLevel, error };
 }

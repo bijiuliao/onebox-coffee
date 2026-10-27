@@ -7,10 +7,10 @@ import { useLang } from '../i18n';
 import { useToast } from '../toast';
 import { api } from '../api';
 import { unlockDing } from '../feedback';
+import { getStoredEmail, setStoredEmail } from '../customerSession';
 import type { DeliveryQuote, OrderType } from '../types';
 
 const NAME_STORAGE_KEY = 'onebox-customer-name';
-const EMAIL_STORAGE_KEY = 'onebox-customer-email';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // lineDetail() carries the raw Chinese domain values (temp/size are fixed
@@ -31,7 +31,7 @@ export function CartScreen() {
   const { showToast } = useToast();
   const [placing, setPlacing] = useState(false);
   const [customerName, setCustomerName] = useState(() => localStorage.getItem(NAME_STORAGE_KEY) ?? '');
-  const [customerEmail, setCustomerEmail] = useState(() => localStorage.getItem(EMAIL_STORAGE_KEY) ?? '');
+  const [customerEmail, setCustomerEmail] = useState(() => getStoredEmail());
 
   const [orderType, setOrderType] = useState<OrderType>('自取');
   const [locating, setLocating] = useState(false);
@@ -93,7 +93,7 @@ export function CartScreen() {
         ...(orderType === '外送' && location ? { lat: location.lat, lng: location.lng } : {}),
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
-      localStorage.setItem(EMAIL_STORAGE_KEY, email);
+      setStoredEmail(email);
       cart.clear();
       navigate('/order-success', { state: { orderId: order.id, customerName: name, customerEmail: email, total: order.total, orderType, hasBrewedItems } });
     } catch (err) {

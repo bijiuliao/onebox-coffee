@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
-import { CartButton, LangToggle, NoteChip, RoastDots } from '../components';
+import { AccountButton, CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isBeansSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
@@ -320,13 +320,8 @@ export function MenuScreen() {
           <div onClick={() => navigate('/')} className="press" style={{ cursor: 'pointer', font: "500 19px 'Room205',serif", color: '#1a1714' }}>
             {BRAND_NAME}<span style={{ color: '#c98a2e' }}>.</span>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            <div onClick={() => navigate('/order-lookup')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
-              {t('lookup.entryLink')}
-            </div>
-            <div onClick={() => navigate('/member-level')} className="press" style={{ cursor: 'pointer', font: "600 12px 'Iansui'", color: '#6b5c4a' }}>
-              {t('memberLevel.entryLink')}
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <AccountButton />
             <LangToggle />
             <CartButton count={cart.count} onClick={() => navigate('/cart')} />
           </div>
