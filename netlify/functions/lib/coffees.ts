@@ -33,6 +33,8 @@ export interface Coffee {
   // this coffee (see coffees-item.mts) - exposed so the admin UI only asks
   // "send the launch email?" at the one moment it's actually relevant.
   launchNotified: boolean;
+  // Rarity class (see lib/coffeeGrade.ts) - null until the admin sets one.
+  grade: string | null;
 }
 
 export interface CoffeeRow {
@@ -65,6 +67,7 @@ export interface CoffeeRow {
   stock_qty: number | null;
   launch_notified: boolean;
   cost_per_gram_twd: number | string | null;
+  grade: string | null;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {
@@ -97,6 +100,7 @@ export function toCoffee(row: CoffeeRow): Coffee {
     stockQty: row.stock_qty,
     costPerGramTwd: row.cost_per_gram_twd === null ? null : Number(row.cost_per_gram_twd),
     launchNotified: row.launch_notified,
+    grade: row.grade,
   };
 }
 
@@ -123,6 +127,7 @@ export const EDITABLE_COLUMNS: Record<string, string> = {
   archived: 'archived',
   stockQty: 'stock_qty',
   costPerGramTwd: 'cost_per_gram_twd',
+  grade: 'grade',
 };
 
 // Fields whose value must be JSON.stringify'd before binding to a jsonb column.

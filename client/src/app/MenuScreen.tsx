@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { AccountButton, CartButton, LangToggle, NoteChip, RoastDots } from '../components';
 import { WhatsNewModal } from './WhatsNewModal';
+import { COFFEE_GRADES, gradeLabel } from '../coffeeGrade';
 import { BRAND_NAME, SHOW_SCORES } from '../constants';
 import { isBeansSoldOut, useCart } from '../cart';
 import { useLang } from '../i18n';
@@ -222,6 +223,10 @@ export function MenuScreen() {
   const [roastFilter, setRoastFilter] = useState<Set<RoastFilterKey>>(() => parseKeySet(searchParams.get('roast'), ROAST_FILTER_KEYS));
   const [originFilter, setOriginFilter] = useState<Set<string>>(() => new Set((searchParams.get('origin') ?? '').split(',').filter(Boolean)));
   const [roasterFilter, setRoasterFilter] = useState<Set<string>>(() => new Set((searchParams.get('roaster') ?? '').split(',').filter(Boolean)));
+  // Single-select, shown as its own pill row (not inside the filter drawer)
+  // only on the 買豆子 tab - a coffee's rarity class only means anything
+  // once it's something you can take home.
+  const [gradeFilter, setGradeFilter] = useState<string>(() => searchParams.get('grade') ?? 'all');
   const [sortKey, setSortKey] = useState<SortKey>(() => {
     const s = searchParams.get('sort');
     return (SORT_KEYS as readonly string[]).includes(s ?? '') ? (s as SortKey) : 'default';
@@ -241,6 +246,7 @@ export function MenuScreen() {
     setRoasterFilter(new Set());
     setSortKey('default');
     setFilterOpen(false);
+    setGradeFilter('all');
   }, [category]);
 
   // Keeps the URL in sync with the current filters so the page's state is
@@ -252,8 +258,9 @@ export function MenuScreen() {
     if (originFilter.size) next.set('origin', Array.from(originFilter).join(','));
     if (roasterFilter.size) next.set('roaster', Array.from(roasterFilter).join(','));
     if (sortKey !== 'default') next.set('sort', sortKey);
+    if (gradeFilter !== 'all') next.set('grade', gradeFilter);
     setSearchParams(next, { replace: true });
-  }, [category, roastFilter, originFilter, roasterFilter, sortKey, setSearchParams]);
+  }, [category, roastFilter, originFilter, roasterFilter, sortKey, gradeFilter, setSearchParams]);
 
   useEffect(() => {
     if (!filterOpen) return;
@@ -284,7 +291,8 @@ export function MenuScreen() {
     categoryCoffees.filter(c =>
       matchesRoastFilter(c, roastFilter) &&
       (originFilter.size === 0 || originFilter.has(c.originEN)) &&
-      (roasterFilter.size === 0 || roasterFilter.has(c.roaster))
+      (roasterFilter.size === 0 || roasterFilter.has(c.roaster)) &&
+      (category !== 'beans' || gradeFilter === 'all' || c.grade === gradeFilter)
     ),
     sortKey,
     category,
@@ -389,7 +397,7 @@ export function MenuScreen() {
       </div>
 
       {category !== 'special' && category !== 'history' && (
-        <div className="rise" style={{ padding: `16px ${PAD_X} 6px`, animationDelay: '.2s' }}>
+        <div className="rise" style={{ padding: `16px ${PAD_X} 6px`, animationDelay: '.2s', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
           <div
             onClick={() => setFilterOpen(true)}
             className="press"
@@ -406,6 +414,23 @@ export function MenuScreen() {
               </span>
             )}
           </div>
+
+          {category === 'beans' && [{ key: 'all', label: t('filter.gradeAll') }, ...COFFEE_GRADES].map(g => (
+            <div
+              key={g.key}
+              onClick={() => setGradeFilter(g.key)}
+              className="press"
+              style={{
+                cursor: 'pointer', padding: '9px 14px', borderRadius: 18,
+                background: gradeFilter === g.key ? '#1a1714' : '#fff',
+                color: gradeFilter === g.key ? '#faf8f3' : '#4a3c2e',
+                border: gradeFilter === g.key ? 'none' : '1px solid #e4ddcd',
+                font: "600 12px 'Iansui'", whiteSpace: 'nowrap',
+              }}
+            >
+              {g.label}
+            </div>
+          ))}
         </div>
       )}
 
@@ -527,6 +552,9 @@ export function MenuScreen() {
                       )}
                       {soldOut && (
                         <span style={{ position: 'absolute', top: 10, right: 10, padding: '4px 10px', borderRadius: 12, background: '#1a1714', color: '#fff', font: "700 10px 'Space Mono'" }}>{t('stock.soldOut')}</span>
+                      )}
+                      {gradeLabel(c.grade) && (
+                        <span style={{ position: 'absolute', top: 10, left: 10, padding: '4px 10px', borderRadius: 12, background: '#c98a2e', color: '#fff', font: "700 10px 'Space Mono'" }}>{gradeLabel(c.grade)}</span>
                       )}
                     </div>
                     <div style={{ padding: '12px 12px 14px', display: 'flex', flexDirection: 'column', flex: 1 }}>

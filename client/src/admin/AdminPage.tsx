@@ -7,6 +7,7 @@ import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
 import { parseBagWeightGrams } from '../weight';
 import { estimateTwdPerGram } from '../loffeelabsPricing';
+import { COFFEE_GRADES } from '../coffeeGrade';
 
 function soft(color: string) {
   return color + '22';
@@ -498,6 +499,21 @@ export function AdminPage() {
               <div>
                 {label('烘豆商 ROASTER')}
                 <input value={sel.roaster} onChange={(e) => patch({ roaster: e.target.value })} placeholder="onebox roastery" style={{ ...textInputStyle, font: "400 14px 'Room205',serif" }} />
+              </div>
+            </div>
+
+            <div style={{ marginTop: 18 }}>
+              {label('分級 GRADE')}
+              <select
+                value={sel.grade ?? ''}
+                onChange={(e) => patch({ grade: e.target.value || null })}
+                style={{ ...textInputStyle, cursor: 'pointer', width: 'auto', minWidth: 160 }}
+              >
+                <option value="">未分級</option>
+                {COFFEE_GRADES.map(g => <option key={g.key} value={g.key}>{g.label}</option>)}
+              </select>
+              <div style={{ font: "400 10px 'Iansui'", color: '#b0a08c', marginTop: 4 }}>
+                客戶端會用這個分級篩選、在商品卡片上顯示小徽章，新豆通知信也會標出來
               </div>
             </div>
 

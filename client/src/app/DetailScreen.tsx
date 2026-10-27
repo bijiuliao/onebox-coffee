@@ -8,6 +8,7 @@ import { useLang } from '../i18n';
 import { useCoffee, useSettings } from '../useCoffees';
 import { useToast } from '../toast';
 import { parseBagWeightGrams } from '../weight';
+import { gradeLabel } from '../coffeeGrade';
 import type { Size, Temp } from '../types';
 import { BoxStatsHero } from './BoxStatsHero';
 import { ReviewSection } from './ReviewSection';
@@ -180,6 +181,9 @@ export function DetailScreen() {
             </span>
           )}
           <span style={{ padding: '5px 12px', borderRadius: 20, background: 'rgba(26,23,20,.06)', font: "600 12px 'Iansui'", color: '#4a3c2e' }}>{coffee.roast}</span>
+          {gradeLabel(coffee.grade) && (
+            <span style={{ padding: '5px 12px', borderRadius: 20, background: '#c98a2e', color: '#fff', font: "700 12px 'Iansui'" }}>{gradeLabel(coffee.grade)}</span>
+          )}
         </div>
         <div style={{ font: "400 15px/1.9 'Iansui'", color: '#4a3c2e', marginTop: 18 }}>{coffee.desc}</div>
       </Reveal>

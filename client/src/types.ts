@@ -41,6 +41,8 @@ export interface Coffee {
   // decided on (sent or explicitly skipped) for this coffee - used to show
   // the "send launch email?" prompt only the first time it goes active.
   launchNotified: boolean;
+  // Rarity class (see coffeeGrade.ts) - null until the admin sets one.
+  grade: string | null;
 }
 
 export interface Special {

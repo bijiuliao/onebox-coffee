@@ -47,6 +47,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'filter.results': { zh: '{count} 個結果', en: '{count} Results' },
   'filter.done': { zh: '完成', en: 'Done' },
   'filter.clearAll': { zh: '清除全部', en: 'Clear all' },
+  'filter.gradeAll': { zh: '全部豆', en: 'All Beans' },
   'sort.default': { zh: '預設', en: 'Default' },
   'sort.newest': { zh: '最新上架', en: 'Newest' },
   'sort.priceAsc': { zh: '價格低到高', en: 'Price: Low to High' },

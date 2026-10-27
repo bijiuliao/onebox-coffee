@@ -1,3 +1,5 @@
+import { COFFEE_GRADES } from './coffeeGrade';
+
 interface CoffeeForLaunchNotify {
   id: string;
   name: string;
@@ -7,6 +9,11 @@ interface CoffeeForLaunchNotify {
   desc: string;
   bagOptions: { label: string; price: number }[];
   coverUrl: string | null;
+  grade: string | null;
+}
+
+function gradeLabel(key: string | null): string | null {
+  return COFFEE_GRADES.find(g => g.key === key)?.label ?? null;
 }
 
 const SITE_URL = 'https://onebox-coffee.netlify.app';
@@ -45,9 +52,12 @@ export async function notifyNewBeanLaunch(coffees: CoffeeForLaunchNotify[], reci
     // link from an email) instead of the default 手沖 mode.
     const coffeeUrl = `${SITE_URL}/coffee/${encodeURIComponent(coffee.id)}?mode=beans`;
 
+    const grade = gradeLabel(coffee.grade);
+
     return `
       <div style="margin-bottom:28px;padding-bottom:24px;border-bottom:1px solid #ece5d6">
         ${img ? `<a href="${coffeeUrl}" target="_blank"><img src="${img}" alt="${escapeHtml(coffee.name)}" style="width:100%;max-width:420px;height:auto;border-radius:12px;margin-bottom:12px;display:block;border:none;"></a>` : ''}
+        ${grade ? `<span style="display:inline-block;background-color:#c98a2e;color:#ffffff;font-size:11px;font-weight:bold;padding:3px 10px;border-radius:10px;margin-bottom:6px;">${escapeHtml(grade)}</span>` : ''}
         <h3 style="margin:0 0 6px;font-size:18px"><a href="${coffeeUrl}" target="_blank" style="color:#1a1714;text-decoration:none;">${escapeHtml(coffee.name)}</a></h3>
         ${coffee.notes.length ? `<p style="margin:0 0 4px;color:#8a7a68">風味：${coffee.notes.map(escapeHtml).join(' · ')}</p>` : ''}
         <p style="margin:0 0 4px;color:#4a3c2e">${escapeHtml(coffee.roast)} · ${escapeHtml(coffee.process)}</p>
