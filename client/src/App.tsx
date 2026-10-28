@@ -16,6 +16,7 @@ import { OrdersView } from './admin/OrdersView';
 import { OrderLabelsView } from './admin/OrderLabelsView';
 import { PackingView } from './admin/PackingView';
 import { OrderReceiptView } from './admin/OrderReceiptView';
+import { RewardOptionsView } from './admin/RewardOptionsView';
 import { ReviewsAdminView } from './admin/ReviewsAdminView';
 import { CustomersView } from './admin/CustomersView';
 import { CustomerDetailView } from './admin/CustomerDetailView';
@@ -48,6 +49,7 @@ function App() {
               <Route path="/admin/stock/:id" element={<StockDetailView />} />
               <Route path="/admin/customers" element={<CustomersView />} />
               <Route path="/admin/customers/:email" element={<CustomerDetailView />} />
+              <Route path="/admin/rewards" element={<RewardOptionsView />} />
               <Route path="/admin/reviews" element={<ReviewsAdminView />} />
               <Route path="/admin/notify-beans" element={<NotifyBeansView />} />
             </Routes>

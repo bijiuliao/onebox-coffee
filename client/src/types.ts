@@ -106,7 +106,7 @@ export interface Customer {
   totalSpent: number;
   beansSpent: number;
   lastOrderAt: string;
-  rewards: MemberRewardChoice[];
+  rewards: CustomerRewardChoice[];
 }
 
 // Public top-20 ranking by historical total spend (see
@@ -121,13 +121,37 @@ export interface LeaderboardEntry {
 
 // A "skill" the member picked on reaching a given level - see
 // netlify/functions/member-level-claim.mts. redeemedAt is set by admin
-// once actually handed out, never automatically.
+// once actually handed out, never automatically. label/desc are resolved
+// server-side against reward_options (see RewardOption below) so a
+// retired reward still shows real copy in someone's history instead of a
+// raw key.
 export interface MemberRewardChoice {
   id: number;
   level: number;
   rewardKey: string;
+  rewardLabel: string;
+  rewardDesc: string;
   chosenAt: string;
   redeemedAt: string | null;
+}
+
+// The /api/customers list's own (slightly leaner) reward shape - no
+// chosenAt/desc, just enough to show "Lv.X · label (pending/redeemed)"
+// inline per customer row.
+export interface CustomerRewardChoice {
+  id: number;
+  level: number;
+  rewardKey: string;
+  rewardLabel: string;
+  redeemedAt: string | null;
+}
+
+// The reward(s) currently offered for an unclaimed level-up, filtered
+// server-side to ones whose level range covers it - see AvailableReward.
+export interface AvailableReward {
+  key: string;
+  label: string;
+  desc: string;
 }
 
 // Public per-email member level lookup (see netlify/functions/member-level.mts).
@@ -141,6 +165,21 @@ export interface MemberLevel {
   toNextLevel: number;
   rewards: MemberRewardChoice[];
   unclaimedLevel: number | null;
+  availableRewards: AvailableReward[];
+}
+
+// Admin-editable catalog row behind AvailableReward/MemberRewardChoice's
+// label/desc - see netlify/functions/lib/memberRewards.ts and the
+// create-reward-options migration. maxLevel null = no upper bound.
+export interface RewardOption {
+  id: number;
+  key: string;
+  label: string;
+  desc: string;
+  minLevel: number;
+  maxLevel: number | null;
+  active: boolean;
+  sortOrder: number;
 }
 
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)

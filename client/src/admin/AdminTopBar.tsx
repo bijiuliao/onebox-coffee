@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useToast } from '../toast';
 
-export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'packing' | 'reviews' | 'customers' | 'stock' | 'notify-beans' }) {
+export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'packing' | 'reviews' | 'customers' | 'stock' | 'notify-beans' | 'rewards' }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [sending, setSending] = useState(false);
@@ -81,6 +81,7 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
         <div onClick={() => navigate('/admin/packing')} className="press" style={navStyle(active === 'packing')}>打包出貨 PACKING</div>
         <div onClick={() => navigate('/admin/stock')} className="press" style={navStyle(active === 'stock')}>庫存 STOCK</div>
         <div onClick={() => navigate('/admin/customers')} className="press" style={navStyle(active === 'customers')}>客戶 CUSTOMERS</div>
+        <div onClick={() => navigate('/admin/rewards')} className="press" style={navStyle(active === 'rewards')}>等級禮物 REWARDS</div>
         <div onClick={() => navigate('/admin/reviews')} className="press" style={navStyle(active === 'reviews')}>評分 REVIEWS</div>
         <div onClick={() => navigate('/admin/notify-beans')} className="press" style={navStyle(active === 'notify-beans')}>新豆公告</div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 9 }}>

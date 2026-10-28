@@ -1,22 +1,27 @@
-// The "skill" choices offered on every level-up past Lv.1 (see
-// member-level-claim.mts). Mirrors client/src/memberLevel.ts's
-// REWARD_OPTIONS (separate module graph, can't share directly) - keep
-// both in sync. Purely a catalog of valid reward_key values + display
-// copy; actually granting a reward (applying a discount, bagging extra
-// grams, picking a mystery bean) is done by admin by hand once they see
-// a customer has an unredeemed choice - nothing here touches checkout.
-export interface MemberReward {
-  key: string;
+import { getDb } from './db';
+
+// The "skill" choices offered on level-up (see member-level-claim.mts),
+// now an admin-editable table (reward_options) instead of a hardcoded
+// array - see the create-reward-options migration. min_level/max_level
+// gate which rewards apply at a given unclaimedLevel; `active = false`
+// retires one without deleting it, so a customer's past pick still
+// resolves to a real label. Granting a reward is still always manual -
+// nothing here touches checkout.
+export interface RewardOptionRow {
+  id: number;
+  reward_key: string;
   label: string;
-  desc: string;
+  description: string;
+  min_level: number;
+  max_level: number | null;
+  active: boolean;
+  sort_order: number;
 }
 
-export const REWARD_OPTIONS: readonly MemberReward[] = [
-  { key: 'discount10', label: '下一單 9 折', desc: '下次購買豆子結帳打 9 折' },
-  { key: 'extra_10g', label: '多送 10 克', desc: '下次買豆子任一包多裝 10 克' },
-  { key: 'mystery_bag', label: '神秘豆一包', desc: '店長精選的神秘豆，驚喜加贈一包' },
-];
+export async function listRewardOptions(db: ReturnType<typeof getDb>): Promise<RewardOptionRow[]> {
+  return (await db.sql`SELECT * FROM reward_options ORDER BY sort_order, id`) as RewardOptionRow[];
+}
 
-export function isValidRewardKey(key: string): boolean {
-  return REWARD_OPTIONS.some(r => r.key === key);
+export function appliesToLevel(opt: Pick<RewardOptionRow, 'min_level' | 'max_level'>, level: number): boolean {
+  return level >= opt.min_level && (opt.max_level === null || level <= opt.max_level);
 }

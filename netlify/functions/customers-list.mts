@@ -2,6 +2,7 @@ import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
+import { listRewardOptions } from './lib/memberRewards';
 
 // A "customer" here is just an aggregate over orders sharing the same email
 // - there's no separate customers table or customer accounts, so this is a
@@ -43,10 +44,11 @@ export default async (req: Request) => {
   const rewardRows = (await db.sql`
     SELECT id, customer_email, level, reward_key, chosen_at, redeemed_at FROM member_rewards ORDER BY customer_email, level
   `) as { id: number; customer_email: string; level: number; reward_key: string; chosen_at: string; redeemed_at: string | null }[];
-  const rewardsByEmail = new Map<string, { id: number; level: number; rewardKey: string; chosenAt: string; redeemedAt: string | null }[]>();
+  const optionsByKey = new Map((await listRewardOptions(db)).map(o => [o.reward_key, o]));
+  const rewardsByEmail = new Map<string, { id: number; level: number; rewardKey: string; rewardLabel: string; redeemedAt: string | null }[]>();
   for (const r of rewardRows) {
     const list = rewardsByEmail.get(r.customer_email) ?? [];
-    list.push({ id: r.id, level: r.level, rewardKey: r.reward_key, chosenAt: r.chosen_at, redeemedAt: r.redeemed_at });
+    list.push({ id: r.id, level: r.level, rewardKey: r.reward_key, rewardLabel: optionsByKey.get(r.reward_key)?.label ?? r.reward_key, redeemedAt: r.redeemed_at });
     rewardsByEmail.set(r.customer_email, list);
   }
 

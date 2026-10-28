@@ -4,7 +4,7 @@ import { api } from '../api';
 import type { Coffee, Customer, MemberLevel, Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
-import { getMemberLevel, spendToNextLevel, LEVEL_STEP, REWARD_OPTIONS } from '../memberLevel';
+import { getMemberLevel, spendToNextLevel, LEVEL_STEP } from '../memberLevel';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -156,29 +156,26 @@ export function CustomerDetailView() {
                   已選技能
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {memberLevelData.rewards.map(r => {
-                    const option = REWARD_OPTIONS.find(o => o.key === r.rewardKey);
-                    return (
-                      <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 0', borderBottom: '1px solid #f1ece2' }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {option?.label ?? r.rewardKey}</div>
-                          <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatDate(r.chosenAt)}</div>
-                        </div>
-                        <div
-                          onClick={() => togglingRewardId === null && toggleRewardRedeemed(r.id, !r.redeemedAt)}
-                          className="press"
-                          style={{
-                            cursor: togglingRewardId === null ? 'pointer' : 'default',
-                            opacity: togglingRewardId === r.id ? 0.5 : 1, flexShrink: 0,
-                            font: "600 11px 'Iansui'", padding: '5px 12px', borderRadius: 10,
-                            background: r.redeemedAt ? '#fff' : '#3d6b4f',
-                            color: r.redeemedAt ? '#8a7a68' : '#faf8f3',
-                            border: '1px solid ' + (r.redeemedAt ? '#ece5d6' : '#3d6b4f'),
-                          }}
-                        >{r.redeemedAt ? '標記為待兌換' : '標記為已兌換'}</div>
+                  {memberLevelData.rewards.map(r => (
+                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 0', borderBottom: '1px solid #f1ece2' }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {r.rewardLabel}</div>
+                        <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatDate(r.chosenAt)}</div>
                       </div>
-                    );
-                  })}
+                      <div
+                        onClick={() => togglingRewardId === null && toggleRewardRedeemed(r.id, !r.redeemedAt)}
+                        className="press"
+                        style={{
+                          cursor: togglingRewardId === null ? 'pointer' : 'default',
+                          opacity: togglingRewardId === r.id ? 0.5 : 1, flexShrink: 0,
+                          font: "600 11px 'Iansui'", padding: '5px 12px', borderRadius: 10,
+                          background: r.redeemedAt ? '#fff' : '#3d6b4f',
+                          color: r.redeemedAt ? '#8a7a68' : '#faf8f3',
+                          border: '1px solid ' + (r.redeemedAt ? '#ece5d6' : '#3d6b4f'),
+                        }}
+                      >{r.redeemedAt ? '標記為待兌換' : '標記為已兌換'}</div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

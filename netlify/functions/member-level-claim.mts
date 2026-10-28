@@ -1,7 +1,7 @@
 import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { json } from './lib/coffees';
-import { isValidRewardKey } from './lib/memberRewards';
+import { listRewardOptions, appliesToLevel } from './lib/memberRewards';
 
 const LEVEL_STEP = 500;
 
@@ -22,9 +22,13 @@ export default async (req: Request) => {
 
   if (!email) return json({ error: 'email is required' }, 400);
   if (!Number.isInteger(level) || level < 2) return json({ error: 'invalid level' }, 400);
-  if (!isValidRewardKey(rewardKey)) return json({ error: 'invalid rewardKey' }, 400);
+  if (!rewardKey) return json({ error: 'rewardKey is required' }, 400);
 
   const db = getDb();
+  const options = await listRewardOptions(db);
+  const option = options.find(o => o.reward_key === rewardKey && o.active);
+  if (!option || !appliesToLevel(option, level)) return json({ error: 'invalid rewardKey' }, 400);
+
   const [row] = (await db.sql`
     SELECT COALESCE(SUM(beans.beans_total), 0)::int AS beans_spent
     FROM orders o,

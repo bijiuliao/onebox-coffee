@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import type { Customer } from '../types';
 import { AdminTopBar } from './AdminTopBar';
-import { getMemberLevel, REWARD_OPTIONS } from '../memberLevel';
+import { getMemberLevel } from '../memberLevel';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleString('zh-TW', {
@@ -79,20 +79,17 @@ export function CustomersView() {
                 <div style={{ font: "400 12px 'Space Mono'", color: '#9a8a76', marginTop: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.email}</div>
                 {c.rewards.length > 0 && (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 }}>
-                    {c.rewards.map(r => {
-                      const option = REWARD_OPTIONS.find(o => o.key === r.rewardKey);
-                      return (
-                        <span
-                          key={r.id}
-                          style={{
-                            font: "600 10px 'Iansui'", padding: '3px 8px', borderRadius: 9,
-                            background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
-                          }}
-                        >
-                          Lv.{r.level} · {option?.label ?? r.rewardKey}
-                        </span>
-                      );
-                    })}
+                    {c.rewards.map(r => (
+                      <span
+                        key={r.id}
+                        style={{
+                          font: "600 10px 'Iansui'", padding: '3px 8px', borderRadius: 9,
+                          background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
+                        }}
+                      >
+                        Lv.{r.level} · {r.rewardLabel}
+                      </span>
+                    ))}
                   </div>
                 )}
               </div>

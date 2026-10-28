@@ -1,6 +1,7 @@
 import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { json } from './lib/coffees';
+import { listRewardOptions, appliesToLevel } from './lib/memberRewards';
 
 // $500 of cumulative beans spend per level, no cap - mirrors
 // client/src/memberLevel.ts (trivial one-line arithmetic, not worth
@@ -44,25 +45,42 @@ export default async (req: Request) => {
   const level = Math.floor(beansSpent / LEVEL_STEP) + 1;
   const toNextLevel = level * LEVEL_STEP - beansSpent;
 
+  const allOptions = await listRewardOptions(db);
+  const optionsByKey = new Map(allOptions.map(o => [o.reward_key, o]));
+  const activeOptions = allOptions.filter(o => o.active);
+
   const rewardRows = (await db.sql`
     SELECT id, level, reward_key, chosen_at, redeemed_at FROM member_rewards
     WHERE customer_email = ${email}
     ORDER BY level ASC
   `) as RewardRow[];
 
-  const rewards = rewardRows.map(r => ({
-    id: r.id, level: r.level, rewardKey: r.reward_key, chosenAt: r.chosen_at, redeemedAt: r.redeemed_at,
-  }));
+  const rewards = rewardRows.map(r => {
+    const option = optionsByKey.get(r.reward_key);
+    return {
+      id: r.id, level: r.level, rewardKey: r.reward_key,
+      rewardLabel: option?.label ?? r.reward_key, rewardDesc: option?.description ?? '',
+      chosenAt: r.chosen_at, redeemedAt: r.redeemed_at,
+    };
+  });
   const chosenLevels = new Set(rewards.map(r => r.level));
+
   // The lowest level (above 1) the customer has reached but hasn't picked
   // a reward for yet - only one offered at a time, even if a big order
-  // jumped several levels at once.
+  // jumped several levels at once. A level with no active reward in its
+  // range (an odd admin config, or everything retired) is skipped rather
+  // than leaving the customer stuck on a level that has nothing to offer.
   let unclaimedLevel: number | null = null;
   for (let lv = 2; lv <= level; lv++) {
-    if (!chosenLevels.has(lv)) { unclaimedLevel = lv; break; }
+    if (chosenLevels.has(lv)) continue;
+    if (activeOptions.some(o => appliesToLevel(o, lv))) { unclaimedLevel = lv; break; }
   }
 
-  return json({ beansSpent, level, toNextLevel, rewards, unclaimedLevel });
+  const availableRewards = unclaimedLevel !== null
+    ? activeOptions.filter(o => appliesToLevel(o, unclaimedLevel!)).map(o => ({ key: o.reward_key, label: o.label, desc: o.description }))
+    : [];
+
+  return json({ beansSpent, level, toNextLevel, rewards, unclaimedLevel, availableRewards });
 };
 
 export const config: Config = {

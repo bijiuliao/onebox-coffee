@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, Order, OrderType, ReviewSummary, Settings, Special } from './types';
+import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -108,6 +108,21 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ redeemed }),
     }).then(res => json<{ id: number; redeemedAt: string | null }>(res)),
+  listRewardOptions: () => fetch('/api/admin/reward-options').then(res => json<RewardOption[]>(res)),
+  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null }) =>
+    fetch('/api/admin/reward-options', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).then(res => json<RewardOption>(res)),
+  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder'>>) =>
+    fetch(`/api/admin/reward-options/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).then(res => json<RewardOption>(res)),
+  deleteRewardOption: (id: number) =>
+    fetch(`/api/admin/reward-options/${id}`, { method: 'DELETE' }).then(res => json<{ id: number; deleted: boolean }>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {
       method: 'POST',

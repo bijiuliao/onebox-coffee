@@ -5,7 +5,6 @@ import { BackButton } from '../components';
 import { useLang } from '../i18n';
 import { api } from '../api';
 import type { MemberLevel } from '../types';
-import { REWARD_OPTIONS } from '../memberLevel';
 import { getStoredEmail } from '../customerSession';
 
 function formatTime(iso: string) {
@@ -136,7 +135,7 @@ export function MemberLevelScreen() {
               {t('memberLevel.levelUpHeading', { level: result.unclaimedLevel })}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, textAlign: 'left' }}>
-              {REWARD_OPTIONS.map(r => (
+              {result.availableRewards.map(r => (
                 <div
                   key={r.key}
                   onClick={() => claim(r.key)}
@@ -158,21 +157,18 @@ export function MemberLevelScreen() {
           <div style={{ marginTop: 24 }}>
             <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 10 }}>{t('memberLevel.rewardHistory')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {result.rewards.map(r => {
-                const option = REWARD_OPTIONS.find(o => o.key === r.rewardKey);
-                return (
-                  <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {option?.label ?? r.rewardKey}</div>
-                      <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatTime(r.chosenAt)}</div>
-                    </div>
-                    <span style={{
-                      font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
-                      background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
-                    }}>{r.redeemedAt ? t('memberLevel.redeemed') : t('memberLevel.pending')}</span>
+              {result.rewards.map(r => (
+                <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {r.rewardLabel}</div>
+                    <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatTime(r.chosenAt)}</div>
                   </div>
-                );
-              })}
+                  <span style={{
+                    font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
+                    background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
+                  }}>{r.redeemedAt ? t('memberLevel.redeemed') : t('memberLevel.pending')}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
