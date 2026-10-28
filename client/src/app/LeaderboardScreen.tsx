@@ -66,7 +66,7 @@ export function LeaderboardScreen() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto',
             font: "700 28px 'Iansui'", color: '#fff',
           }}>
-            王
+            {leaderboard?.[0] ? leaderboard[0].name[0] : '✦'}
           </span>
           <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: 'rgba(255,255,255,.85)', marginTop: 14 }}>{t('leaderboard.eyebrow')}</div>
           <div style={{ font: "700 26px 'Iansui',serif", color: '#fff', marginTop: 6 }}>{t('leaderboard.heading')}</div>

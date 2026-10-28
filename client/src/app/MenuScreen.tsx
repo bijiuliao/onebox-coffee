@@ -352,7 +352,7 @@ export function MenuScreen() {
           flex: 'none', width: 42, height: 42, borderRadius: '50%', background: 'rgba(255,255,255,.22)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', font: "700 19px 'Iansui'", color: '#fff',
         }}>
-          王
+          {leaderTeaser ? leaderTeaser.name[0] : '✦'}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ font: "700 15px 'Iansui'", color: '#fff' }}>{t('leaderboard.bannerTitle')}</div>
