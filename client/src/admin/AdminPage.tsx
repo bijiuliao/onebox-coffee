@@ -244,7 +244,7 @@ export function AdminPage() {
         price: sel.price, color: sel.color, score: sel.score, process: sel.process, altitude: sel.altitude,
         varietal: sel.varietal, harvest: sel.harvest, desc: sel.desc, roaster: sel.roaster,
         temps: sel.temps, sizes: sel.sizes, sellsBeans: sel.sellsBeans, bagOptions: sel.bagOptions,
-        stockQty: sel.stockQty, costPerGramTwd: sel.costPerGramTwd,
+        stockQty: sel.stockQty, costPerGramTwd: sel.costPerGramTwd, grade: sel.grade,
       });
       showToast('已儲存 · ' + sel.name);
     } catch {
