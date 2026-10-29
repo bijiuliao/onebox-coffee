@@ -4,7 +4,7 @@ import { api } from '../api';
 import type { Coffee, Customer, MemberLevel, Order } from '../types';
 import { AdminTopBar } from './AdminTopBar';
 import { useToast } from '../toast';
-import { getMemberLevel, spendToNextLevel, LEVEL_STEP } from '../memberLevel';
+import { getMemberLevel, spendToNextLevel, currentLevelStep } from '../memberLevel';
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -61,6 +61,7 @@ export function CustomerDetailView() {
   const sellableCoffees = coffees?.filter(c => c.sellsBeans) ?? [];
   const memberLevel = customer ? getMemberLevel(customer.beansSpent) : null;
   const toNextLevel = customer ? spendToNextLevel(customer.beansSpent) : 0;
+  const levelStep = customer ? currentLevelStep(customer.beansSpent) : 500;
 
   async function sendNotification() {
     if (!selectedCoffeeId || sending) return;
@@ -143,7 +144,7 @@ export function CustomerDetailView() {
                 <div style={{ height: 6, borderRadius: 3, background: '#f1ece2', overflow: 'hidden' }}>
                   <div style={{
                     height: '100%', borderRadius: 3,
-                    width: `${((LEVEL_STEP - toNextLevel) / LEVEL_STEP) * 100}%`,
+                    width: `${((levelStep - toNextLevel) / levelStep) * 100}%`,
                     background: '#c98a2e',
                   }} />
                 </div>

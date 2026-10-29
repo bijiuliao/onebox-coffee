@@ -2,8 +2,7 @@ import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { listRewardOptions, appliesToLevel } from './lib/memberRewards';
-
-const LEVEL_STEP = 500;
+import { levelProgress } from './lib/memberLevelFormula';
 
 // Lets a customer lock in which "skill" they picked for a level-up they've
 // actually reached - no admin auth, same public/email-identified pattern
@@ -39,7 +38,7 @@ export default async (req: Request) => {
     ) beans
     WHERE customer_email = ${email}
   `) as { beans_spent: number }[];
-  const actualLevel = Math.floor((row?.beans_spent ?? 0) / LEVEL_STEP) + 1;
+  const { level: actualLevel } = levelProgress(row?.beans_spent ?? 0);
   if (level > actualLevel) return json({ error: '還沒有升到這個等級' }, 400);
 
   const [existing] = (await db.sql`SELECT id FROM member_rewards WHERE customer_email = ${email} AND level = ${level}`) as { id: number }[];

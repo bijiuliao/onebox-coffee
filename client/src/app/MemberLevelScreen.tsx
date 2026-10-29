@@ -6,6 +6,7 @@ import { useLang } from '../i18n';
 import { api } from '../api';
 import type { MemberLevel } from '../types';
 import { getStoredEmail } from '../customerSession';
+import { currentLevelStep } from '../memberLevel';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -67,7 +68,8 @@ export function MemberLevelScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const progressPct = result ? Math.max(0, Math.min(100, ((500 - result.toNextLevel) / 500) * 100)) : 0;
+  const levelStep = result ? currentLevelStep(result.beansSpent) : 500;
+  const progressPct = result ? Math.max(0, Math.min(100, ((levelStep - result.toNextLevel) / levelStep) * 100)) : 0;
 
   return (
     <MobileShell>

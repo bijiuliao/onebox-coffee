@@ -2,11 +2,7 @@ import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { listRewardOptions, appliesToLevel } from './lib/memberRewards';
-
-// $500 of cumulative beans spend per level, no cap - mirrors
-// client/src/memberLevel.ts (trivial one-line arithmetic, not worth
-// sharing a module over two separate module graphs for).
-const LEVEL_STEP = 500;
+import { levelProgress } from './lib/memberLevelFormula';
 
 interface RewardRow {
   id: number;
@@ -42,8 +38,7 @@ export default async (req: Request) => {
   `) as { beans_spent: number }[];
 
   const beansSpent = row?.beans_spent ?? 0;
-  const level = Math.floor(beansSpent / LEVEL_STEP) + 1;
-  const toNextLevel = level * LEVEL_STEP - beansSpent;
+  const { level, toNextLevel } = levelProgress(beansSpent);
 
   const allOptions = await listRewardOptions(db);
   const optionsByKey = new Map(allOptions.map(o => [o.reward_key, o]));
