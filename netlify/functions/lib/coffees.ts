@@ -35,6 +35,10 @@ export interface Coffee {
   launchNotified: boolean;
   // Rarity class (see lib/coffeeGrade.ts) - null until the admin sets one.
   grade: string | null;
+  // Which mystery-bean-pool tier (see lib/mysteryDraw.ts) this coffee is
+  // eligible to be drawn from - null (most coffees) means it's not in any
+  // pool at all.
+  mysteryTier: 'daily' | 'rare' | 'competition' | null;
 }
 
 export interface CoffeeRow {
@@ -68,6 +72,7 @@ export interface CoffeeRow {
   launch_notified: boolean;
   cost_per_gram_twd: number | string | null;
   grade: string | null;
+  mystery_tier: 'daily' | 'rare' | 'competition' | null;
 }
 
 export function toCoffee(row: CoffeeRow): Coffee {
@@ -101,6 +106,7 @@ export function toCoffee(row: CoffeeRow): Coffee {
     costPerGramTwd: row.cost_per_gram_twd === null ? null : Number(row.cost_per_gram_twd),
     launchNotified: row.launch_notified,
     grade: row.grade,
+    mysteryTier: row.mystery_tier,
   };
 }
 
@@ -128,6 +134,7 @@ export const EDITABLE_COLUMNS: Record<string, string> = {
   stockQty: 'stock_qty',
   costPerGramTwd: 'cost_per_gram_twd',
   grade: 'grade',
+  mysteryTier: 'mystery_tier',
 };
 
 // Fields whose value must be JSON.stringify'd before binding to a jsonb column.

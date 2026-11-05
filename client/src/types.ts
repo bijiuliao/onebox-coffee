@@ -2,6 +2,7 @@ export type Temp = '熱' | '冰';
 export type Size = '標準' | '大杯';
 export type OrderType = '自取' | '外送';
 export type ItemKind = 'drip' | 'beans' | 'special';
+export type MysteryTier = 'daily' | 'rare' | 'competition';
 
 export interface BagOption {
   label: string;
@@ -43,6 +44,10 @@ export interface Coffee {
   launchNotified: boolean;
   // Rarity class (see coffeeGrade.ts) - null until the admin sets one.
   grade: string | null;
+  // Which mystery-bean-pool tier this coffee can be drawn from (see
+  // MemberLevelScreen's wheel) - null (most coffees) means it's not in any
+  // pool.
+  mysteryTier: MysteryTier | null;
 }
 
 export interface Special {
@@ -141,6 +146,14 @@ export interface MemberRewardChoice {
   // auto-applies on the customer's next beans checkout instead of being
   // handed out by admin, so an unredeemed one needs no customer action.
   isDiscount: boolean;
+  // True for a reward whose RewardOption.isMysteryPool is set - the
+  // customer gets a wheel to spin (MemberLevelScreen) instead of a flat
+  // physical reward. mysteryCoffeeName/mysteryTier/mysteryDrawnAt are all
+  // null until they actually spin; once set, the draw is permanent.
+  isMysteryPool: boolean;
+  mysteryTier: MysteryTier | null;
+  mysteryCoffeeName: string | null;
+  mysteryDrawnAt: string | null;
 }
 
 // The /api/customers list's own (slightly leaner) reward shape - no
@@ -153,6 +166,10 @@ export interface CustomerRewardChoice {
   rewardLabel: string;
   redeemedAt: string | null;
   isDiscount: boolean;
+  isMysteryPool: boolean;
+  mysteryTier: MysteryTier | null;
+  mysteryCoffeeName: string | null;
+  mysteryDrawnAt: string | null;
 }
 
 // The reward(s) currently offered for an unclaimed level-up, filtered
@@ -162,6 +179,7 @@ export interface AvailableReward {
   label: string;
   desc: string;
   isDiscount: boolean;
+  isMysteryPool: boolean;
 }
 
 // Public per-email member level lookup (see netlify/functions/member-level.mts).
@@ -176,6 +194,10 @@ export interface MemberLevel {
   rewards: MemberRewardChoice[];
   unclaimedLevel: number | null;
   availableRewards: AvailableReward[];
+  // The mystery wheel's tier odds (percent) at this customer's current
+  // level (see lib/mysteryDraw.ts) - only relevant if they have an undrawn
+  // mystery-pool reward, but always present.
+  mysteryWeights: { daily: number; rare: number; competition: number };
 }
 
 // Admin-editable catalog row behind AvailableReward/MemberRewardChoice's
@@ -192,8 +214,11 @@ export interface RewardOption {
   sortOrder: number;
   // Set only for a reward that auto-applies as a checkout discount instead
   // of being hand-fulfilled (see orders.mts) - null for every physical
-  // reward (extra grams, mystery bag), which stays fully manual.
+  // reward (extra grams), which stays fully manual.
   discountPercent: number | null;
+  // Set for a reward that gives the customer a mystery-pool wheel to spin
+  // instead of a flat physical reward (see member-level-mystery-draw.mts).
+  isMysteryPool: boolean;
 }
 
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)

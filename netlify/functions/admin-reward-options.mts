@@ -8,7 +8,7 @@ function toJson(r: RewardOptionRow) {
   return {
     id: r.id, key: r.reward_key, label: r.label, desc: r.description,
     minLevel: r.min_level, maxLevel: r.max_level, active: r.active, sortOrder: r.sort_order,
-    discountPercent: r.discount_percent,
+    discountPercent: r.discount_percent, isMysteryPool: r.is_mystery_pool,
   };
 }
 
@@ -36,6 +36,7 @@ export default async (req: Request) => {
   const minLevel = Number.isInteger(body.minLevel) ? (body.minLevel as number) : 2;
   const maxLevel = body.maxLevel === null || body.maxLevel === undefined ? null : Number(body.maxLevel);
   const discountPercent = body.discountPercent === null || body.discountPercent === undefined ? null : Number(body.discountPercent);
+  const isMysteryPool = body.isMysteryPool === true;
 
   if (!/^[a-z0-9_]+$/.test(key)) return json({ error: 'key 只能用小寫英數字和底線' }, 400);
   if (!label) return json({ error: 'label is required' }, 400);
@@ -49,8 +50,8 @@ export default async (req: Request) => {
 
   try {
     const [created] = (await db.sql`
-      INSERT INTO reward_options (reward_key, label, description, min_level, max_level, sort_order, discount_percent)
-      VALUES (${key}, ${label}, ${desc}, ${minLevel}, ${maxLevel}, COALESCE((SELECT MAX(sort_order) + 1 FROM reward_options), 0), ${discountPercent})
+      INSERT INTO reward_options (reward_key, label, description, min_level, max_level, sort_order, discount_percent, is_mystery_pool)
+      VALUES (${key}, ${label}, ${desc}, ${minLevel}, ${maxLevel}, COALESCE((SELECT MAX(sort_order) + 1 FROM reward_options), 0), ${discountPercent}, ${isMysteryPool})
       RETURNING *
     `) as RewardOptionRow[];
     return json(toJson(created), 201);

@@ -8,7 +8,7 @@ function toJson(r: RewardOptionRow) {
   return {
     id: r.id, key: r.reward_key, label: r.label, desc: r.description,
     minLevel: r.min_level, maxLevel: r.max_level, active: r.active, sortOrder: r.sort_order,
-    discountPercent: r.discount_percent,
+    discountPercent: r.discount_percent, isMysteryPool: r.is_mystery_pool,
   };
 }
 
@@ -63,6 +63,7 @@ export default async (req: Request) => {
     }
     sets.push(`discount_percent = $${i}`); values.push(discountPercent); i += 1;
   }
+  if (typeof body.isMysteryPool === 'boolean') { sets.push(`is_mystery_pool = $${i}`); values.push(body.isMysteryPool); i += 1; }
 
   if (sets.length === 0) return json({ error: 'no fields to update' }, 400);
 

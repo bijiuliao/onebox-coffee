@@ -41,15 +41,31 @@ export default async (req: Request) => {
   // Separate query rather than joining into the orders aggregate above -
   // member_rewards is already one row per (email, level), so grouping it in
   // here would multiply the orders rows instead of just adding a column.
+  // LEFT JOIN coffees resolves a drawn mystery-pool reward's coffee name,
+  // same as member-level.mts does for the customer's own view of it.
   const rewardRows = (await db.sql`
-    SELECT id, customer_email, level, reward_key, chosen_at, redeemed_at FROM member_rewards ORDER BY customer_email, level
-  `) as { id: number; customer_email: string; level: number; reward_key: string; chosen_at: string; redeemed_at: string | null }[];
+    SELECT mr.id, mr.customer_email, mr.level, mr.reward_key, mr.chosen_at, mr.redeemed_at,
+           mr.mystery_coffee_id, mr.mystery_tier, mr.mystery_drawn_at, c.name AS mystery_coffee_name
+    FROM member_rewards mr
+    LEFT JOIN coffees c ON c.id = mr.mystery_coffee_id
+    ORDER BY mr.customer_email, mr.level
+  `) as {
+    id: number; customer_email: string; level: number; reward_key: string; chosen_at: string; redeemed_at: string | null;
+    mystery_coffee_id: string | null; mystery_tier: 'daily' | 'rare' | 'competition' | null; mystery_drawn_at: string | null; mystery_coffee_name: string | null;
+  }[];
   const optionsByKey = new Map((await listRewardOptions(db)).map(o => [o.reward_key, o]));
-  const rewardsByEmail = new Map<string, { id: number; level: number; rewardKey: string; rewardLabel: string; redeemedAt: string | null; isDiscount: boolean }[]>();
+  const rewardsByEmail = new Map<string, {
+    id: number; level: number; rewardKey: string; rewardLabel: string; redeemedAt: string | null; isDiscount: boolean;
+    isMysteryPool: boolean; mysteryTier: 'daily' | 'rare' | 'competition' | null; mysteryCoffeeName: string | null; mysteryDrawnAt: string | null;
+  }[]>();
   for (const r of rewardRows) {
     const list = rewardsByEmail.get(r.customer_email) ?? [];
     const option = optionsByKey.get(r.reward_key);
-    list.push({ id: r.id, level: r.level, rewardKey: r.reward_key, rewardLabel: option?.label ?? r.reward_key, redeemedAt: r.redeemed_at, isDiscount: option?.discount_percent != null });
+    list.push({
+      id: r.id, level: r.level, rewardKey: r.reward_key, rewardLabel: option?.label ?? r.reward_key, redeemedAt: r.redeemed_at,
+      isDiscount: option?.discount_percent != null, isMysteryPool: option?.is_mystery_pool === true,
+      mysteryTier: r.mystery_tier, mysteryCoffeeName: r.mystery_coffee_name, mysteryDrawnAt: r.mystery_drawn_at,
+    });
     rewardsByEmail.set(r.customer_email, list);
   }
 

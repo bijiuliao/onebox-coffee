@@ -41,6 +41,10 @@ export default async (req: Request) => {
       }
     }
 
+    if ('mysteryTier' in body && body.mysteryTier !== null && !['daily', 'rare', 'competition'].includes(body.mysteryTier as string)) {
+      return json({ error: 'mysteryTier must be daily, rare, competition, or null' }, 400);
+    }
+
     const sets: string[] = [];
     const values: unknown[] = [];
     let i = 1;

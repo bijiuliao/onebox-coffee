@@ -4,12 +4,96 @@ import { MobileShell } from '../AppShell';
 import { BackButton } from '../components';
 import { useLang } from '../i18n';
 import { api } from '../api';
-import type { MemberLevel } from '../types';
+import type { MemberLevel, MysteryTier } from '../types';
 import { getStoredEmail } from '../customerSession';
 import { currentLevelStep } from '../memberLevel';
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
+}
+
+const MYSTERY_TIER_ORDER: MysteryTier[] = ['daily', 'rare', 'competition'];
+const MYSTERY_TIER_COLOR: Record<MysteryTier, string> = { daily: '#3d6b4f', rare: '#2b6f8a', competition: '#b5502f' };
+const MYSTERY_TIER_LABEL_KEY: Record<MysteryTier, string> = { daily: 'mysteryTier.daily', rare: 'mysteryTier.rare', competition: 'mysteryTier.competition' };
+
+type MysteryWeights = { daily: number; rare: number; competition: number };
+
+// Each tier's angular span on the wheel, proportional to its weight -
+// daily first, then rare, then competition, going clockwise from the top
+// (matches conic-gradient's default start point, which is what the wheel's
+// background is drawn with).
+function mysterySegmentBounds(weights: MysteryWeights): Record<MysteryTier, [number, number]> {
+  const total = weights.daily + weights.rare + weights.competition || 1;
+  let acc = 0;
+  const bounds = {} as Record<MysteryTier, [number, number]>;
+  for (const tier of MYSTERY_TIER_ORDER) {
+    const span = (weights[tier] / total) * 360;
+    bounds[tier] = [acc, acc + span];
+    acc += span;
+  }
+  return bounds;
+}
+
+function mysteryWheelBackground(weights: MysteryWeights): string {
+  const bounds = mysterySegmentBounds(weights);
+  const stops = MYSTERY_TIER_ORDER.map(t => `${MYSTERY_TIER_COLOR[t]} ${bounds[t][0]}deg ${bounds[t][1]}deg`).join(', ');
+  return `conic-gradient(${stops})`;
+}
+
+// How far (in degrees) to rotate the wheel so the drawn tier's segment ends
+// up under the pointer (fixed at the top) - lands at a random point inside
+// the segment rather than dead center, plus a few extra full turns so the
+// spin actually looks like a spin.
+function mysteryRotationForTier(weights: MysteryWeights, tier: MysteryTier): number {
+  const [start, end] = mysterySegmentBounds(weights)[tier];
+  const span = end - start;
+  const landingOffset = span > 0 ? (0.15 + Math.random() * 0.7) * span : 0;
+  const targetAngle = (start + landingOffset) % 360;
+  const spins = 6;
+  return spins * 360 + ((360 - targetAngle) % 360);
+}
+
+function MysteryWheelPanel({ weights, spinning, rotation, onSpin, t }: {
+  weights: MysteryWeights;
+  spinning: boolean;
+  rotation: number;
+  onSpin: () => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, padding: '16px 10px', background: '#faf8f3', borderRadius: 14 }}>
+      <div style={{ position: 'relative', width: 150, height: 150 }}>
+        <div style={{
+          position: 'absolute', top: -9, left: '50%', transform: 'translateX(-50%)', zIndex: 2,
+          width: 0, height: 0, borderLeft: '8px solid transparent', borderRight: '8px solid transparent', borderTop: '14px solid #1a1714',
+        }} />
+        <div style={{
+          width: 150, height: 150, borderRadius: '50%', background: mysteryWheelBackground(weights), border: '4px solid #fff',
+          boxShadow: '0 4px 16px rgba(0,0,0,.15)',
+          transform: `rotate(${rotation}deg)`,
+          transition: spinning ? 'transform 3.2s cubic-bezier(.17,.67,.2,1)' : 'none',
+        }} />
+      </div>
+      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+        {MYSTERY_TIER_ORDER.map(tier => (
+          <div key={tier} style={{ display: 'flex', alignItems: 'center', gap: 5, font: "500 11px 'Iansui'", color: '#6b5c4a' }}>
+            <span style={{ width: 9, height: 9, borderRadius: '50%', background: MYSTERY_TIER_COLOR[tier], flexShrink: 0 }} />
+            {t(MYSTERY_TIER_LABEL_KEY[tier])} {weights[tier]}%
+          </div>
+        ))}
+      </div>
+      <div
+        onClick={() => !spinning && onSpin()}
+        className="press"
+        style={{
+          cursor: spinning ? 'default' : 'pointer', opacity: spinning ? .6 : 1,
+          padding: '11px 26px', borderRadius: 12, background: '#1a1714', color: '#faf8f3', font: "600 13px 'Iansui'",
+        }}
+      >
+        {spinning ? t('memberLevel.spinning') : t('memberLevel.spinWheel')}
+      </div>
+    </div>
+  );
 }
 
 export function MemberLevelScreen() {
@@ -21,6 +105,9 @@ export function MemberLevelScreen() {
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [openWheelFor, setOpenWheelFor] = useState<number | null>(null);
+  const [spinningId, setSpinningId] = useState<number | null>(null);
+  const [wheelRotation, setWheelRotation] = useState<Record<number, number>>({});
 
   const search = async () => {
     const em = email.trim();
@@ -57,6 +144,34 @@ export function MemberLevelScreen() {
       setError(err instanceof Error ? err.message : t('memberLevel.claimFailed'));
     } finally {
       setClaiming(false);
+    }
+  };
+
+  // Draws the actual coffee server-side first (that's the moment the result
+  // is locked in - see member-level-mystery-draw.mts), then spins the wheel
+  // to visually land on it. Doesn't refresh `result` until the animation's
+  // own timer fires, so the reveal always happens in step with the wheel
+  // actually stopping rather than snapping to the drawn state early.
+  const spin = async (rewardId: number) => {
+    const em = email.trim();
+    if (!result || spinningId !== null) return;
+    setSpinningId(rewardId);
+    setError(null);
+    try {
+      const draw = await api.drawMysteryBean(em, rewardId);
+      setWheelRotation(prev => ({ ...prev, [rewardId]: mysteryRotationForTier(result.mysteryWeights, draw.tier) }));
+      setTimeout(async () => {
+        try {
+          const refreshed = await api.getMemberLevel(em);
+          setResult(refreshed);
+        } finally {
+          setSpinningId(null);
+          setOpenWheelFor(null);
+        }
+      }, 3400);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('memberLevel.mysteryFailed'));
+      setSpinningId(null);
     }
   };
 
@@ -152,6 +267,9 @@ export function MemberLevelScreen() {
                   {r.isDiscount && (
                     <div style={{ font: "400 10px 'Iansui'", color: '#c98a2e', marginTop: 4 }}>{t('memberLevel.discountHint')}</div>
                   )}
+                  {r.isMysteryPool && (
+                    <div style={{ font: "400 10px 'Iansui'", color: '#9d8fd9', marginTop: 4 }}>{t('memberLevel.mysteryHint')}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -162,18 +280,53 @@ export function MemberLevelScreen() {
           <div style={{ marginTop: 24 }}>
             <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 10 }}>{t('memberLevel.rewardHistory')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {result.rewards.map(r => (
-                <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
-                  <div style={{ minWidth: 0 }}>
-                    <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {r.rewardLabel}</div>
-                    <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatTime(r.chosenAt)}</div>
+              {result.rewards.map(r => {
+                const undrawnMystery = r.isMysteryPool && !r.mysteryCoffeeName;
+                return (
+                  <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {r.rewardLabel}</div>
+                        <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatTime(r.chosenAt)}</div>
+                      </div>
+                      {!undrawnMystery && (
+                        <span style={{
+                          font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
+                          background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
+                        }}>{r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : r.isMysteryPool ? t('memberLevel.mysteryPendingShip') : t('memberLevel.pending'))}</span>
+                      )}
+                    </div>
+
+                    {r.isMysteryPool && r.mysteryCoffeeName && (
+                      <div style={{ marginTop: 8, font: "600 12px 'Iansui'", color: '#5a4a9e' }}>
+                        {t('memberLevel.mysteryResult', { name: r.mysteryCoffeeName })}
+                      </div>
+                    )}
+
+                    {undrawnMystery && (
+                      <div style={{ marginTop: 10 }}>
+                        {openWheelFor === r.id ? (
+                          <MysteryWheelPanel
+                            weights={result.mysteryWeights}
+                            spinning={spinningId === r.id}
+                            rotation={wheelRotation[r.id] ?? 0}
+                            onSpin={() => spin(r.id)}
+                            t={t}
+                          />
+                        ) : (
+                          <div
+                            onClick={() => setOpenWheelFor(r.id)}
+                            className="press"
+                            style={{ cursor: 'pointer', textAlign: 'center', padding: 11, borderRadius: 10, background: '#5a4a9e', color: '#faf8f3', font: "600 12px 'Iansui'" }}
+                          >
+                            🎡 {t('memberLevel.openWheel')}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <span style={{
-                    font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
-                    background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
-                  }}>{r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : t('memberLevel.pending'))}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

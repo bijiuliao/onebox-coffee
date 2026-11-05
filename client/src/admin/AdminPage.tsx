@@ -245,6 +245,7 @@ export function AdminPage() {
         varietal: sel.varietal, harvest: sel.harvest, desc: sel.desc, roaster: sel.roaster,
         temps: sel.temps, sizes: sel.sizes, sellsBeans: sel.sellsBeans, bagOptions: sel.bagOptions,
         stockQty: sel.stockQty, costPerGramTwd: sel.costPerGramTwd, grade: sel.grade,
+        mysteryTier: sel.mysteryTier,
       });
       showToast('已儲存 · ' + sel.name);
     } catch {
@@ -735,6 +736,19 @@ export function AdminPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div style={section}>
+            <div style={sectionTitle}>神秘豆池 · M Y S T E R Y&nbsp;&nbsp;P O O L</div>
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+              <div onClick={() => patch({ mysteryTier: null })} className="press" style={pillStyle(sel.mysteryTier === null, '#8a7a68')}>不在池中</div>
+              <div onClick={() => patch({ mysteryTier: 'daily' })} className="press" style={pillStyle(sel.mysteryTier === 'daily', '#3d6b4f')}>日常豆</div>
+              <div onClick={() => patch({ mysteryTier: 'rare' })} className="press" style={pillStyle(sel.mysteryTier === 'rare', '#2b6f8a')}>稀有豆</div>
+              <div onClick={() => patch({ mysteryTier: 'competition' })} className="press" style={pillStyle(sel.mysteryTier === 'competition', '#b5502f')}>競賽豆</div>
+            </div>
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginTop: 8 }}>
+              客戶抽到「神秘豆」技能時，轉盤會從對應等級池子裡隨機抽一支豆子——等級越高，抽到稀有豆／競賽豆的機率越高。一支豆子只能屬於一個池子，不在任何池子就不會被抽到。
+            </div>
           </div>
 
           <div style={section}>

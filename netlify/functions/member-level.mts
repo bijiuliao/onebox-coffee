@@ -3,6 +3,7 @@ import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { listRewardOptions, appliesToLevel } from './lib/memberRewards';
 import { levelProgress } from './lib/memberLevelFormula';
+import { tierWeightsForLevel } from './lib/mysteryDraw';
 
 interface RewardRow {
   id: number;
@@ -10,6 +11,10 @@ interface RewardRow {
   reward_key: string;
   chosen_at: string;
   redeemed_at: string | null;
+  mystery_coffee_id: string | null;
+  mystery_tier: 'daily' | 'rare' | 'competition' | null;
+  mystery_drawn_at: string | null;
+  mystery_coffee_name: string | null;
 }
 
 // Public lookup so a customer can check their own level with just their
@@ -45,9 +50,12 @@ export default async (req: Request) => {
   const activeOptions = allOptions.filter(o => o.active);
 
   const rewardRows = (await db.sql`
-    SELECT id, level, reward_key, chosen_at, redeemed_at FROM member_rewards
-    WHERE customer_email = ${email}
-    ORDER BY level ASC
+    SELECT mr.id, mr.level, mr.reward_key, mr.chosen_at, mr.redeemed_at,
+           mr.mystery_coffee_id, mr.mystery_tier, mr.mystery_drawn_at, c.name AS mystery_coffee_name
+    FROM member_rewards mr
+    LEFT JOIN coffees c ON c.id = mr.mystery_coffee_id
+    WHERE mr.customer_email = ${email}
+    ORDER BY mr.level ASC
   `) as RewardRow[];
 
   const rewards = rewardRows.map(r => {
@@ -58,9 +66,14 @@ export default async (req: Request) => {
       chosenAt: r.chosen_at, redeemedAt: r.redeemed_at,
       // Lets the client explain *how* an unredeemed reward gets redeemed -
       // a discount-percent reward needs no action from the customer (it
-      // auto-applies on their next beans checkout), while every other
-      // reward is still handed out by admin in person.
+      // auto-applies on their next beans checkout); a mystery-pool reward
+      // needs the customer to spin the wheel once (see mysteryCoffeeName
+      // below); every other reward is still handed out by admin in person.
       isDiscount: option?.discount_percent != null,
+      isMysteryPool: option?.is_mystery_pool === true,
+      mysteryTier: r.mystery_tier,
+      mysteryCoffeeName: r.mystery_coffee_name,
+      mysteryDrawnAt: r.mystery_drawn_at,
     };
   });
   const chosenLevels = new Set(rewards.map(r => r.level));
@@ -77,10 +90,19 @@ export default async (req: Request) => {
   }
 
   const availableRewards = unclaimedLevel !== null
-    ? activeOptions.filter(o => appliesToLevel(o, unclaimedLevel!)).map(o => ({ key: o.reward_key, label: o.label, desc: o.description, isDiscount: o.discount_percent != null }))
+    ? activeOptions.filter(o => appliesToLevel(o, unclaimedLevel!)).map(o => ({
+      key: o.reward_key, label: o.label, desc: o.description,
+      isDiscount: o.discount_percent != null, isMysteryPool: o.is_mystery_pool,
+    }))
     : [];
 
-  return json({ beansSpent, level, toNextLevel, rewards, unclaimedLevel, availableRewards });
+  // Shown alongside an undrawn mystery-pool reward so the wheel's segments
+  // can be sized to the customer's actual odds at their current level (see
+  // lib/mysteryDraw.ts) - harmless to always include even when nothing in
+  // their history needs it.
+  const mysteryWeights = tierWeightsForLevel(level);
+
+  return json({ beansSpent, level, toNextLevel, rewards, unclaimedLevel, availableRewards, mysteryWeights });
 };
 
 export const config: Config = {

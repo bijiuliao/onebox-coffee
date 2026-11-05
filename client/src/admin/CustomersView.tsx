@@ -87,7 +87,9 @@ export function CustomersView() {
                           background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
                         }}
                       >
-                        Lv.{r.level} · {r.rewardLabel}{r.isDiscount && !r.redeemedAt ? '（自動套用）' : ''}
+                        Lv.{r.level} · {r.rewardLabel}
+                        {r.isDiscount && !r.redeemedAt ? '（自動套用）' : ''}
+                        {r.isMysteryPool ? (r.mysteryCoffeeName ? `（抽到：${r.mysteryCoffeeName}）` : '（還沒轉盤）') : ''}
                       </span>
                     ))}
                   </div>

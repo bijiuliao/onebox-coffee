@@ -17,6 +17,7 @@ export function RewardOptionsView() {
   const [newMinLevel, setNewMinLevel] = useState('2');
   const [newMaxLevel, setNewMaxLevel] = useState('');
   const [newDiscountPercent, setNewDiscountPercent] = useState('');
+  const [newIsMysteryPool, setNewIsMysteryPool] = useState(false);
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -62,9 +63,10 @@ export function RewardOptionsView() {
         minLevel: Number(newMinLevel) || 2,
         maxLevel: newMaxLevel.trim() ? Number(newMaxLevel) : null,
         discountPercent: newDiscountPercent.trim() ? Number(newDiscountPercent) : null,
+        isMysteryPool: newIsMysteryPool,
       });
       setOptions(prev => [...(prev ?? []), created]);
-      setNewKey(''); setNewLabel(''); setNewDesc(''); setNewMinLevel('2'); setNewMaxLevel(''); setNewDiscountPercent('');
+      setNewKey(''); setNewLabel(''); setNewDesc(''); setNewMinLevel('2'); setNewMaxLevel(''); setNewDiscountPercent(''); setNewIsMysteryPool(false);
       showToast('已新增技能');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '新增失敗');
@@ -82,7 +84,7 @@ export function RewardOptionsView() {
           {options && <div style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{options.length} 項</div>}
         </div>
         <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginBottom: 20 }}>
-          客戶升等（Lv.2 以上）時可以選一個技能，這裡設定有哪些技能、各自從第幾級到第幾級出現（上限留空代表沒有上限）。停用的技能不會再被提供選擇，但已經選過的人歷史紀錄還是看得到；已經有人選過的技能無法直接刪除，只能停用。設定了「折扣 %」的技能，客戶下次結帳時系統會自動打折並標記兌換（只打在豆子部分）；留空的技能（多送豆子、神秘豆等）維持人工兌換，不會自動套用。
+          客戶升等（Lv.2 以上）時可以選一個技能，這裡設定有哪些技能、各自從第幾級到第幾級出現（上限留空代表沒有上限）。停用的技能不會再被提供選擇，但已經選過的人歷史紀錄還是看得到；已經有人選過的技能無法直接刪除，只能停用。設定了「折扣 %」的技能，客戶下次結帳時系統會自動打折並標記兌換（只打在豆子部分）；開啟「神秘豆轉盤」的技能，客戶選了之後可以自己轉轉盤抽豆子（依等級加權，等級越高抽到稀有豆/競賽豆機率越高），抽到的結果會出現在「打包出貨」頁面；兩者都沒開的技能（多送豆子等）維持人工兌換。豆款要先在「豆款」頁面設定好神秘豆池（日常豆／稀有豆／競賽豆）轉盤才抽得出東西。
         </div>
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
@@ -145,6 +147,19 @@ export function RewardOptionsView() {
                         style={{ ...inputStyle, width: 120 }}
                       />
                     </div>
+                    <div>
+                      {label('神秘豆轉盤')}
+                      <div
+                        onClick={() => { patchOption(o.id, { isMysteryPool: !o.isMysteryPool }); save(o.id, { isMysteryPool: !o.isMysteryPool }); }}
+                        className="press"
+                        style={{
+                          cursor: 'pointer', font: "600 12px 'Iansui'", padding: '9px 14px', borderRadius: 9, textAlign: 'center',
+                          background: o.isMysteryPool ? '#5a4a9e' : '#fff',
+                          color: o.isMysteryPool ? '#faf8f3' : '#8a7a68',
+                          border: '1px solid ' + (o.isMysteryPool ? '#5a4a9e' : '#e2dac9'),
+                        }}
+                      >{o.isMysteryPool ? '✓ 開啟轉盤' : '開啟轉盤'}</div>
+                    </div>
                     <div style={{ flex: 1 }} />
                     <div
                       onClick={() => toggleActive(o)}
@@ -194,6 +209,19 @@ export function RewardOptionsView() {
                 <div>
                   {label('折扣 %（留空＝人工兌換）')}
                   <input type="number" value={newDiscountPercent} onChange={(e) => setNewDiscountPercent(e.target.value)} placeholder="例如 10" style={{ ...inputStyle, width: 120 }} />
+                </div>
+                <div>
+                  {label('神秘豆轉盤')}
+                  <div
+                    onClick={() => setNewIsMysteryPool(v => !v)}
+                    className="press"
+                    style={{
+                      cursor: 'pointer', font: "600 12px 'Iansui'", padding: '9px 14px', borderRadius: 9, textAlign: 'center',
+                      background: newIsMysteryPool ? '#5a4a9e' : '#fff',
+                      color: newIsMysteryPool ? '#faf8f3' : '#8a7a68',
+                      border: '1px solid ' + (newIsMysteryPool ? '#5a4a9e' : '#e2dac9'),
+                    }}
+                  >{newIsMysteryPool ? '✓ 開啟轉盤' : '開啟轉盤'}</div>
                 </div>
                 <div style={{ flex: 1 }} />
                 <div

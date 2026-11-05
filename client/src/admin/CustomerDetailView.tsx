@@ -165,7 +165,13 @@ export function CustomerDetailView() {
                           {r.isDiscount && !r.redeemedAt && (
                             <span style={{ font: "600 10px 'Iansui'", color: '#3d6b4f', marginLeft: 6 }}>（結帳自動套用）</span>
                           )}
+                          {r.isMysteryPool && !r.mysteryCoffeeName && (
+                            <span style={{ font: "600 10px 'Iansui'", color: '#5a4a9e', marginLeft: 6 }}>（還沒轉盤）</span>
+                          )}
                         </div>
+                        {r.isMysteryPool && r.mysteryCoffeeName && (
+                          <div style={{ font: "500 12px 'Iansui'", color: '#5a4a9e', marginTop: 2 }}>抽到：{r.mysteryCoffeeName}</div>
+                        )}
                         <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatDate(r.chosenAt)}</div>
                       </div>
                       <div

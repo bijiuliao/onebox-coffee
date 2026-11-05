@@ -1,8 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import type { Order, OrderLine } from '../types';
+import type { Customer, Order, OrderLine } from '../types';
 import { AdminTopBar } from './AdminTopBar';
+
+const MYSTERY_TIER_LABEL: Record<string, string> = { daily: '日常豆', rare: '稀有豆', competition: '競賽豆' };
+const MYSTERY_TIER_COLOR: Record<string, string> = { daily: '#3d6b4f', rare: '#2b6f8a', competition: '#b5502f' };
 
 const ON_HAND_STORAGE_KEY = 'onebox-admin-beans-on-hand';
 
@@ -17,7 +20,9 @@ function isUnpackedBeansLine(line: OrderLine) {
 export function PackingView() {
   const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[] | null>(null);
+  const [customers, setCustomers] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [mysteryActing, setMysteryActing] = useState<number | null>(null);
   const [onHand, setOnHand] = useState<Set<string>>(() => {
     const raw = localStorage.getItem(ON_HAND_STORAGE_KEY);
     try {
@@ -35,7 +40,40 @@ export function PackingView() {
 
   useEffect(() => {
     api.listOrders().then(setOrders, err => setError(err.message));
+    api.listCustomers().then(setCustomers, err => setError(err.message));
   }, []);
+
+  // Every mystery-pool reward that's been drawn (a coffee was picked) but
+  // not yet handed to the customer - this is deliberately separate from
+  // the beans-order queue below: a mystery draw isn't an order line, it's
+  // a member_rewards row, so it needs its own small checklist here.
+  const pendingMysteryDraws = useMemo(() => {
+    const out: { id: number; email: string; name: string; coffeeName: string; tier: string; drawnAt: string }[] = [];
+    for (const c of customers ?? []) {
+      for (const r of c.rewards) {
+        if (r.isMysteryPool && r.mysteryCoffeeName && !r.redeemedAt) {
+          out.push({ id: r.id, email: c.email, name: c.name, coffeeName: r.mysteryCoffeeName, tier: r.mysteryTier ?? 'daily', drawnAt: r.mysteryDrawnAt ?? '' });
+        }
+      }
+    }
+    return out.sort((a, b) => a.drawnAt.localeCompare(b.drawnAt));
+  }, [customers]);
+
+  async function markMysteryShipped(rewardId: number) {
+    if (mysteryActing !== null) return;
+    setMysteryActing(rewardId);
+    try {
+      await api.setMemberRewardRedeemed(rewardId, true);
+      setCustomers(prev => prev && prev.map(c => ({
+        ...c,
+        rewards: c.rewards.map(r => (r.id === rewardId ? { ...r, redeemedAt: new Date().toISOString() } : r)),
+      })));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '更新失敗');
+    } finally {
+      setMysteryActing(null);
+    }
+  }
 
   useEffect(() => {
     localStorage.setItem(ON_HAND_STORAGE_KEY, JSON.stringify(Array.from(onHand)));
@@ -101,6 +139,38 @@ export function PackingView() {
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'", marginBottom: 16 }}>{error}</div>}
         {!error && orders === null && <div style={{ color: '#9a8a76', font: "400 14px 'Iansui'" }}>載入中…</div>}
+
+        {pendingMysteryDraws.length > 0 && (
+          <div style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 16, padding: 20, marginBottom: 20 }}>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76', marginBottom: 12 }}>🎡 神秘豆待出貨</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {pendingMysteryDraws.map(d => (
+                <div key={d.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 14px', borderRadius: 10, background: '#faf8f3' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>
+                      {d.name || d.email}
+                      <span style={{
+                        marginLeft: 8, font: "600 10px 'Iansui'", padding: '2px 8px', borderRadius: 9,
+                        background: MYSTERY_TIER_COLOR[d.tier] + '22', color: MYSTERY_TIER_COLOR[d.tier],
+                      }}>{MYSTERY_TIER_LABEL[d.tier] ?? d.tier}</span>
+                    </div>
+                    <div style={{ font: "500 12px 'Iansui'", color: '#5a4a9e', marginTop: 2 }}>抽到：{d.coffeeName}</div>
+                  </div>
+                  <div
+                    onClick={() => markMysteryShipped(d.id)}
+                    className="press"
+                    style={{
+                      cursor: mysteryActing === null ? 'pointer' : 'default', opacity: mysteryActing === d.id ? .5 : 1, flexShrink: 0,
+                      padding: '9px 14px', borderRadius: 10, font: "600 12px 'Iansui'", background: '#1a1714', color: '#faf8f3',
+                    }}
+                  >
+                    標記已出貨
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {orders && (
           <>

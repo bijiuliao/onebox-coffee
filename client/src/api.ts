@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
+import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, MysteryTier, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -107,6 +107,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, level, rewardKey }),
     }).then(res => json<{ ok: boolean; level: number; rewardKey: string }>(res)),
+  drawMysteryBean: (email: string, rewardId: number) =>
+    fetch('/api/member-level/mystery-draw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, rewardId }),
+    }).then(res => json<{ tier: MysteryTier; coffeeId: string; coffeeName: string }>(res)),
   setMemberRewardRedeemed: (id: number, redeemed: boolean) =>
     fetch(`/api/admin/member-rewards/${id}`, {
       method: 'PATCH',
@@ -114,13 +120,13 @@ export const api = {
       body: JSON.stringify({ redeemed }),
     }).then(res => json<{ id: number; redeemedAt: string | null }>(res)),
   listRewardOptions: () => fetch('/api/admin/reward-options').then(res => json<RewardOption[]>(res)),
-  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null; discountPercent: number | null }) =>
+  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null; discountPercent: number | null; isMysteryPool: boolean }) =>
     fetch('/api/admin/reward-options', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     }).then(res => json<RewardOption>(res)),
-  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder' | 'discountPercent'>>) =>
+  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder' | 'discountPercent' | 'isMysteryPool'>>) =>
     fetch(`/api/admin/reward-options/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
