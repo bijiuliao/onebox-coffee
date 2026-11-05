@@ -115,6 +115,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'cart.subtotal': { zh: '小計', en: 'Subtotal' },
   'cart.deliveryFeeLabel': { zh: '外送費', en: 'Delivery Fee' },
   'cart.pickupFree': { zh: '門市自取 · 免費', en: 'Pickup · Free' },
+  'cart.memberDiscount': { zh: '會員折扣', en: 'Member Discount' },
   'cart.total': { zh: '總計', en: 'Total' },
   'cart.nameLabel': { zh: '取餐姓名 / 暱稱', en: 'Name / Nickname' },
   'cart.nameLabelBeans': { zh: '姓名 / 暱稱', en: 'Name / Nickname' },

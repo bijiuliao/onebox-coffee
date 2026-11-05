@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, LangToggle } from '../components';
@@ -38,6 +38,25 @@ export function CartScreen() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
+  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+
+  // Previews the member discount (if any) so the cart shows it before
+  // checkout, instead of it only appearing on the order confirmation -
+  // debounced so it doesn't fire on every keystroke while typing an email.
+  // Resets to null (not "last known") while the field doesn't hold a valid
+  // address, so a half-typed or just-cleared email never shows a stale
+  // discount for a different customer.
+  useEffect(() => {
+    const email = customerEmail.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) { setDiscountPercent(null); return; }
+    const timer = setTimeout(() => {
+      api.getMemberDiscount(email).then(
+        (res) => setDiscountPercent(res.discountPercent),
+        () => setDiscountPercent(null),
+      );
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [customerEmail]);
 
   const requestDelivery = () => {
     setOrderType('外送');
@@ -72,7 +91,12 @@ export function CartScreen() {
   };
 
   const deliveryFee = orderType === '外送' && quote?.deliverable ? quote.fee : 0;
-  const total = cart.total + deliveryFee;
+  // Mirrors orders.mts's own computation exactly (beans-only subtotal,
+  // rounded the same way) so this preview never drifts from what checkout
+  // actually charges - the real amount is still decided server-side.
+  const beansSubtotal = cart.lines.filter(l => l.kind === 'beans').reduce((sum, l) => sum + lineTotal(l), 0);
+  const discountAmount = discountPercent ? Math.round(beansSubtotal * discountPercent / 100) : 0;
+  const total = cart.total + deliveryFee - discountAmount;
   const canCheckout = orderType === '自取' || (!!quote?.deliverable && !locating);
   const hasBrewedItems = cart.lines.some(l => l.kind !== 'beans');
 
@@ -159,12 +183,18 @@ export function CartScreen() {
               <span style={{ font: "400 14px 'Iansui'", color: '#6b5c4a' }}>{t('cart.subtotal')}</span>
               <span style={{ font: "500 15px 'Room205'", color: '#1a1714' }}>${cart.total}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid #eee3d3' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 12, borderBottom: discountAmount > 0 ? 'none' : '1px solid #eee3d3' }}>
               <span style={{ font: "400 14px 'Iansui'", color: '#6b5c4a' }}>{orderType === '外送' ? t('cart.deliveryFeeLabel') : t('cart.pickupMethod')}</span>
               <span style={{ font: "500 14px 'Iansui'", color: '#1a1714' }}>
                 {orderType === '自取' ? t('cart.pickupFree') : (quote?.deliverable ? `$${deliveryFee}` : '—')}
               </span>
             </div>
+            {discountAmount > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 12, borderBottom: '1px solid #eee3d3' }}>
+                <span style={{ font: "400 14px 'Iansui'", color: '#3d6b4f' }}>{t('cart.memberDiscount')}</span>
+                <span style={{ font: "500 14px 'Room205'", color: '#3d6b4f' }}>-${discountAmount}</span>
+              </div>
+            )}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', paddingTop: 14 }}>
               <span style={{ font: "600 15px 'Iansui'", color: '#1a1714' }}>{t('cart.total')}</span>
               <span style={{ font: "600 26px 'Room205'", color: '#1a1714' }}>${total}</span>
