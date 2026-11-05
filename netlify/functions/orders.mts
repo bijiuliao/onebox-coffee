@@ -193,24 +193,24 @@ export default async (req: Request, context: Context) => {
   const itemsTotal = lines.reduce((sum, l) => sum + l.linePrice, 0);
   const beansSubtotal = lines.filter(l => l.kind === 'beans').reduce((sum, l) => sum + l.linePrice, 0);
 
-  // The customer can decline an available discount for this order (e.g. to
-  // save it for a bigger purchase later) - the cart shows them the same
-  // preview via /api/member-discount and lets them toggle this off.
-  // Defaults to true so older/other clients that don't send it still get
-  // the discount as before.
-  const useDiscount = body.useDiscount !== false;
+  // The cart lists every unredeemed discount-type reward by name (see
+  // /api/member-discount) and lets the customer pick which one to use, or
+  // none at all - this is that choice, not a server-side "best one wins"
+  // pick. null (unset, or no discount available) means no discount.
+  const requestedDiscountRewardId = Number.isInteger(body.discountRewardId) ? (body.discountRewardId as number) : null;
 
-  // The best (highest %) unredeemed discount-type reward this email has -
-  // picked here, actually consumed (and only then counted) inside the
-  // transaction below, so a race against a second concurrent order can't
-  // spend the same reward twice. Only one reward is ever applied per
-  // order; it's never stacked with others still sitting unredeemed.
-  const [discountCandidate] = useDiscount ? (await db.sql`
+  // Re-validated here rather than trusted from the client - must still be
+  // this email's, still unredeemed, and still a discount-type reward (an
+  // id from a stale page load could otherwise have been redeemed, or even
+  // retired of its discount %, in the meantime). Picked here but only
+  // actually consumed (and only then counted) inside the transaction
+  // below, so a race against a second concurrent order can't spend the
+  // same reward twice.
+  const [discountCandidate] = requestedDiscountRewardId !== null ? (await db.sql`
     SELECT mr.id, ro.discount_percent
     FROM member_rewards mr
     JOIN reward_options ro ON ro.reward_key = mr.reward_key
-    WHERE mr.customer_email = ${customerEmail} AND mr.redeemed_at IS NULL AND ro.discount_percent IS NOT NULL
-    ORDER BY ro.discount_percent DESC
+    WHERE mr.id = ${requestedDiscountRewardId} AND mr.customer_email = ${customerEmail} AND mr.redeemed_at IS NULL AND ro.discount_percent IS NOT NULL
     LIMIT 1
   `) as { id: number; discount_percent: number }[] : [];
 

@@ -38,37 +38,40 @@ export function CartScreen() {
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
-  const [discountPercent, setDiscountPercent] = useState<number | null>(null);
-  // Whether to actually use the available discount on this order - starts
-  // true whenever one becomes available (see the reset effect below), but
-  // the customer can turn it off if they'd rather save it for a bigger
-  // order later (it only gets consumed once it's actually applied).
-  const [useDiscount, setUseDiscount] = useState(true);
+  const [availableDiscounts, setAvailableDiscounts] = useState<{ id: number; label: string; discountPercent: number }[]>([]);
+  // Which one (by member_rewards.id) the customer wants to use - null means
+  // "don't use a discount". Defaults to the best one available (see the
+  // reset effect below), but showing every coupon by name lets the customer
+  // pick a different one, or none, instead of always getting whichever the
+  // server would otherwise auto-pick.
+  const [selectedDiscountId, setSelectedDiscountId] = useState<number | null>(null);
 
-  // Previews the member discount (if any) so the cart shows it before
-  // checkout, instead of it only appearing on the order confirmation -
+  // Previews the member's actual named coupons so the cart shows them
+  // before checkout, instead of a discount only appearing after the fact -
   // debounced so it doesn't fire on every keystroke while typing an email.
-  // Resets to null (not "last known") while the field doesn't hold a valid
-  // address, so a half-typed or just-cleared email never shows a stale
-  // discount for a different customer.
+  // Resets to [] (not "last known") while the field doesn't hold a valid
+  // address, so a half-typed or just-cleared email never shows stale
+  // coupons for a different customer.
   useEffect(() => {
     const email = customerEmail.trim().toLowerCase();
-    if (!EMAIL_RE.test(email)) { setDiscountPercent(null); return; }
+    if (!EMAIL_RE.test(email)) { setAvailableDiscounts([]); return; }
     const timer = setTimeout(() => {
-      api.getMemberDiscount(email).then(
-        (res) => setDiscountPercent(res.discountPercent),
-        () => setDiscountPercent(null),
+      api.getMemberDiscounts(email).then(
+        (res) => setAvailableDiscounts(res.rewards),
+        () => setAvailableDiscounts([]),
       );
     }, 400);
     return () => clearTimeout(timer);
   }, [customerEmail]);
 
-  // A newly-detected discount always starts applied - this only resets the
-  // toggle when the discount itself changes (a different email, or one that
-  // newly becomes/stops being available), not on every render.
+  const availableDiscountIds = availableDiscounts.map(d => d.id).join(',');
+  // Defaults to the best (highest %) coupon whenever the list changes (a
+  // different email, or the set of coupons itself changing) - the customer
+  // can still switch to a different one, or none, from the list below.
   useEffect(() => {
-    setUseDiscount(true);
-  }, [discountPercent]);
+    setSelectedDiscountId(availableDiscounts[0]?.id ?? null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableDiscountIds]);
 
   const requestDelivery = () => {
     setOrderType('外送');
@@ -107,7 +110,8 @@ export function CartScreen() {
   // rounded the same way) so this preview never drifts from what checkout
   // actually charges - the real amount is still decided server-side.
   const beansSubtotal = cart.lines.filter(l => l.kind === 'beans').reduce((sum, l) => sum + lineTotal(l), 0);
-  const discountAmount = discountPercent && useDiscount ? Math.round(beansSubtotal * discountPercent / 100) : 0;
+  const selectedDiscount = availableDiscounts.find(d => d.id === selectedDiscountId) ?? null;
+  const discountAmount = selectedDiscount ? Math.round(beansSubtotal * selectedDiscount.discountPercent / 100) : 0;
   const total = cart.total + deliveryFee - discountAmount;
   const canCheckout = orderType === '自取' || (!!quote?.deliverable && !locating);
   const hasBrewedItems = cart.lines.some(l => l.kind !== 'beans');
@@ -126,9 +130,7 @@ export function CartScreen() {
         customerEmail: email,
         orderType,
         items: cart.lines.map(cartLineToItemInput),
-        // Only meaningful when a discount was actually on offer - otherwise
-        // there's nothing for the server to skip anyway.
-        useDiscount: discountPercent !== null ? useDiscount : true,
+        discountRewardId: selectedDiscountId,
         ...(orderType === '外送' && location ? { lat: location.lat, lng: location.lng } : {}),
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
@@ -193,25 +195,57 @@ export function CartScreen() {
             )}
           </div>
 
-          {discountPercent !== null && (
-            <div style={{
-              margin: '16px 22px 0', borderRadius: 16, padding: '13px 16px',
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
-              background: useDiscount ? '#eef2ec' : '#f5f2ea',
-              border: '1px solid ' + (useDiscount ? '#bfdac5' : '#e4ddcd'),
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-                <span style={{ font: "600 15px 'Iansui'" }}>🎟️</span>
-                <span style={{ font: "600 13px 'Iansui'", color: useDiscount ? '#3d6b4f' : '#8a7a68' }}>
-                  {useDiscount ? t('cart.discountApplied', { amount: discountAmount }) : t('cart.discountNotApplied')}
-                </span>
+          {availableDiscounts.length > 0 && (
+            <div style={{ margin: '16px 22px 0', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+                <span style={{ font: "600 14px 'Iansui'" }}>🎟️</span>
+                <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{t('cart.discountPickHeading')}</span>
               </div>
-              <div
-                onClick={() => setUseDiscount(v => !v)}
-                className="press"
-                style={{ cursor: 'pointer', flexShrink: 0, font: "600 12px 'Iansui'", color: useDiscount ? '#c8342b' : '#3d6b4f', textDecoration: 'underline' }}
-              >
-                {useDiscount ? t('cart.discountCancel') : t('cart.discountReapply')}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {availableDiscounts.map(d => {
+                  const amount = Math.round(beansSubtotal * d.discountPercent / 100);
+                  const selected = selectedDiscountId === d.id;
+                  return (
+                    <div
+                      key={d.id}
+                      onClick={() => setSelectedDiscountId(d.id)}
+                      className="press"
+                      style={{
+                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        padding: '11px 13px', borderRadius: 12,
+                        background: selected ? '#eef2ec' : '#faf8f3',
+                        border: '1px solid ' + (selected ? '#bfdac5' : '#e9e2d3'),
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                        <span style={{
+                          width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                          border: '2px solid ' + (selected ? '#3d6b4f' : '#cbbfa8'),
+                          background: selected ? '#3d6b4f' : 'transparent',
+                        }} />
+                        <span style={{ font: "600 13px 'Iansui'", color: '#1a1714', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.label}</span>
+                      </div>
+                      <span style={{ font: "500 13px 'Room205'", color: '#3d6b4f', flexShrink: 0 }}>-${amount}</span>
+                    </div>
+                  );
+                })}
+                <div
+                  onClick={() => setSelectedDiscountId(null)}
+                  className="press"
+                  style={{
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '11px 13px', borderRadius: 12,
+                    background: selectedDiscountId === null ? '#eef2ec' : '#faf8f3',
+                    border: '1px solid ' + (selectedDiscountId === null ? '#bfdac5' : '#e9e2d3'),
+                  }}
+                >
+                  <span style={{
+                    width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                    border: '2px solid ' + (selectedDiscountId === null ? '#3d6b4f' : '#cbbfa8'),
+                    background: selectedDiscountId === null ? '#3d6b4f' : 'transparent',
+                  }} />
+                  <span style={{ font: "600 13px 'Iansui'", color: '#8a7a68' }}>{t('cart.discountNone')}</span>
+                </div>
               </div>
             </div>
           )}

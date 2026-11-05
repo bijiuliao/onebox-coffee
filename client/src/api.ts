@@ -62,10 +62,10 @@ export const api = {
     customerEmail: string;
     orderType: OrderType;
     items: { kind: ItemKind; id: string; temp?: string; size?: string; bagLabel?: string; qty: number }[];
-    // Lets the customer decline an available member discount for this
-    // order (e.g. to save it for a bigger purchase) - omitted/true applies
-    // it as usual.
-    useDiscount?: boolean;
+    // Which unredeemed discount-type reward (member_rewards.id) to use on
+    // this order, if any - the customer picks from the named list the cart
+    // shows them; null/omitted means no discount.
+    discountRewardId?: number | null;
     lat?: number;
     lng?: number;
   }) =>
@@ -100,7 +100,7 @@ export const api = {
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
   getMemberLevel: (email: string) => fetch(`/api/member-level?email=${encodeURIComponent(email)}`).then(res => json<MemberLevel>(res)),
-  getMemberDiscount: (email: string) => fetch(`/api/member-discount?email=${encodeURIComponent(email)}`).then(res => json<{ discountPercent: number | null }>(res)),
+  getMemberDiscounts: (email: string) => fetch(`/api/member-discount?email=${encodeURIComponent(email)}`).then(res => json<{ rewards: { id: number; label: string; discountPercent: number }[] }>(res)),
   claimMemberReward: (email: string, level: number, rewardKey: string) =>
     fetch('/api/member-level/claim', {
       method: 'POST',
