@@ -39,6 +39,11 @@ export function CartScreen() {
   const [quote, setQuote] = useState<DeliveryQuote | null>(null);
   const [locationError, setLocationError] = useState<string | null>(null);
   const [discountPercent, setDiscountPercent] = useState<number | null>(null);
+  // Whether to actually use the available discount on this order - starts
+  // true whenever one becomes available (see the reset effect below), but
+  // the customer can turn it off if they'd rather save it for a bigger
+  // order later (it only gets consumed once it's actually applied).
+  const [useDiscount, setUseDiscount] = useState(true);
 
   // Previews the member discount (if any) so the cart shows it before
   // checkout, instead of it only appearing on the order confirmation -
@@ -57,6 +62,13 @@ export function CartScreen() {
     }, 400);
     return () => clearTimeout(timer);
   }, [customerEmail]);
+
+  // A newly-detected discount always starts applied - this only resets the
+  // toggle when the discount itself changes (a different email, or one that
+  // newly becomes/stops being available), not on every render.
+  useEffect(() => {
+    setUseDiscount(true);
+  }, [discountPercent]);
 
   const requestDelivery = () => {
     setOrderType('外送');
@@ -95,7 +107,7 @@ export function CartScreen() {
   // rounded the same way) so this preview never drifts from what checkout
   // actually charges - the real amount is still decided server-side.
   const beansSubtotal = cart.lines.filter(l => l.kind === 'beans').reduce((sum, l) => sum + lineTotal(l), 0);
-  const discountAmount = discountPercent ? Math.round(beansSubtotal * discountPercent / 100) : 0;
+  const discountAmount = discountPercent && useDiscount ? Math.round(beansSubtotal * discountPercent / 100) : 0;
   const total = cart.total + deliveryFee - discountAmount;
   const canCheckout = orderType === '自取' || (!!quote?.deliverable && !locating);
   const hasBrewedItems = cart.lines.some(l => l.kind !== 'beans');
@@ -114,6 +126,9 @@ export function CartScreen() {
         customerEmail: email,
         orderType,
         items: cart.lines.map(cartLineToItemInput),
+        // Only meaningful when a discount was actually on offer - otherwise
+        // there's nothing for the server to skip anyway.
+        useDiscount: discountPercent !== null ? useDiscount : true,
         ...(orderType === '外送' && location ? { lat: location.lat, lng: location.lng } : {}),
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
@@ -177,6 +192,29 @@ export function CartScreen() {
               <div style={{ marginTop: 8, font: "400 12px 'Iansui'", color: '#3d6b4f' }}>{t('cart.distanceFee', { km: quote.distanceKm, fee: quote.fee })}</div>
             )}
           </div>
+
+          {discountPercent !== null && (
+            <div style={{
+              margin: '16px 22px 0', borderRadius: 16, padding: '13px 16px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+              background: useDiscount ? '#eef2ec' : '#f5f2ea',
+              border: '1px solid ' + (useDiscount ? '#bfdac5' : '#e4ddcd'),
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <span style={{ font: "600 15px 'Iansui'" }}>🎟️</span>
+                <span style={{ font: "600 13px 'Iansui'", color: useDiscount ? '#3d6b4f' : '#8a7a68' }}>
+                  {useDiscount ? t('cart.discountApplied', { amount: discountAmount }) : t('cart.discountNotApplied')}
+                </span>
+              </div>
+              <div
+                onClick={() => setUseDiscount(v => !v)}
+                className="press"
+                style={{ cursor: 'pointer', flexShrink: 0, font: "600 12px 'Iansui'", color: useDiscount ? '#c8342b' : '#3d6b4f', textDecoration: 'underline' }}
+              >
+                {useDiscount ? t('cart.discountCancel') : t('cart.discountReapply')}
+              </div>
+            </div>
+          )}
 
           <div style={{ margin: '16px 22px 0', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, padding: 18 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: 12 }}>

@@ -193,19 +193,26 @@ export default async (req: Request, context: Context) => {
   const itemsTotal = lines.reduce((sum, l) => sum + l.linePrice, 0);
   const beansSubtotal = lines.filter(l => l.kind === 'beans').reduce((sum, l) => sum + l.linePrice, 0);
 
+  // The customer can decline an available discount for this order (e.g. to
+  // save it for a bigger purchase later) - the cart shows them the same
+  // preview via /api/member-discount and lets them toggle this off.
+  // Defaults to true so older/other clients that don't send it still get
+  // the discount as before.
+  const useDiscount = body.useDiscount !== false;
+
   // The best (highest %) unredeemed discount-type reward this email has -
   // picked here, actually consumed (and only then counted) inside the
   // transaction below, so a race against a second concurrent order can't
   // spend the same reward twice. Only one reward is ever applied per
   // order; it's never stacked with others still sitting unredeemed.
-  const [discountCandidate] = (await db.sql`
+  const [discountCandidate] = useDiscount ? (await db.sql`
     SELECT mr.id, ro.discount_percent
     FROM member_rewards mr
     JOIN reward_options ro ON ro.reward_key = mr.reward_key
     WHERE mr.customer_email = ${customerEmail} AND mr.redeemed_at IS NULL AND ro.discount_percent IS NOT NULL
     ORDER BY ro.discount_percent DESC
     LIMIT 1
-  `) as { id: number; discount_percent: number }[];
+  `) as { id: number; discount_percent: number }[] : [];
 
   // Only retail bean bags draw down stock - hand-drip cups are unlimited
   // (see priceItem above) - and by each bag's actual gram weight, not 1 per

@@ -62,6 +62,10 @@ export const api = {
     customerEmail: string;
     orderType: OrderType;
     items: { kind: ItemKind; id: string; temp?: string; size?: string; bagLabel?: string; qty: number }[];
+    // Lets the customer decline an available member discount for this
+    // order (e.g. to save it for a bigger purchase) - omitted/true applies
+    // it as usual.
+    useDiscount?: boolean;
     lat?: number;
     lng?: number;
   }) =>
