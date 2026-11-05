@@ -149,6 +149,9 @@ export function MemberLevelScreen() {
                 >
                   <div style={{ font: "600 14px 'Iansui'", color: '#faf8f3' }}>{r.label}</div>
                   <div style={{ font: "400 11px 'Iansui'", color: 'rgba(250,248,243,.7)', marginTop: 3 }}>{r.desc}</div>
+                  {r.isDiscount && (
+                    <div style={{ font: "400 10px 'Iansui'", color: '#c98a2e', marginTop: 4 }}>{t('memberLevel.discountHint')}</div>
+                  )}
                 </div>
               ))}
             </div>
@@ -168,7 +171,7 @@ export function MemberLevelScreen() {
                   <span style={{
                     font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
                     background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
-                  }}>{r.redeemedAt ? t('memberLevel.redeemed') : t('memberLevel.pending')}</span>
+                  }}>{r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : t('memberLevel.pending'))}</span>
                 </div>
               ))}
             </div>

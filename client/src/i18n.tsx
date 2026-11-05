@@ -185,6 +185,8 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'memberLevel.rewardHistory': { zh: '已選技能', en: 'Skills Chosen' },
   'memberLevel.redeemed': { zh: '已兌換', en: 'Redeemed' },
   'memberLevel.pending': { zh: '待兌換', en: 'Pending' },
+  'memberLevel.autoApply': { zh: '下次買豆子自動套用', en: 'Auto-applies on your next beans order' },
+  'memberLevel.discountHint': { zh: '選這個不用做任何事，下次買豆子結帳時會自動打折', en: 'No action needed — this applies automatically at your next beans checkout' },
 
   'account.login': { zh: '登入', en: 'Log In' },
   'account.loginHeading': { zh: '輸入下單時的 Email', en: 'Enter the email you order with' },

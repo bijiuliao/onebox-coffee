@@ -56,6 +56,11 @@ export default async (req: Request) => {
       id: r.id, level: r.level, rewardKey: r.reward_key,
       rewardLabel: option?.label ?? r.reward_key, rewardDesc: option?.description ?? '',
       chosenAt: r.chosen_at, redeemedAt: r.redeemed_at,
+      // Lets the client explain *how* an unredeemed reward gets redeemed -
+      // a discount-percent reward needs no action from the customer (it
+      // auto-applies on their next beans checkout), while every other
+      // reward is still handed out by admin in person.
+      isDiscount: option?.discount_percent != null,
     };
   });
   const chosenLevels = new Set(rewards.map(r => r.level));
@@ -72,7 +77,7 @@ export default async (req: Request) => {
   }
 
   const availableRewards = unclaimedLevel !== null
-    ? activeOptions.filter(o => appliesToLevel(o, unclaimedLevel!)).map(o => ({ key: o.reward_key, label: o.label, desc: o.description }))
+    ? activeOptions.filter(o => appliesToLevel(o, unclaimedLevel!)).map(o => ({ key: o.reward_key, label: o.label, desc: o.description, isDiscount: o.discount_percent != null }))
     : [];
 
   return json({ beansSpent, level, toNextLevel, rewards, unclaimedLevel, availableRewards });

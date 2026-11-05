@@ -45,10 +45,11 @@ export default async (req: Request) => {
     SELECT id, customer_email, level, reward_key, chosen_at, redeemed_at FROM member_rewards ORDER BY customer_email, level
   `) as { id: number; customer_email: string; level: number; reward_key: string; chosen_at: string; redeemed_at: string | null }[];
   const optionsByKey = new Map((await listRewardOptions(db)).map(o => [o.reward_key, o]));
-  const rewardsByEmail = new Map<string, { id: number; level: number; rewardKey: string; rewardLabel: string; redeemedAt: string | null }[]>();
+  const rewardsByEmail = new Map<string, { id: number; level: number; rewardKey: string; rewardLabel: string; redeemedAt: string | null; isDiscount: boolean }[]>();
   for (const r of rewardRows) {
     const list = rewardsByEmail.get(r.customer_email) ?? [];
-    list.push({ id: r.id, level: r.level, rewardKey: r.reward_key, rewardLabel: optionsByKey.get(r.reward_key)?.label ?? r.reward_key, redeemedAt: r.redeemed_at });
+    const option = optionsByKey.get(r.reward_key);
+    list.push({ id: r.id, level: r.level, rewardKey: r.reward_key, rewardLabel: option?.label ?? r.reward_key, redeemedAt: r.redeemed_at, isDiscount: option?.discount_percent != null });
     rewardsByEmail.set(r.customer_email, list);
   }
 

@@ -137,6 +137,10 @@ export interface MemberRewardChoice {
   rewardDesc: string;
   chosenAt: string;
   redeemedAt: string | null;
+  // True for a reward whose RewardOption.discountPercent is set - it
+  // auto-applies on the customer's next beans checkout instead of being
+  // handed out by admin, so an unredeemed one needs no customer action.
+  isDiscount: boolean;
 }
 
 // The /api/customers list's own (slightly leaner) reward shape - no
@@ -148,6 +152,7 @@ export interface CustomerRewardChoice {
   rewardKey: string;
   rewardLabel: string;
   redeemedAt: string | null;
+  isDiscount: boolean;
 }
 
 // The reward(s) currently offered for an unclaimed level-up, filtered
@@ -156,6 +161,7 @@ export interface AvailableReward {
   key: string;
   label: string;
   desc: string;
+  isDiscount: boolean;
 }
 
 // Public per-email member level lookup (see netlify/functions/member-level.mts).

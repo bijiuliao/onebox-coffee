@@ -160,7 +160,12 @@ export function CustomerDetailView() {
                   {memberLevelData.rewards.map(r => (
                     <div key={r.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 0', borderBottom: '1px solid #f1ece2' }}>
                       <div style={{ minWidth: 0 }}>
-                        <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {r.rewardLabel}</div>
+                        <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>
+                          Lv.{r.level} · {r.rewardLabel}
+                          {r.isDiscount && !r.redeemedAt && (
+                            <span style={{ font: "600 10px 'Iansui'", color: '#3d6b4f', marginLeft: 6 }}>（結帳自動套用）</span>
+                          )}
+                        </div>
                         <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatDate(r.chosenAt)}</div>
                       </div>
                       <div
