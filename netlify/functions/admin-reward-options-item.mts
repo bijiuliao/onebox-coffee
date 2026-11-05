@@ -8,6 +8,7 @@ function toJson(r: RewardOptionRow) {
   return {
     id: r.id, key: r.reward_key, label: r.label, desc: r.description,
     minLevel: r.min_level, maxLevel: r.max_level, active: r.active, sortOrder: r.sort_order,
+    discountPercent: r.discount_percent,
   };
 }
 
@@ -55,6 +56,13 @@ export default async (req: Request) => {
   }
   if (typeof body.active === 'boolean') { sets.push(`active = $${i}`); values.push(body.active); i += 1; }
   if (Number.isInteger(body.sortOrder)) { sets.push(`sort_order = $${i}`); values.push(body.sortOrder); i += 1; }
+  if ('discountPercent' in body) {
+    const discountPercent = body.discountPercent === null ? null : Number(body.discountPercent);
+    if (discountPercent !== null && (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 100)) {
+      return json({ error: 'discountPercent 必須是 1-100 之間的整數，或 null' }, 400);
+    }
+    sets.push(`discount_percent = $${i}`); values.push(discountPercent); i += 1;
+  }
 
   if (sets.length === 0) return json({ error: 'no fields to update' }, 400);
 

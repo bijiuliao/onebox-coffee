@@ -128,6 +128,12 @@ export function OrderLookupScreen() {
                   <span style={{ font: "500 14px 'Room205'" }}>${order.deliveryFee}</span>
                 </div>
               )}
+              {order.discountAmount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', font: "400 14px 'Iansui'", color: '#3d6b4f' }}>
+                  <span>會員折扣</span>
+                  <span style={{ font: "500 14px 'Room205'" }}>-${order.discountAmount}</span>
+                </div>
+              )}
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14, paddingTop: 14, borderTop: '1px solid #ece5d6' }}>
               <span style={{ font: "600 19px 'Room205'" }}>${order.total}</span>

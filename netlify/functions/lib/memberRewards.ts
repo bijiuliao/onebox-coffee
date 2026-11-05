@@ -5,8 +5,11 @@ import { getDb } from './db';
 // array - see the create-reward-options migration. min_level/max_level
 // gate which rewards apply at a given unclaimedLevel; `active = false`
 // retires one without deleting it, so a customer's past pick still
-// resolves to a real label. Granting a reward is still always manual -
-// nothing here touches checkout.
+// resolves to a real label. Most rewards are still hand-fulfilled by
+// admin (extra grams, mystery bag) - discount_percent is the one
+// exception: when set, orders.mts auto-applies it to the beans subtotal
+// and consumes the reward at checkout instead of leaving it for admin to
+// redeem by hand. NULL (the default) keeps a reward manual-only.
 export interface RewardOptionRow {
   id: number;
   reward_key: string;
@@ -16,6 +19,7 @@ export interface RewardOptionRow {
   max_level: number | null;
   active: boolean;
   sort_order: number;
+  discount_percent: number | null;
 }
 
 export async function listRewardOptions(db: ReturnType<typeof getDb>): Promise<RewardOptionRow[]> {

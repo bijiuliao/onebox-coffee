@@ -93,6 +93,10 @@ export interface Order {
   // etc. - there's no online payment gateway). Independent of fulfilled;
   // admin-toggled, defaults false on creation.
   paid: boolean;
+  // How much (if any) a member-level discount auto-knocked off the beans
+  // subtotal at checkout (see orders.mts / RewardOption.discountPercent).
+  // 0 for every order that had no eligible unredeemed discount reward.
+  discountAmount: number;
 }
 
 // Not a stored record - an aggregate computed from orders sharing the same
@@ -180,6 +184,10 @@ export interface RewardOption {
   maxLevel: number | null;
   active: boolean;
   sortOrder: number;
+  // Set only for a reward that auto-applies as a checkout discount instead
+  // of being hand-fulfilled (see orders.mts) - null for every physical
+  // reward (extra grams, mystery bag), which stays fully manual.
+  discountPercent: number | null;
 }
 
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)

@@ -95,7 +95,7 @@ export function CartScreen() {
       localStorage.setItem(NAME_STORAGE_KEY, name);
       setStoredEmail(email);
       cart.clear();
-      navigate('/order-success', { state: { orderId: order.id, customerName: name, customerEmail: email, total: order.total, orderType, hasBrewedItems } });
+      navigate('/order-success', { state: { orderId: order.id, customerName: name, customerEmail: email, total: order.total, discountAmount: order.discountAmount, orderType, hasBrewedItems } });
     } catch (err) {
       showToast(err instanceof Error ? err.message : t('cart.placeFailed'));
     } finally {

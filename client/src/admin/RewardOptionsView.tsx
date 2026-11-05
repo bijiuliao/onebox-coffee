@@ -16,6 +16,7 @@ export function RewardOptionsView() {
   const [newDesc, setNewDesc] = useState('');
   const [newMinLevel, setNewMinLevel] = useState('2');
   const [newMaxLevel, setNewMaxLevel] = useState('');
+  const [newDiscountPercent, setNewDiscountPercent] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -60,9 +61,10 @@ export function RewardOptionsView() {
         key, label: labelText, desc: newDesc.trim(),
         minLevel: Number(newMinLevel) || 2,
         maxLevel: newMaxLevel.trim() ? Number(newMaxLevel) : null,
+        discountPercent: newDiscountPercent.trim() ? Number(newDiscountPercent) : null,
       });
       setOptions(prev => [...(prev ?? []), created]);
-      setNewKey(''); setNewLabel(''); setNewDesc(''); setNewMinLevel('2'); setNewMaxLevel('');
+      setNewKey(''); setNewLabel(''); setNewDesc(''); setNewMinLevel('2'); setNewMaxLevel(''); setNewDiscountPercent('');
       showToast('已新增技能');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '新增失敗');
@@ -80,7 +82,7 @@ export function RewardOptionsView() {
           {options && <div style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{options.length} 項</div>}
         </div>
         <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginBottom: 20 }}>
-          客戶升等（Lv.2 以上）時可以選一個技能，這裡設定有哪些技能、各自從第幾級到第幾級出現（上限留空代表沒有上限）。停用的技能不會再被提供選擇，但已經選過的人歷史紀錄還是看得到；已經有人選過的技能無法直接刪除，只能停用。
+          客戶升等（Lv.2 以上）時可以選一個技能，這裡設定有哪些技能、各自從第幾級到第幾級出現（上限留空代表沒有上限）。停用的技能不會再被提供選擇，但已經選過的人歷史紀錄還是看得到；已經有人選過的技能無法直接刪除，只能停用。設定了「折扣 %」的技能，客戶下次結帳時系統會自動打折並標記兌換（只打在豆子部分）；留空的技能（多送豆子、神秘豆等）維持人工兌換，不會自動套用。
         </div>
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
@@ -134,6 +136,15 @@ export function RewardOptionsView() {
                         style={{ ...inputStyle, width: 100 }}
                       />
                     </div>
+                    <div>
+                      {label('折扣 %（留空＝人工兌換）')}
+                      <input
+                        type="number" value={o.discountPercent ?? ''} placeholder="人工兌換"
+                        onChange={(e) => patchOption(o.id, { discountPercent: e.target.value ? Number(e.target.value) : null })}
+                        onBlur={(e) => save(o.id, { discountPercent: e.target.value ? Number(e.target.value) : null })}
+                        style={{ ...inputStyle, width: 120 }}
+                      />
+                    </div>
                     <div style={{ flex: 1 }} />
                     <div
                       onClick={() => toggleActive(o)}
@@ -179,6 +190,10 @@ export function RewardOptionsView() {
                 <div>
                   {label('最高等級（留空＝無上限）')}
                   <input type="number" value={newMaxLevel} onChange={(e) => setNewMaxLevel(e.target.value)} placeholder="無上限" style={{ ...inputStyle, width: 100 }} />
+                </div>
+                <div>
+                  {label('折扣 %（留空＝人工兌換）')}
+                  <input type="number" value={newDiscountPercent} onChange={(e) => setNewDiscountPercent(e.target.value)} placeholder="例如 10" style={{ ...inputStyle, width: 120 }} />
                 </div>
                 <div style={{ flex: 1 }} />
                 <div

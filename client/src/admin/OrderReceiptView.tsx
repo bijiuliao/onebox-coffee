@@ -70,6 +70,12 @@ export function OrderReceiptView() {
                   <div className="receipt-item-price">${deliveryFee}</div>
                 </div>
               )}
+              {order.discountAmount > 0 && (
+                <div className="receipt-item">
+                  <div className="receipt-item-left"><div className="receipt-item-name">會員折扣</div></div>
+                  <div className="receipt-item-price">-${order.discountAmount}</div>
+                </div>
+              )}
             </div>
 
             <div className="receipt-divider" />

@@ -32,7 +32,7 @@ export default async (req: Request) => {
 
     const db = getDb();
     const [row] = (await db.sql`
-      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid
+      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid, discount_amount
       FROM orders WHERE id = ${id} AND customer_email = ${email}
     `) as OrderRow[];
     if (!row) return json({ error: '找不到這筆訂單，請確認訂單編號與 Email' }, 404);
@@ -126,7 +126,7 @@ export default async (req: Request) => {
   await db.pool.query(`UPDATE orders SET ${sets.join(', ')} WHERE id = $${i}`, values);
 
   const [updated] = (await db.sql`
-    SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid
+    SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid, discount_amount
     FROM orders WHERE id = ${id}
   `) as OrderRow[];
   if (!updated) return json({ error: 'not found' }, 404);

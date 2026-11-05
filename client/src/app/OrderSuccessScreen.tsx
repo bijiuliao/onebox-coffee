@@ -10,6 +10,7 @@ interface SuccessState {
   customerName: string;
   customerEmail: string;
   total: number;
+  discountAmount: number;
   orderType: OrderType;
   hasBrewedItems: boolean;
 }
@@ -70,6 +71,11 @@ export function OrderSuccessScreen() {
         <div className="rise" style={{ marginTop: 4, font: "500 15px 'Room205'", color: '#1a1714', animationDelay: '.4s' }}>
           {t('success.total')}{state.total}
         </div>
+        {state.discountAmount > 0 && (
+          <div className="rise" style={{ marginTop: 2, font: "400 12px 'Iansui'", color: '#3d6b4f', animationDelay: '.4s' }}>
+            {t('success.discount', { amount: state.discountAmount })}
+          </div>
+        )}
         <div className="rise" style={{ marginTop: 22, font: "400 13px 'Iansui'", color: '#8a7a68', animationDelay: '.5s' }}>
           {state.hasBrewedItems
             ? t('success.brewing')

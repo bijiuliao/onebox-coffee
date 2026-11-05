@@ -109,13 +109,13 @@ export const api = {
       body: JSON.stringify({ redeemed }),
     }).then(res => json<{ id: number; redeemedAt: string | null }>(res)),
   listRewardOptions: () => fetch('/api/admin/reward-options').then(res => json<RewardOption[]>(res)),
-  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null }) =>
+  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null; discountPercent: number | null }) =>
     fetch('/api/admin/reward-options', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     }).then(res => json<RewardOption>(res)),
-  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder'>>) =>
+  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder' | 'discountPercent'>>) =>
     fetch(`/api/admin/reward-options/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },

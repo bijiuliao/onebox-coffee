@@ -8,6 +8,7 @@ function toJson(r: RewardOptionRow) {
   return {
     id: r.id, key: r.reward_key, label: r.label, desc: r.description,
     minLevel: r.min_level, maxLevel: r.max_level, active: r.active, sortOrder: r.sort_order,
+    discountPercent: r.discount_percent,
   };
 }
 
@@ -34,6 +35,7 @@ export default async (req: Request) => {
   const desc = typeof body.desc === 'string' ? body.desc.trim() : '';
   const minLevel = Number.isInteger(body.minLevel) ? (body.minLevel as number) : 2;
   const maxLevel = body.maxLevel === null || body.maxLevel === undefined ? null : Number(body.maxLevel);
+  const discountPercent = body.discountPercent === null || body.discountPercent === undefined ? null : Number(body.discountPercent);
 
   if (!/^[a-z0-9_]+$/.test(key)) return json({ error: 'key 只能用小寫英數字和底線' }, 400);
   if (!label) return json({ error: 'label is required' }, 400);
@@ -41,11 +43,14 @@ export default async (req: Request) => {
   if (maxLevel !== null && (!Number.isInteger(maxLevel) || maxLevel < minLevel)) {
     return json({ error: 'maxLevel 必須是整數，且不能小於 minLevel' }, 400);
   }
+  if (discountPercent !== null && (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 100)) {
+    return json({ error: 'discountPercent 必須是 1-100 之間的整數，或 null' }, 400);
+  }
 
   try {
     const [created] = (await db.sql`
-      INSERT INTO reward_options (reward_key, label, description, min_level, max_level, sort_order)
-      VALUES (${key}, ${label}, ${desc}, ${minLevel}, ${maxLevel}, COALESCE((SELECT MAX(sort_order) + 1 FROM reward_options), 0))
+      INSERT INTO reward_options (reward_key, label, description, min_level, max_level, sort_order, discount_percent)
+      VALUES (${key}, ${label}, ${desc}, ${minLevel}, ${maxLevel}, COALESCE((SELECT MAX(sort_order) + 1 FROM reward_options), 0), ${discountPercent})
       RETURNING *
     `) as RewardOptionRow[];
     return json(toJson(created), 201);

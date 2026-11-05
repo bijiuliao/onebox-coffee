@@ -12,6 +12,10 @@ export interface OrderRow {
   customer_lng: number | null;
   fulfilled: boolean;
   paid: boolean;
+  // How much (if any) a member-level discount auto-knocked off the beans
+  // subtotal at checkout - see orders.mts. 0 for every order that had no
+  // eligible unredeemed discount reward.
+  discount_amount: number;
 }
 
 export function toOrderJson(r: OrderRow) {
@@ -29,5 +33,6 @@ export function toOrderJson(r: OrderRow) {
     customerLng: r.customer_lng,
     fulfilled: r.fulfilled,
     paid: r.paid,
+    discountAmount: r.discount_amount,
   };
 }

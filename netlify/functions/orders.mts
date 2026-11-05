@@ -108,7 +108,7 @@ export default async (req: Request, context: Context) => {
     if (unauthorized) return unauthorized;
 
     const rows = (await db.sql`
-      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid
+      SELECT id, created_at, customer_name, customer_email, items, total, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, fulfilled, paid, discount_amount
       FROM orders ORDER BY created_at DESC LIMIT 200
     `) as OrderRow[];
     return json(rows.map(toOrderJson));
@@ -166,10 +166,10 @@ export default async (req: Request, context: Context) => {
 
   const dedupeKey = dedupeKeyFor(customerName, orderType, items);
   const [dup] = (await db.sql`
-    SELECT id, created_at, total, order_type, delivery_fee, delivery_distance_km FROM orders
+    SELECT id, created_at, total, order_type, delivery_fee, delivery_distance_km, discount_amount FROM orders
     WHERE client_ip = ${ip} AND dedupe_key = ${dedupeKey} AND created_at > now() - ${DEDUPE_WINDOW}::interval
     ORDER BY created_at DESC LIMIT 1
-  `) as { id: number; created_at: string; total: number; order_type: string; delivery_fee: number; delivery_distance_km: number | null }[];
+  `) as { id: number; created_at: string; total: number; order_type: string; delivery_fee: number; delivery_distance_km: number | null; discount_amount: number }[];
 
   const [{ drip_enabled: dripEnabled }] = (await db.sql`SELECT drip_enabled FROM site_settings WHERE id = 1`) as { drip_enabled: boolean }[];
 
@@ -186,11 +186,26 @@ export default async (req: Request, context: Context) => {
     return json({
       id: dup.id, createdAt: dup.created_at, customerName, customerEmail, items: lines, total: dup.total,
       orderType: dup.order_type, deliveryFee: dup.delivery_fee, deliveryDistanceKm: dup.delivery_distance_km,
-      fulfilled: false, paid: false,
+      fulfilled: false, paid: false, discountAmount: dup.discount_amount,
     }, 200);
   }
 
-  const total = lines.reduce((sum, l) => sum + l.linePrice, 0) + deliveryFee;
+  const itemsTotal = lines.reduce((sum, l) => sum + l.linePrice, 0);
+  const beansSubtotal = lines.filter(l => l.kind === 'beans').reduce((sum, l) => sum + l.linePrice, 0);
+
+  // The best (highest %) unredeemed discount-type reward this email has -
+  // picked here, actually consumed (and only then counted) inside the
+  // transaction below, so a race against a second concurrent order can't
+  // spend the same reward twice. Only one reward is ever applied per
+  // order; it's never stacked with others still sitting unredeemed.
+  const [discountCandidate] = (await db.sql`
+    SELECT mr.id, ro.discount_percent
+    FROM member_rewards mr
+    JOIN reward_options ro ON ro.reward_key = mr.reward_key
+    WHERE mr.customer_email = ${customerEmail} AND mr.redeemed_at IS NULL AND ro.discount_percent IS NOT NULL
+    ORDER BY ro.discount_percent DESC
+    LIMIT 1
+  `) as { id: number; discount_percent: number }[];
 
   // Only retail bean bags draw down stock - hand-drip cups are unlimited
   // (see priceItem above) - and by each bag's actual gram weight, not 1 per
@@ -209,6 +224,8 @@ export default async (req: Request, context: Context) => {
 
   const client = await db.pool.connect();
   let order: { id: number; created_at: string };
+  let discountAmount = 0;
+  let discountRewardId: number | null = null;
   try {
     await client.query('BEGIN');
 
@@ -230,11 +247,27 @@ export default async (req: Request, context: Context) => {
       }
     }
 
+    if (discountCandidate) {
+      // Conditional on redeemed_at IS NULL so a concurrent order that got
+      // here first (rare on a friends' site, but the stock lock above
+      // proves it's possible) can't double-spend the same reward - if 0
+      // rows come back, this order just doesn't get the discount.
+      const { rows: redeemRows } = await client.query<{ id: number }>(
+        'UPDATE member_rewards SET redeemed_at = now() WHERE id = $1 AND redeemed_at IS NULL RETURNING id',
+        [discountCandidate.id],
+      );
+      if (redeemRows.length > 0) {
+        discountAmount = Math.round(beansSubtotal * discountCandidate.discount_percent / 100);
+        discountRewardId = discountCandidate.id;
+      }
+    }
+    const total = itemsTotal + deliveryFee - discountAmount;
+
     const insert = await client.query<{ id: number; created_at: string }>(
-      `INSERT INTO orders (customer_name, customer_email, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      `INSERT INTO orders (customer_name, customer_email, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, discount_amount, discount_reward_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING id, created_at`,
-      [customerName, customerEmail, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng],
+      [customerName, customerEmail, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng, discountAmount, discountRewardId],
     );
     order = insert.rows[0];
 
@@ -246,6 +279,8 @@ export default async (req: Request, context: Context) => {
     client.release();
   }
 
+  const total = itemsTotal + deliveryFee - discountAmount;
+
   const orderForNotify = {
     id: order.id, customerName, customerEmail, items: lines, total,
     orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng,
@@ -255,7 +290,7 @@ export default async (req: Request, context: Context) => {
 
   return json({
     id: order.id, createdAt: order.created_at, customerName, customerEmail, items: lines, total,
-    orderType, deliveryFee, deliveryDistanceKm, fulfilled: false, paid: false,
+    orderType, deliveryFee, deliveryDistanceKm, fulfilled: false, paid: false, discountAmount,
   }, 201);
 };
 

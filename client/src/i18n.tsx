@@ -139,6 +139,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'success.delivery': { zh: '外送', en: 'Delivery' },
   'success.pickup': { zh: '門市自取', en: 'Pickup' },
   'success.total': { zh: '總計 $', en: 'Total $' },
+  'success.discount': { zh: '已套用會員折扣 -${amount}', en: 'Member discount applied -${amount}' },
   'success.brewing': { zh: '為你手沖中，預計 8–12 分鐘 ☕', en: 'Brewing your order, ready in about 8–12 minutes ☕' },
   'success.orderNumber': { zh: '訂單編號 #{id}', en: 'Order #{id}' },
   'success.lookupLink': { zh: '之後想查詢這筆訂單 →', en: 'Check this order later →' },
