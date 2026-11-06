@@ -119,6 +119,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, rewardId }),
     }).then(res => json<{ tier: MysteryTier; coffeeId: string; coffeeName: string }>(res)),
+  craftMysteryBean: (email: string, tier: MysteryTier) =>
+    fetch('/api/member-level/mystery-craft', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, tier }),
+    }).then(res => json<{ success: boolean; tier: MysteryTier; coffeeId: string; coffeeName: string }>(res)),
   setMemberRewardRedeemed: (id: number, redeemed: boolean) =>
     fetch(`/api/admin/member-rewards/${id}`, {
       method: 'PATCH',

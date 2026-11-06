@@ -3,6 +3,7 @@ import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
 import { listRewardOptions } from './lib/memberRewards';
+import type { MysteryTier } from './lib/mysteryDraw';
 
 // A "customer" here is just an aggregate over orders sharing the same email
 // - there's no separate customers table or customer accounts, so this is a
@@ -45,18 +46,18 @@ export default async (req: Request) => {
   // same as member-level.mts does for the customer's own view of it.
   const rewardRows = (await db.sql`
     SELECT mr.id, mr.customer_email, mr.level, mr.reward_key, mr.chosen_at, mr.redeemed_at,
-           mr.mystery_coffee_id, mr.mystery_tier, mr.mystery_drawn_at, c.name AS mystery_coffee_name
+           mr.mystery_coffee_id, mr.mystery_tier, mr.mystery_drawn_at, mr.mystery_merged, c.name AS mystery_coffee_name
     FROM member_rewards mr
     LEFT JOIN coffees c ON c.id = mr.mystery_coffee_id
     ORDER BY mr.customer_email, mr.level
   `) as {
     id: number; customer_email: string; level: number; reward_key: string; chosen_at: string; redeemed_at: string | null;
-    mystery_coffee_id: string | null; mystery_tier: 'daily' | 'rare' | 'competition' | null; mystery_drawn_at: string | null; mystery_coffee_name: string | null;
+    mystery_coffee_id: string | null; mystery_tier: MysteryTier | null; mystery_drawn_at: string | null; mystery_merged: boolean; mystery_coffee_name: string | null;
   }[];
   const optionsByKey = new Map((await listRewardOptions(db)).map(o => [o.reward_key, o]));
   const rewardsByEmail = new Map<string, {
     id: number; level: number; rewardKey: string; rewardLabel: string; redeemedAt: string | null; isDiscount: boolean;
-    isMysteryPool: boolean; mysteryTier: 'daily' | 'rare' | 'competition' | null; mysteryCoffeeName: string | null; mysteryDrawnAt: string | null;
+    isMysteryPool: boolean; mysteryTier: MysteryTier | null; mysteryCoffeeName: string | null; mysteryDrawnAt: string | null; isMysteryMerged: boolean;
   }[]>();
   for (const r of rewardRows) {
     const list = rewardsByEmail.get(r.customer_email) ?? [];
@@ -64,7 +65,7 @@ export default async (req: Request) => {
     list.push({
       id: r.id, level: r.level, rewardKey: r.reward_key, rewardLabel: option?.label ?? r.reward_key, redeemedAt: r.redeemed_at,
       isDiscount: option?.discount_percent != null, isMysteryPool: option?.is_mystery_pool === true,
-      mysteryTier: r.mystery_tier, mysteryCoffeeName: r.mystery_coffee_name, mysteryDrawnAt: r.mystery_drawn_at,
+      mysteryTier: r.mystery_tier, mysteryCoffeeName: r.mystery_coffee_name, mysteryDrawnAt: r.mystery_drawn_at, isMysteryMerged: r.mystery_merged,
     });
     rewardsByEmail.set(r.customer_email, list);
   }

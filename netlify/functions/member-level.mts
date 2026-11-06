@@ -3,7 +3,7 @@ import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { listRewardOptions, appliesToLevel } from './lib/memberRewards';
 import { levelProgress } from './lib/memberLevelFormula';
-import { tierWeightsForLevel } from './lib/mysteryDraw';
+import { tierWeightsForLevel, type MysteryTier } from './lib/mysteryDraw';
 
 interface RewardRow {
   id: number;
@@ -12,9 +12,10 @@ interface RewardRow {
   chosen_at: string;
   redeemed_at: string | null;
   mystery_coffee_id: string | null;
-  mystery_tier: 'daily' | 'rare' | 'competition' | null;
+  mystery_tier: MysteryTier | null;
   mystery_drawn_at: string | null;
   mystery_coffee_name: string | null;
+  mystery_merged: boolean;
 }
 
 // Public lookup so a customer can check their own level with just their
@@ -51,7 +52,7 @@ export default async (req: Request) => {
 
   const rewardRows = (await db.sql`
     SELECT mr.id, mr.level, mr.reward_key, mr.chosen_at, mr.redeemed_at,
-           mr.mystery_coffee_id, mr.mystery_tier, mr.mystery_drawn_at, c.name AS mystery_coffee_name
+           mr.mystery_coffee_id, mr.mystery_tier, mr.mystery_drawn_at, mr.mystery_merged, c.name AS mystery_coffee_name
     FROM member_rewards mr
     LEFT JOIN coffees c ON c.id = mr.mystery_coffee_id
     WHERE mr.customer_email = ${email}
@@ -74,6 +75,11 @@ export default async (req: Request) => {
       mysteryTier: r.mystery_tier,
       mysteryCoffeeName: r.mystery_coffee_name,
       mysteryDrawnAt: r.mystery_drawn_at,
+      // True once this row was consumed as crafting material rather than
+      // ever being shipped (see member-level-mystery-craft.mts) - lets the
+      // client show "merged into a craft" instead of implying it was
+      // handed out.
+      isMysteryMerged: r.mystery_merged,
     };
   });
   const chosenLevels = new Set(rewards.map(r => r.level));

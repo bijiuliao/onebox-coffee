@@ -2,7 +2,7 @@ export type Temp = '熱' | '冰';
 export type Size = '標準' | '大杯';
 export type OrderType = '自取' | '外送';
 export type ItemKind = 'drip' | 'beans' | 'special';
-export type MysteryTier = 'daily' | 'rare' | 'competition';
+export type MysteryTier = 'daily' | 'rare' | 'competition' | 'rare_competition';
 
 export interface BagOption {
   label: string;
@@ -154,6 +154,11 @@ export interface MemberRewardChoice {
   mysteryTier: MysteryTier | null;
   mysteryCoffeeName: string | null;
   mysteryDrawnAt: string | null;
+  // True once this row was consumed as crafting material (combined with 2
+  // others into a higher-tier bean - see MemberLevelScreen's crafting
+  // panel) rather than ever being shipped - distinguishes "merged into a
+  // craft" from "handed out" even though both set redeemedAt.
+  isMysteryMerged: boolean;
 }
 
 // The /api/customers list's own (slightly leaner) reward shape - no
@@ -170,6 +175,7 @@ export interface CustomerRewardChoice {
   mysteryTier: MysteryTier | null;
   mysteryCoffeeName: string | null;
   mysteryDrawnAt: string | null;
+  isMysteryMerged: boolean;
 }
 
 // The reward(s) currently offered for an unclaimed level-up, filtered
@@ -197,7 +203,7 @@ export interface MemberLevel {
   // The mystery wheel's tier odds (percent) at this customer's current
   // level (see lib/mysteryDraw.ts) - only relevant if they have an undrawn
   // mystery-pool reward, but always present.
-  mysteryWeights: { daily: number; rare: number; competition: number };
+  mysteryWeights: { daily: number; rare: number; competition: number; rareCompetition: number };
 }
 
 // Admin-editable catalog row behind AvailableReward/MemberRewardChoice's

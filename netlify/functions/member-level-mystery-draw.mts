@@ -2,7 +2,7 @@ import type { Config } from '@netlify/functions';
 import { getDb } from './lib/db';
 import { json } from './lib/coffees';
 import { levelProgress } from './lib/memberLevelFormula';
-import { tierWeightsForLevel, pickTier, type MysteryTier } from './lib/mysteryDraw';
+import { tierWeightsForLevel, pickTier, pickCoffeeFromPool } from './lib/mysteryDraw';
 
 // Spins the mystery-pool wheel for a claimed reward - public/email-
 // identified like the rest of the member-level endpoints, but locked down
@@ -63,21 +63,7 @@ export default async (req: Request) => {
     }
 
     const rolledTier = pickTier(weights);
-    // Falls back toward the more common tiers if the rolled one's pool is
-    // empty (e.g. the admin hasn't assigned any competition-grade coffee
-    // yet), so a thin pool degrades gracefully instead of hard-erroring.
-    const tierOrder: MysteryTier[] = rolledTier === 'competition' ? ['competition', 'rare', 'daily']
-      : rolledTier === 'rare' ? ['rare', 'daily', 'competition']
-      : ['daily', 'rare', 'competition'];
-
-    let picked: { id: string; name: string; tier: MysteryTier } | null = null;
-    for (const t of tierOrder) {
-      const { rows } = await client.query<{ id: string; name: string }>(
-        'SELECT id, name FROM coffees WHERE mystery_tier = $1 AND archived = false ORDER BY random() LIMIT 1',
-        [t],
-      );
-      if (rows[0]) { picked = { ...rows[0], tier: t }; break; }
-    }
+    const picked = await pickCoffeeFromPool(client, rolledTier);
 
     if (!picked) {
       await client.query('ROLLBACK');

@@ -174,18 +174,28 @@ export function CustomerDetailView() {
                         )}
                         <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatDate(r.chosenAt)}</div>
                       </div>
-                      <div
-                        onClick={() => togglingRewardId === null && toggleRewardRedeemed(r.id, !r.redeemedAt)}
-                        className="press"
-                        style={{
-                          cursor: togglingRewardId === null ? 'pointer' : 'default',
-                          opacity: togglingRewardId === r.id ? 0.5 : 1, flexShrink: 0,
-                          font: "600 11px 'Iansui'", padding: '5px 12px', borderRadius: 10,
-                          background: r.redeemedAt ? '#fff' : '#3d6b4f',
-                          color: r.redeemedAt ? '#8a7a68' : '#faf8f3',
-                          border: '1px solid ' + (r.redeemedAt ? '#ece5d6' : '#3d6b4f'),
-                        }}
-                      >{r.redeemedAt ? '標記為待兌換' : '標記為已兌換'}</div>
+                      {r.isMysteryMerged ? (
+                        // Consumed by crafting (see MemberLevelScreen) rather
+                        // than ever shipped - not an admin-togglable state,
+                        // since un-marking it would let it count as crafting
+                        // material again even though it's already gone.
+                        <span style={{ font: "600 11px 'Iansui'", padding: '5px 12px', borderRadius: 10, background: '#f1ece2', color: '#8a7a68', flexShrink: 0 }}>
+                          已合成消耗
+                        </span>
+                      ) : (
+                        <div
+                          onClick={() => togglingRewardId === null && toggleRewardRedeemed(r.id, !r.redeemedAt)}
+                          className="press"
+                          style={{
+                            cursor: togglingRewardId === null ? 'pointer' : 'default',
+                            opacity: togglingRewardId === r.id ? 0.5 : 1, flexShrink: 0,
+                            font: "600 11px 'Iansui'", padding: '5px 12px', borderRadius: 10,
+                            background: r.redeemedAt ? '#fff' : '#3d6b4f',
+                            color: r.redeemedAt ? '#8a7a68' : '#faf8f3',
+                            border: '1px solid ' + (r.redeemedAt ? '#ece5d6' : '#3d6b4f'),
+                          }}
+                        >{r.redeemedAt ? '標記為待兌換' : '標記為已兌換'}</div>
+                      )}
                     </div>
                   ))}
                 </div>

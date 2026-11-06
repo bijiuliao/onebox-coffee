@@ -12,3 +12,14 @@ export function parseBagWeightGrams(label: string): number | null {
   if (gMatch) return Math.round(parseFloat(gMatch[1]));
   return null;
 }
+
+// A mystery-pool draw hands out "一包" (one bag) of the drawn coffee with
+// no bag size chosen by anyone - this picks the smallest bag option's
+// weight as what that one bag actually weighs for stock purposes, same
+// units/parsing as a real purchase. null means none of the coffee's bag
+// options have a recognizable weight, so stock can't be verified/deducted
+// for it (same "can't verify" escape hatch as parseBagWeightGrams itself).
+export function smallestBagGrams(bagOptions: { label: string }[]): number | null {
+  const grams = bagOptions.map(b => parseBagWeightGrams(b.label)).filter((g): g is number => g !== null);
+  return grams.length > 0 ? Math.min(...grams) : null;
+}

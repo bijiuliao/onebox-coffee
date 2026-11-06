@@ -4,8 +4,8 @@ import { api } from '../api';
 import type { Customer, Order, OrderLine } from '../types';
 import { AdminTopBar } from './AdminTopBar';
 
-const MYSTERY_TIER_LABEL: Record<string, string> = { daily: '日常豆', rare: '稀有豆', competition: '競賽豆' };
-const MYSTERY_TIER_COLOR: Record<string, string> = { daily: '#3d6b4f', rare: '#2b6f8a', competition: '#b5502f' };
+const MYSTERY_TIER_LABEL: Record<string, string> = { daily: '日常豆', rare: '稀有豆', competition: '競賽豆', rare_competition: '稀有競賽豆' };
+const MYSTERY_TIER_COLOR: Record<string, string> = { daily: '#3d6b4f', rare: '#2b6f8a', competition: '#b5502f', rare_competition: '#8a5ca8' };
 
 const ON_HAND_STORAGE_KEY = 'onebox-admin-beans-on-hand';
 

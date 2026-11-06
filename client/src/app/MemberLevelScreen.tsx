@@ -12,22 +12,26 @@ function formatTime(iso: string) {
   return new Date(iso).toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' });
 }
 
-const MYSTERY_TIER_ORDER: MysteryTier[] = ['daily', 'rare', 'competition'];
-const MYSTERY_TIER_COLOR: Record<MysteryTier, string> = { daily: '#3d6b4f', rare: '#2b6f8a', competition: '#b5502f' };
-const MYSTERY_TIER_LABEL_KEY: Record<MysteryTier, string> = { daily: 'mysteryTier.daily', rare: 'mysteryTier.rare', competition: 'mysteryTier.competition' };
+const MYSTERY_TIER_ORDER: MysteryTier[] = ['daily', 'rare', 'competition', 'rare_competition'];
+const MYSTERY_TIER_COLOR: Record<MysteryTier, string> = { daily: '#3d6b4f', rare: '#2b6f8a', competition: '#b5502f', rare_competition: '#8a5ca8' };
+const MYSTERY_TIER_LABEL_KEY: Record<MysteryTier, string> = { daily: 'mysteryTier.daily', rare: 'mysteryTier.rare', competition: 'mysteryTier.competition', rare_competition: 'mysteryTier.rareCompetition' };
 
-type MysteryWeights = { daily: number; rare: number; competition: number };
+type MysteryWeights = { daily: number; rare: number; competition: number; rareCompetition: number };
+
+function weightFor(weights: MysteryWeights, tier: MysteryTier): number {
+  return tier === 'rare_competition' ? weights.rareCompetition : weights[tier];
+}
 
 // Each tier's angular span on the wheel, proportional to its weight -
-// daily first, then rare, then competition, going clockwise from the top
-// (matches conic-gradient's default start point, which is what the wheel's
-// background is drawn with).
+// daily first, then rare, then competition, then rare_competition, going
+// clockwise from the top (matches conic-gradient's default start point,
+// which is what the wheel's background is drawn with).
 function mysterySegmentBounds(weights: MysteryWeights): Record<MysteryTier, [number, number]> {
-  const total = weights.daily + weights.rare + weights.competition || 1;
+  const total = weights.daily + weights.rare + weights.competition + weights.rareCompetition || 1;
   let acc = 0;
   const bounds = {} as Record<MysteryTier, [number, number]>;
   for (const tier of MYSTERY_TIER_ORDER) {
-    const span = (weights[tier] / total) * 360;
+    const span = (weightFor(weights, tier) / total) * 360;
     bounds[tier] = [acc, acc + span];
     acc += span;
   }
@@ -78,7 +82,7 @@ function MysteryWheelPanel({ weights, spinning, rotation, onSpin, t }: {
         {MYSTERY_TIER_ORDER.map(tier => (
           <div key={tier} style={{ display: 'flex', alignItems: 'center', gap: 5, font: "500 11px 'Iansui'", color: '#6b5c4a' }}>
             <span style={{ width: 9, height: 9, borderRadius: '50%', background: MYSTERY_TIER_COLOR[tier], flexShrink: 0 }} />
-            {t(MYSTERY_TIER_LABEL_KEY[tier])} {weights[tier]}%
+            {t(MYSTERY_TIER_LABEL_KEY[tier])} {weightFor(weights, tier)}%
           </div>
         ))}
       </div>
@@ -108,6 +112,8 @@ export function MemberLevelScreen() {
   const [openWheelFor, setOpenWheelFor] = useState<number | null>(null);
   const [spinningId, setSpinningId] = useState<number | null>(null);
   const [wheelRotation, setWheelRotation] = useState<Record<number, number>>({});
+  const [craftingTier, setCraftingTier] = useState<MysteryTier | null>(null);
+  const [craftResult, setCraftResult] = useState<{ tier: MysteryTier; coffeeName: string; success: boolean } | null>(null);
 
   const search = async () => {
     const em = email.trim();
@@ -175,6 +181,35 @@ export function MemberLevelScreen() {
     }
   };
 
+  // Combines 3 of the customer's own same-tier, still-undelivered mystery
+  // draws into 1 - the server locks in success/fail and the resulting
+  // coffee immediately (see member-level-mystery-craft.mts), same
+  // "resolve first, animate after" pattern as spin() above, so the simple
+  // pulsing animation always ends in step with a real result rather than
+  // a result that was already decided before the animation even started.
+  const craft = async (tier: MysteryTier) => {
+    const em = email.trim();
+    if (!result || craftingTier !== null) return;
+    setCraftingTier(tier);
+    setCraftResult(null);
+    setError(null);
+    try {
+      const res = await api.craftMysteryBean(em, tier);
+      setTimeout(async () => {
+        try {
+          const refreshed = await api.getMemberLevel(em);
+          setResult(refreshed);
+        } finally {
+          setCraftingTier(null);
+          setCraftResult(res);
+        }
+      }, 1400);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('memberLevel.mysteryCraftFailed'));
+      setCraftingTier(null);
+    }
+  };
+
   // Arriving here with ?email= in the URL, or already "logged in" (email
   // remembered from a past checkout / the header's account button),
   // searches right away instead of making them retype and press the button.
@@ -185,6 +220,19 @@ export function MemberLevelScreen() {
 
   const levelStep = result ? currentLevelStep(result.beansSpent) : 500;
   const progressPct = result ? Math.max(0, Math.min(100, ((levelStep - result.toNextLevel) / levelStep) * 100)) : 0;
+
+  // Every drawn-but-not-yet-shipped-or-merged mystery bean, grouped by
+  // tier - the pool of "material" crafting can spend. redeemedAt already
+  // covers both "admin shipped it" and "merging consumed it" (see
+  // member-level-mystery-craft.mts), so a plain !redeemedAt check is
+  // exactly "still sitting around, available".
+  const pendingMysteryByTier: Partial<Record<MysteryTier, number>> = {};
+  for (const r of result?.rewards ?? []) {
+    if (r.isMysteryPool && r.mysteryCoffeeName && !r.redeemedAt && r.mysteryTier) {
+      pendingMysteryByTier[r.mysteryTier] = (pendingMysteryByTier[r.mysteryTier] ?? 0) + 1;
+    }
+  }
+  const hasCraftableMaterial = Object.values(pendingMysteryByTier).some(c => (c ?? 0) > 0);
 
   return (
     <MobileShell>
@@ -292,13 +340,14 @@ export function MemberLevelScreen() {
                       {!undrawnMystery && (
                         <span style={{
                           font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
-                          background: r.redeemedAt ? '#e3f0e5' : '#f1e9db', color: r.redeemedAt ? '#3f7a4a' : '#8a7a68',
-                        }}>{r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : r.isMysteryPool ? t('memberLevel.mysteryPendingShip') : t('memberLevel.pending'))}</span>
+                          background: r.isMysteryMerged ? '#f1ece2' : r.redeemedAt ? '#e3f0e5' : '#f1e9db',
+                          color: r.isMysteryMerged ? '#8a7a68' : r.redeemedAt ? '#3f7a4a' : '#8a7a68',
+                        }}>{r.isMysteryMerged ? t('memberLevel.mysteryMerged') : r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : r.isMysteryPool ? t('memberLevel.mysteryPendingShip') : t('memberLevel.pending'))}</span>
                       )}
                     </div>
 
                     {r.isMysteryPool && r.mysteryCoffeeName && (
-                      <div style={{ marginTop: 8, font: "600 12px 'Iansui'", color: '#5a4a9e' }}>
+                      <div style={{ marginTop: 8, font: "600 12px 'Iansui'", color: r.isMysteryMerged ? '#9a8a76' : '#5a4a9e' }}>
                         {t('memberLevel.mysteryResult', { name: r.mysteryCoffeeName })}
                       </div>
                     )}
@@ -328,6 +377,61 @@ export function MemberLevelScreen() {
                 );
               })}
             </div>
+          </div>
+        )}
+
+        {result && hasCraftableMaterial && (
+          <div style={{ marginTop: 24, background: '#fff', border: '1px solid #ece5d6', borderRadius: 18, padding: 18 }}>
+            <div style={{ font: "700 10px 'Space Mono'", letterSpacing: 2, color: '#9a8a76', marginBottom: 4 }}>{t('memberLevel.craftHeading')}</div>
+            <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginBottom: 14 }}>{t('memberLevel.craftHint')}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {MYSTERY_TIER_ORDER.slice(0, -1).map(tier => {
+                const count = pendingMysteryByTier[tier] ?? 0;
+                if (count === 0) return null;
+                const upgradeTier = MYSTERY_TIER_ORDER[MYSTERY_TIER_ORDER.indexOf(tier) + 1];
+                const canCraft = count >= 3 && craftingTier === null;
+                return (
+                  <div key={tier} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 14px', borderRadius: 12, background: '#faf8f3' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0 }}>
+                      <span style={{ width: 10, height: 10, borderRadius: '50%', background: MYSTERY_TIER_COLOR[tier], flexShrink: 0 }} />
+                      <span style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>{t(MYSTERY_TIER_LABEL_KEY[tier])} × {count}</span>
+                      <span style={{ font: "400 11px 'Iansui'", color: '#9a8a76' }}>→ {t(MYSTERY_TIER_LABEL_KEY[upgradeTier])}</span>
+                    </div>
+                    <div
+                      onClick={() => canCraft && craft(tier)}
+                      className="press"
+                      style={{
+                        cursor: canCraft ? 'pointer' : 'default', flexShrink: 0,
+                        opacity: count < 3 ? .4 : craftingTier === tier ? .6 : 1,
+                        padding: '9px 16px', borderRadius: 10, background: '#8a5ca8', color: '#fff', font: "600 12px 'Iansui'",
+                      }}
+                    >
+                      {craftingTier === tier ? t('memberLevel.crafting') : count >= 3 ? t('memberLevel.craftButton') : t('memberLevel.craftNeedMore', { count: 3 - count })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {craftingTier && (
+              <div className="rise" style={{ marginTop: 14, textAlign: 'center', padding: 18, borderRadius: 12, background: '#f3eef8' }}>
+                <div style={{ fontSize: 30, animation: 'pulse .6s ease-in-out infinite' }}>⚗️</div>
+                <div style={{ font: "500 12px 'Iansui'", color: '#8a5ca8', marginTop: 8 }}>{t('memberLevel.crafting')}</div>
+              </div>
+            )}
+
+            {craftResult && !craftingTier && (
+              <div className="rise" style={{
+                marginTop: 14, textAlign: 'center', padding: '13px 14px', borderRadius: 12,
+                background: craftResult.success ? '#eef2ec' : '#f5f2ea',
+              }}>
+                <div style={{ font: "600 13px 'Iansui'", color: craftResult.success ? '#3d6b4f' : '#8a7a68' }}>
+                  {craftResult.success
+                    ? t('memberLevel.craftSuccess', { tier: t(MYSTERY_TIER_LABEL_KEY[craftResult.tier]), name: craftResult.coffeeName })
+                    : t('memberLevel.craftFail', { tier: t(MYSTERY_TIER_LABEL_KEY[craftResult.tier]), name: craftResult.coffeeName })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
