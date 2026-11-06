@@ -24,7 +24,11 @@ export default async (req: Request) => {
       COUNT(*)::int AS order_count,
       SUM(total)::int AS total_spent
     FROM orders
-    WHERE customer_email != ''
+    -- client_ip = 'admin-test' marks a synthetic order from the admin
+    -- "測試工具" panel (see admin-test-spend.mts) - real for testing member
+    -- levels, but never a real sale, so it has no place on a public
+    -- leaderboard that's supposed to reflect actual friends' spending.
+    WHERE customer_email != '' AND client_ip != 'admin-test'
     GROUP BY customer_email
     ORDER BY total_spent DESC
     LIMIT 20
