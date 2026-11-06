@@ -22,16 +22,37 @@ function weightFor(weights: MysteryWeights, tier: MysteryTier): number {
   return tier === 'rare_competition' ? weights.rareCompetition : weights[tier];
 }
 
-// Each tier's angular span on the wheel, proportional to its weight -
-// daily first, then rare, then competition, then rare_competition, going
-// clockwise from the top (matches conic-gradient's default start point,
-// which is what the wheel's background is drawn with).
-function mysterySegmentBounds(weights: MysteryWeights): Record<MysteryTier, [number, number]> {
-  const total = weights.daily + weights.rare + weights.competition + weights.rareCompetition || 1;
+// A real tier at Lv.2 can be as thin as 1% of the wheel - genuinely
+// accurate, but a ~3.6deg sliver is invisible on a 150px wheel. This never
+// touches the real odds (the legend below still shows the true %, and the
+// server-side draw/landing math is untouched) - it only pads out thin
+// slices to a minimum visible width for the *drawing*, shrinking the
+// larger slices proportionally to make room so everything still sums to
+// 100. Any tier at exactly 0% stays invisible (there's nothing there to
+// show).
+const MIN_VISUAL_PCT = 5;
+function mysteryDisplayPct(weights: MysteryWeights): Record<MysteryTier, number> {
+  const floored = {} as Record<MysteryTier, number>;
+  for (const tier of MYSTERY_TIER_ORDER) {
+    const pct = weightFor(weights, tier);
+    floored[tier] = pct > 0 ? Math.max(pct, MIN_VISUAL_PCT) : 0;
+  }
+  const total = MYSTERY_TIER_ORDER.reduce((sum, tier) => sum + floored[tier], 0) || 1;
+  const display = {} as Record<MysteryTier, number>;
+  for (const tier of MYSTERY_TIER_ORDER) display[tier] = (floored[tier] / total) * 100;
+  return display;
+}
+
+// Each tier's angular span on the wheel - daily first, then rare, then
+// competition, then rare_competition, going clockwise from the top
+// (matches conic-gradient's default start point, which is what the
+// wheel's background is drawn with). Takes the already visually-padded
+// percentages (see mysteryDisplayPct), not the raw weights.
+function mysterySegmentBounds(displayPct: Record<MysteryTier, number>): Record<MysteryTier, [number, number]> {
   let acc = 0;
   const bounds = {} as Record<MysteryTier, [number, number]>;
   for (const tier of MYSTERY_TIER_ORDER) {
-    const span = (weightFor(weights, tier) / total) * 360;
+    const span = (displayPct[tier] / 100) * 360;
     bounds[tier] = [acc, acc + span];
     acc += span;
   }
@@ -39,7 +60,7 @@ function mysterySegmentBounds(weights: MysteryWeights): Record<MysteryTier, [num
 }
 
 function mysteryWheelBackground(weights: MysteryWeights): string {
-  const bounds = mysterySegmentBounds(weights);
+  const bounds = mysterySegmentBounds(mysteryDisplayPct(weights));
   const stops = MYSTERY_TIER_ORDER.map(t => `${MYSTERY_TIER_COLOR[t]} ${bounds[t][0]}deg ${bounds[t][1]}deg`).join(', ');
   return `conic-gradient(${stops})`;
 }
@@ -47,14 +68,57 @@ function mysteryWheelBackground(weights: MysteryWeights): string {
 // How far (in degrees) to rotate the wheel so the drawn tier's segment ends
 // up under the pointer (fixed at the top) - lands at a random point inside
 // the segment rather than dead center, plus a few extra full turns so the
-// spin actually looks like a spin.
+// spin actually looks like a spin. Uses the same visually-padded bounds as
+// the background, so the pointer always lands inside the wedge that's
+// actually drawn on screen, not a sliver too thin to see.
 function mysteryRotationForTier(weights: MysteryWeights, tier: MysteryTier): number {
-  const [start, end] = mysterySegmentBounds(weights)[tier];
+  const [start, end] = mysterySegmentBounds(mysteryDisplayPct(weights))[tier];
   const span = end - start;
   const landingOffset = span > 0 ? (0.15 + Math.random() * 0.7) * span : 0;
   const targetAngle = (start + landingOffset) % 360;
   const spins = 6;
   return spins * 360 + ((360 - targetAngle) % 360);
+}
+
+// A small "enchanting circle" (rotating ring + counter-orbiting sparks +
+// a pulsing glow) for the crafting-in-progress state - the same kind of
+// tense, ritual-feeling buildup classic MMO item-enchant animations use,
+// instead of a flat progress spinner, since a 50/50 craft is meant to
+// feel like a gamble being cast, not a loading bar.
+function CraftingCircle({ color }: { color: string }) {
+  const sparkAngles = [0, 60, 120, 180, 240, 300];
+  return (
+    <div style={{ position: 'relative', width: 96, height: 96, margin: '0 auto' }}>
+      <div style={{
+        position: 'absolute', inset: 10, borderRadius: '50%',
+        background: `radial-gradient(circle, ${color}55 0%, transparent 70%)`,
+        animation: 'craftGlow 1.1s ease-in-out infinite',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, borderRadius: '50%',
+        border: `2px dashed ${color}`, opacity: .8,
+        animation: 'craftSpin 2.4s linear infinite',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 14, borderRadius: '50%',
+        border: `1px solid ${color}`, opacity: .5,
+        animation: 'craftSpin 1.6s linear infinite reverse',
+      }} />
+      <div style={{ position: 'absolute', inset: 0, animation: 'craftSpin 1.3s linear infinite' }}>
+        {sparkAngles.map(angle => (
+          <div
+            key={angle}
+            style={{
+              position: 'absolute', top: '50%', left: '50%', width: 5, height: 5, borderRadius: '50%',
+              background: color, boxShadow: `0 0 6px ${color}`,
+              transform: `rotate(${angle}deg) translate(44px) translate(-2.5px,-2.5px)`,
+            }}
+          />
+        ))}
+      </div>
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 28 }}>⚗️</div>
+    </div>
+  );
 }
 
 function MysteryWheelPanel({ weights, spinning, rotation, onSpin, t }: {
@@ -414,18 +478,20 @@ export function MemberLevelScreen() {
             </div>
 
             {craftingTier && (
-              <div className="rise" style={{ marginTop: 14, textAlign: 'center', padding: 18, borderRadius: 12, background: '#f3eef8' }}>
-                <div style={{ fontSize: 30, animation: 'pulse .6s ease-in-out infinite' }}>⚗️</div>
-                <div style={{ font: "500 12px 'Iansui'", color: '#8a5ca8', marginTop: 8 }}>{t('memberLevel.crafting')}</div>
+              <div className="rise" style={{ marginTop: 14, textAlign: 'center', padding: '20px 18px', borderRadius: 12, background: '#211a2b' }}>
+                <CraftingCircle color={MYSTERY_TIER_COLOR[MYSTERY_TIER_ORDER[MYSTERY_TIER_ORDER.indexOf(craftingTier) + 1]]} />
+                <div style={{ font: "500 12px 'Iansui'", color: '#c9b8ea', marginTop: 10, letterSpacing: 1 }}>{t('memberLevel.crafting')}</div>
               </div>
             )}
 
             {craftResult && !craftingTier && (
-              <div className="rise" style={{
-                marginTop: 14, textAlign: 'center', padding: '13px 14px', borderRadius: 12,
-                background: craftResult.success ? '#eef2ec' : '#f5f2ea',
+              <div style={{
+                marginTop: 14, textAlign: 'center', padding: '16px 14px', borderRadius: 12,
+                background: craftResult.success ? 'linear-gradient(150deg,#2e4a37,#3d6b4f)' : '#f1ece2',
+                animation: craftResult.success ? 'craftBurst .6s cubic-bezier(.17,.67,.2,1) both' : 'craftShake .45s ease-in-out both',
               }}>
-                <div style={{ font: "600 13px 'Iansui'", color: craftResult.success ? '#3d6b4f' : '#8a7a68' }}>
+                <div style={{ fontSize: 22 }}>{craftResult.success ? '✨' : '💨'}</div>
+                <div style={{ font: "600 13px 'Iansui'", color: craftResult.success ? '#faf8f3' : '#8a7a68', marginTop: 4 }}>
                   {craftResult.success
                     ? t('memberLevel.craftSuccess', { tier: t(MYSTERY_TIER_LABEL_KEY[craftResult.tier]), name: craftResult.coffeeName })
                     : t('memberLevel.craftFail', { tier: t(MYSTERY_TIER_LABEL_KEY[craftResult.tier]), name: craftResult.coffeeName })}

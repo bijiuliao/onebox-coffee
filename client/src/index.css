@@ -80,6 +80,27 @@ input, textarea { font-family: inherit; }
   from { transform: translateX(-100%); }
   to { transform: none; }
 }
+@keyframes craftSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+@keyframes craftGlow {
+  0%, 100% { opacity: .5; transform: scale(.94); }
+  50% { opacity: 1; transform: scale(1.08); }
+}
+@keyframes craftBurst {
+  0% { transform: scale(.82); opacity: 0; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+  45% { box-shadow: 0 0 36px 10px rgba(201,138,46,.55); }
+  70% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; box-shadow: 0 0 0 0 rgba(255,255,255,0); }
+}
+@keyframes craftShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-5px) rotate(-1deg); }
+  40% { transform: translateX(5px) rotate(1deg); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
 
 .rise { animation: rise .6s cubic-bezier(.16,.8,.2,1) both; }
 .screen-in { animation: screenIn .42s cubic-bezier(.2,.7,.2,1) both; }
