@@ -98,6 +98,12 @@ export const api = {
       body: JSON.stringify({ packedLineIndexes: lineIndexes, ...opts }),
     }).then(res => json<Order>(res)),
   listCustomers: () => fetch('/api/customers').then(res => json<Customer[]>(res)),
+  addTestSpend: (email: string, amount: number, name?: string) =>
+    fetch('/api/admin/test-spend', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, amount, name }),
+    }).then(res => json<Order>(res)),
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
   getMemberLevel: (email: string) => fetch(`/api/member-level?email=${encodeURIComponent(email)}`).then(res => json<MemberLevel>(res)),
   getMemberDiscounts: (email: string) => fetch(`/api/member-discount?email=${encodeURIComponent(email)}`).then(res => json<{ rewards: { id: number; label: string; discountPercent: number }[] }>(res)),
