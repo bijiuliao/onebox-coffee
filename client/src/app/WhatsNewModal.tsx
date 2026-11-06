@@ -6,13 +6,12 @@ const SEEN_STORAGE_KEY = 'onebox-whats-new-seen';
 // Bump this whenever a new batch of customer-facing features ships, to
 // show the card again - unrelated to the app's own version/deploys, so a
 // routine bug-fix deploy doesn't re-trigger it for everyone.
-const WHATS_NEW_VERSION = '2026-10-level-rewards';
+const WHATS_NEW_VERSION = '2026-11-mystery-wheel';
 
 const ITEMS = [
-  { titleKey: 'whatsNew.leaderboardTitle', descKey: 'whatsNew.leaderboardDesc' },
-  { titleKey: 'whatsNew.levelTitle', descKey: 'whatsNew.levelDesc' },
-  { titleKey: 'whatsNew.rewardTitle', descKey: 'whatsNew.rewardDesc' },
-  { titleKey: 'whatsNew.loginTitle', descKey: 'whatsNew.loginDesc' },
+  { titleKey: 'whatsNew.discountTitle', descKey: 'whatsNew.discountDesc' },
+  { titleKey: 'whatsNew.mysteryWheelTitle', descKey: 'whatsNew.mysteryWheelDesc' },
+  { titleKey: 'whatsNew.mysteryCraftTitle', descKey: 'whatsNew.mysteryCraftDesc' },
 ] as const;
 
 // A one-time card shown the next time a customer lands on the menu after a

@@ -229,6 +229,12 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'whatsNew.rewardDesc': { zh: '升等後可以選一個獎勵：下一單打9折、多送10克、或神秘豆一包', en: 'Pick a reward on level up: 10% off, +10g of beans, or a mystery bag' },
   'whatsNew.loginTitle': { zh: '登入一次就記住', en: 'Log In Once, Stay Logged In' },
   'whatsNew.loginDesc': { zh: '右上角登入後，查訂單、看等級都不用再輸入 Email', en: 'Log in from the top right and your email is remembered everywhere' },
+  'whatsNew.discountTitle': { zh: '結帳可以選折價券', en: 'Choose Your Discount at Checkout' },
+  'whatsNew.discountDesc': { zh: '購物車會列出你有的折價券，自己選要用哪張，也可以選不用', en: 'The cart lists your available coupons — pick which one to use, or skip it' },
+  'whatsNew.mysteryWheelTitle': { zh: '神秘豆變成真的轉盤了', en: 'Spin the Mystery Bean Wheel' },
+  'whatsNew.mysteryWheelDesc': { zh: '選到神秘豆技能後可以親自轉轉盤，等級越高抽到稀有豆的機率越高', en: 'Pick the mystery bean skill and spin it yourself — higher levels mean better odds at rare beans' },
+  'whatsNew.mysteryCraftTitle': { zh: '神秘豆可以合成', en: 'Craft Mystery Beans' },
+  'whatsNew.mysteryCraftDesc': { zh: '把 3 支同等級的神秘豆合成，有機會變成更高一級的豆子', en: 'Combine 3 same-tier mystery beans for a chance at a rarer one' },
 
   'a11y.cartEmpty': { zh: '購物車', en: 'Cart' },
   'a11y.cartCount': { zh: '購物車，{count} 件商品', en: 'Cart, {count} items' },
