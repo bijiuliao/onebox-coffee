@@ -245,6 +245,7 @@ export function PackingView() {
                         >
                           <span style={{ font: "500 13px 'Iansui'" }}>
                             {done ? '✓' : ready ? '✓' : '○'} {l.name.replace(/（豆）$/, '')} · {l.detail}
+                            {!!l.bonusGrams && <span style={{ color: '#b5742e', fontWeight: 700 }}> ＋{l.bonusGrams}g 加贈</span>}
                           </span>
                           <span style={{ font: "400 11px 'Iansui'" }}>{done ? '已封' : ready ? '可以封' : '等到貨'}</span>
                         </div>

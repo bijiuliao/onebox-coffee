@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MobileShell } from '../AppShell';
 import { BackButton, LangToggle } from '../components';
@@ -8,7 +8,8 @@ import { useToast } from '../toast';
 import { api } from '../api';
 import { unlockDing } from '../feedback';
 import { getStoredEmail, setStoredEmail } from '../customerSession';
-import type { DeliveryQuote, OrderType } from '../types';
+import { parseBagWeightGrams } from '../weight';
+import type { Coffee, DeliveryQuote, OrderType } from '../types';
 
 const NAME_STORAGE_KEY = 'onebox-customer-name';
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -73,6 +74,89 @@ export function CartScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableDiscountIds]);
 
+  const [availableExtraGrams, setAvailableExtraGrams] = useState<{ id: number; label: string; grams: number }[]>([]);
+  const [selectedExtraGramsRewardId, setSelectedExtraGramsRewardId] = useState<number | null>(null);
+  // Which cart line (by index) the bonus grams should land on - null means
+  // "don't apply it this time", which the customer can pick explicitly even
+  // while an unredeemed reward exists.
+  const [selectedExtraGramsLineIndex, setSelectedExtraGramsLineIndex] = useState<number | null>(null);
+  const [extraGramsDeclined, setExtraGramsDeclined] = useState(false);
+  // Live stock figures, fetched once, so the bag picker below can tell
+  // which beans line has enough stock left to cover the bonus grams too.
+  const [coffeesForStock, setCoffeesForStock] = useState<Coffee[]>([]);
+
+  useEffect(() => {
+    api.listCoffees().then(setCoffeesForStock, () => setCoffeesForStock([]));
+  }, []);
+
+  // Same preview pattern as the discount coupons above - lets the cart show
+  // which "多送克數" reward(s) the customer has before checkout.
+  useEffect(() => {
+    const email = customerEmail.trim().toLowerCase();
+    if (!EMAIL_RE.test(email)) { setAvailableExtraGrams([]); return; }
+    const timer = setTimeout(() => {
+      api.getMemberExtraGrams(email).then(
+        (res) => setAvailableExtraGrams(res.rewards),
+        () => setAvailableExtraGrams([]),
+      );
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [customerEmail]);
+
+  const availableExtraGramsIds = availableExtraGrams.map(r => r.id).join(',');
+  useEffect(() => {
+    setSelectedExtraGramsRewardId(availableExtraGrams[0]?.id ?? null);
+    setExtraGramsDeclined(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableExtraGramsIds]);
+
+  const selectedExtraGramsReward = availableExtraGrams.find(r => r.id === selectedExtraGramsRewardId) ?? null;
+
+  // A beans line is eligible for the bonus unless its coffee's stock IS
+  // tracked AND every one of its bag labels IS parseable AND the bonus
+  // would push the coffee's total committed grams (across every line of it
+  // already in the cart) past what's left - mirrors orders.mts's own
+  // "can't verify against stock, so don't block" convention for unparseable
+  // labels, rather than blocking defensively.
+  const isLineEligibleForExtraGrams = useMemo(() => {
+    if (!selectedExtraGramsReward) return () => false;
+    const perCoffee = new Map<string, { gramsNeeded: number; unparseable: boolean }>();
+    for (const l of cart.lines) {
+      if (l.kind !== 'beans') continue;
+      const grams = parseBagWeightGrams(l.bagLabel);
+      const entry = perCoffee.get(l.refId) ?? { gramsNeeded: 0, unparseable: false };
+      if (grams === null) entry.unparseable = true;
+      else entry.gramsNeeded += grams * l.qty;
+      perCoffee.set(l.refId, entry);
+    }
+    return (line: CartLine) => {
+      if (line.kind !== 'beans') return false;
+      const coffee = coffeesForStock.find(c => c.id === line.refId);
+      if (!coffee || coffee.stockQty === null) return true;
+      const entry = perCoffee.get(line.refId);
+      if (!entry || entry.unparseable) return true;
+      return entry.gramsNeeded + selectedExtraGramsReward.grams <= coffee.stockQty;
+    };
+  }, [cart.lines, coffeesForStock, selectedExtraGramsReward]);
+
+  const eligibleExtraGramsLineIndices = cart.lines
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => isLineEligibleForExtraGrams(l))
+    .map(({ i }) => i);
+  const eligibleExtraGramsLineIndicesKey = eligibleExtraGramsLineIndices.join(',');
+
+  // Defaults to the first eligible beans line whenever the eligible set
+  // changes (cart edited, reward switched) - unless the customer explicitly
+  // declined the bonus, which sticks until the reward itself changes.
+  useEffect(() => {
+    setSelectedExtraGramsLineIndex(prev =>
+      prev !== null && eligibleExtraGramsLineIndices.includes(prev) ? prev : (eligibleExtraGramsLineIndices[0] ?? null),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eligibleExtraGramsLineIndicesKey, selectedExtraGramsRewardId]);
+
+  const effectiveExtraGramsLineIndex = extraGramsDeclined ? null : selectedExtraGramsLineIndex;
+
   const requestDelivery = () => {
     setOrderType('外送');
     if (location || locating) return;
@@ -131,6 +215,8 @@ export function CartScreen() {
         orderType,
         items: cart.lines.map(cartLineToItemInput),
         discountRewardId: selectedDiscountId,
+        extraGramsRewardId: selectedExtraGramsRewardId,
+        extraGramsLineIndex: effectiveExtraGramsLineIndex,
         ...(orderType === '外送' && location ? { lat: location.lat, lng: location.lng } : {}),
       });
       localStorage.setItem(NAME_STORAGE_KEY, name);
@@ -167,6 +253,9 @@ export function CartScreen() {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ font: "500 18px 'Room205',serif", color: '#1a1714' }}>{l.name}</div>
                   <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 3 }}>{localizedLineDetail(l, t)}</div>
+                  {idx === effectiveExtraGramsLineIndex && selectedExtraGramsReward && (
+                    <div style={{ font: "600 11px 'Iansui'", color: '#3d6b4f', marginTop: 2 }}>{t('cart.extraGramsBadge', { grams: selectedExtraGramsReward.grams })}</div>
+                  )}
                   <div style={{ font: "500 15px 'Room205'", color: '#1a1714', marginTop: 6 }}>${lineTotal(l)}</div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -245,6 +334,92 @@ export function CartScreen() {
                     background: selectedDiscountId === null ? '#3d6b4f' : 'transparent',
                   }} />
                   <span style={{ font: "600 13px 'Iansui'", color: '#8a7a68' }}>{t('cart.discountNone')}</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {availableExtraGrams.length > 0 && cart.lines.some(l => l.kind === 'beans') && (
+            <div style={{ margin: '16px 22px 0', background: '#fff', border: '1px solid #e9e2d3', borderRadius: 18, padding: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
+                <span style={{ font: "600 14px 'Iansui'" }}>🎁</span>
+                <span style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{t('cart.extraGramsHeading')}</span>
+              </div>
+
+              {availableExtraGrams.length > 1 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 12 }}>
+                  <label style={{ font: "700 10px 'Space Mono'", letterSpacing: 1.5, color: '#9a8a76' }}>{t('cart.extraGramsRewardPickHeading')}</label>
+                  {availableExtraGrams.map(r => {
+                    const selected = selectedExtraGramsRewardId === r.id;
+                    return (
+                      <div
+                        key={r.id}
+                        onClick={() => setSelectedExtraGramsRewardId(r.id)}
+                        className="press"
+                        style={{
+                          cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9,
+                          padding: '11px 13px', borderRadius: 12,
+                          background: selected ? '#eef2ec' : '#faf8f3',
+                          border: '1px solid ' + (selected ? '#bfdac5' : '#e9e2d3'),
+                        }}
+                      >
+                        <span style={{
+                          width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                          border: '2px solid ' + (selected ? '#3d6b4f' : '#cbbfa8'),
+                          background: selected ? '#3d6b4f' : 'transparent',
+                        }} />
+                        <span style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>{r.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {cart.lines.map((l, idx) => {
+                  if (l.kind !== 'beans') return null;
+                  const eligible = isLineEligibleForExtraGrams(l);
+                  const selected = !extraGramsDeclined && selectedExtraGramsLineIndex === idx;
+                  return (
+                    <div
+                      key={idx}
+                      onClick={() => { if (eligible) { setExtraGramsDeclined(false); setSelectedExtraGramsLineIndex(idx); } }}
+                      className={eligible ? 'press' : undefined}
+                      style={{
+                        cursor: eligible ? 'pointer' : 'default', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        padding: '11px 13px', borderRadius: 12, opacity: eligible ? 1 : .5,
+                        background: selected ? '#eef2ec' : '#faf8f3',
+                        border: '1px solid ' + (selected ? '#bfdac5' : '#e9e2d3'),
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
+                        <span style={{
+                          width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                          border: '2px solid ' + (selected ? '#3d6b4f' : '#cbbfa8'),
+                          background: selected ? '#3d6b4f' : 'transparent',
+                        }} />
+                        <span style={{ font: "600 13px 'Iansui'", color: '#1a1714', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{l.name} · {l.bagLabel} × {l.qty}</span>
+                      </div>
+                      {!eligible && <span style={{ font: "500 11px 'Iansui'", color: '#c8342b', flexShrink: 0 }}>{t('cart.extraGramsInsufficient')}</span>}
+                    </div>
+                  );
+                })}
+                <div
+                  onClick={() => setExtraGramsDeclined(true)}
+                  className="press"
+                  style={{
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '11px 13px', borderRadius: 12,
+                    background: extraGramsDeclined ? '#eef2ec' : '#faf8f3',
+                    border: '1px solid ' + (extraGramsDeclined ? '#bfdac5' : '#e9e2d3'),
+                  }}
+                >
+                  <span style={{
+                    width: 16, height: 16, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box',
+                    border: '2px solid ' + (extraGramsDeclined ? '#3d6b4f' : '#cbbfa8'),
+                    background: extraGramsDeclined ? '#3d6b4f' : 'transparent',
+                  }} />
+                  <span style={{ font: "600 13px 'Iansui'", color: '#8a7a68' }}>{t('cart.extraGramsNone')}</span>
                 </div>
               </div>
             </div>

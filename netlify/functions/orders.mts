@@ -34,6 +34,11 @@ interface OrderLine {
   // per-bean aggregate rather than guessed at by name matching.
   itemId: string;
   kind: ItemKind;
+  // Set when an extra-grams-type reward (RewardOption.extraGramsAmount) was
+  // applied to this specific line at checkout - PackingView reads this to
+  // know this particular bag needs that many grams added for free. Never
+  // affects linePrice (the bonus is free weight, not a price change).
+  bonusGrams?: number;
 }
 
 const RATE_LIMIT_MAX = 5;
@@ -214,6 +219,23 @@ export default async (req: Request, context: Context) => {
     LIMIT 1
   `) as { id: number; discount_percent: number }[] : [];
 
+  // Same "cart lists it, customer picks" shape as the discount above, but
+  // for an extra-grams-type reward - the customer also chooses *which*
+  // beans line in their own cart the bonus grams land on (by index into
+  // the same items[]/lines[] arrays), so this only looks the reward up at
+  // all when that target line genuinely is a beans line.
+  const requestedExtraGramsRewardId = Number.isInteger(body.extraGramsRewardId) ? (body.extraGramsRewardId as number) : null;
+  const requestedExtraGramsLineIndex = Number.isInteger(body.extraGramsLineIndex) ? (body.extraGramsLineIndex as number) : null;
+  const extraGramsTargetLine = requestedExtraGramsLineIndex !== null ? lines[requestedExtraGramsLineIndex] : undefined;
+
+  const [extraGramsCandidate] = requestedExtraGramsRewardId !== null && extraGramsTargetLine?.kind === 'beans' ? (await db.sql`
+    SELECT mr.id, ro.extra_grams_amount
+    FROM member_rewards mr
+    JOIN reward_options ro ON ro.reward_key = mr.reward_key
+    WHERE mr.id = ${requestedExtraGramsRewardId} AND mr.customer_email = ${customerEmail} AND mr.redeemed_at IS NULL AND ro.extra_grams_amount IS NOT NULL
+    LIMIT 1
+  `) as { id: number; extra_grams_amount: number }[] : [];
+
   // Only retail bean bags draw down stock - hand-drip cups are unlimited
   // (see priceItem above) - and by each bag's actual gram weight, not 1 per
   // bag, so aggregate grams needed per coffee id from beans lines before
@@ -233,8 +255,29 @@ export default async (req: Request, context: Context) => {
   let order: { id: number; created_at: string };
   let discountAmount = 0;
   let discountRewardId: number | null = null;
+  let extraGramsRewardId: number | null = null;
   try {
     await client.query('BEGIN');
+
+    if (extraGramsCandidate && extraGramsTargetLine) {
+      // Consumed before the stock loop below (not after, like the discount
+      // is) because the bonus has to be folded into stockNeeded *before*
+      // that loop checks/deducts it - otherwise a concurrent order could
+      // oversell the coffee by exactly this many grams. Conditional on
+      // redeemed_at IS NULL for the same double-spend-proofing reason as
+      // the discount; if 0 rows come back, no bonus grams are added to
+      // stockNeeded at all, so nothing is reserved for a reward that
+      // didn't actually get consumed.
+      const { rows: redeemRows } = await client.query<{ id: number }>(
+        'UPDATE member_rewards SET redeemed_at = now() WHERE id = $1 AND redeemed_at IS NULL RETURNING id',
+        [extraGramsCandidate.id],
+      );
+      if (redeemRows.length > 0) {
+        extraGramsTargetLine.bonusGrams = extraGramsCandidate.extra_grams_amount;
+        extraGramsRewardId = extraGramsCandidate.id;
+        stockNeeded.set(extraGramsTargetLine.itemId, (stockNeeded.get(extraGramsTargetLine.itemId) ?? 0) + extraGramsCandidate.extra_grams_amount);
+      }
+    }
 
     for (const [coffeeId, gramsNeeded] of stockNeeded) {
       // FOR UPDATE locks the row for the rest of this transaction, so a
@@ -271,10 +314,10 @@ export default async (req: Request, context: Context) => {
     const total = itemsTotal + deliveryFee - discountAmount;
 
     const insert = await client.query<{ id: number; created_at: string }>(
-      `INSERT INTO orders (customer_name, customer_email, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, discount_amount, discount_reward_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+      `INSERT INTO orders (customer_name, customer_email, items, total, client_ip, dedupe_key, order_type, delivery_fee, delivery_distance_km, customer_lat, customer_lng, discount_amount, discount_reward_id, extra_grams_reward_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
        RETURNING id, created_at`,
-      [customerName, customerEmail, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng, discountAmount, discountRewardId],
+      [customerName, customerEmail, JSON.stringify(lines), total, ip, dedupeKey, orderType, deliveryFee, deliveryDistanceKm, customerLat, customerLng, discountAmount, discountRewardId, extraGramsRewardId],
     );
     order = insert.rows[0];
 

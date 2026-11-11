@@ -8,7 +8,7 @@ function toJson(r: RewardOptionRow) {
   return {
     id: r.id, key: r.reward_key, label: r.label, desc: r.description,
     minLevel: r.min_level, maxLevel: r.max_level, active: r.active, sortOrder: r.sort_order,
-    discountPercent: r.discount_percent, isMysteryPool: r.is_mystery_pool,
+    discountPercent: r.discount_percent, isMysteryPool: r.is_mystery_pool, extraGramsAmount: r.extra_grams_amount,
   };
 }
 
@@ -64,6 +64,13 @@ export default async (req: Request) => {
     sets.push(`discount_percent = $${i}`); values.push(discountPercent); i += 1;
   }
   if (typeof body.isMysteryPool === 'boolean') { sets.push(`is_mystery_pool = $${i}`); values.push(body.isMysteryPool); i += 1; }
+  if ('extraGramsAmount' in body) {
+    const extraGramsAmount = body.extraGramsAmount === null ? null : Number(body.extraGramsAmount);
+    if (extraGramsAmount !== null && (!Number.isInteger(extraGramsAmount) || extraGramsAmount < 1)) {
+      return json({ error: 'extraGramsAmount 必須是正整數，或 null' }, 400);
+    }
+    sets.push(`extra_grams_amount = $${i}`); values.push(extraGramsAmount); i += 1;
+  }
 
   if (sets.length === 0) return json({ error: 'no fields to update' }, 400);
 

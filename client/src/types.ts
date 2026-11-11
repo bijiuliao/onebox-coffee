@@ -77,6 +77,10 @@ export interface OrderLine {
   // Set once this beans line has actually been bagged during packing (see
   // PackingView) - lets a partial pack remember what's left across visits.
   packed?: boolean;
+  // Set when an extra-grams-type reward (RewardOption.extraGramsAmount)
+  // was applied to this specific line at checkout - PackingView shows it
+  // so whoever bags this one knows to add that many grams for free.
+  bonusGrams?: number;
 }
 
 export interface Order {
@@ -219,12 +223,16 @@ export interface RewardOption {
   active: boolean;
   sortOrder: number;
   // Set only for a reward that auto-applies as a checkout discount instead
-  // of being hand-fulfilled (see orders.mts) - null for every physical
-  // reward (extra grams), which stays fully manual.
+  // of being hand-fulfilled (see orders.mts) - null keeps it fully manual.
   discountPercent: number | null;
   // Set for a reward that gives the customer a mystery-pool wheel to spin
   // instead of a flat physical reward (see member-level-mystery-draw.mts).
   isMysteryPool: boolean;
+  // Set for a reward that lets the customer pick which beans line in their
+  // cart gets this many bonus grams added for free at checkout (see
+  // orders.mts) - null keeps it a flat physical reward admin hands out by
+  // hand.
+  extraGramsAmount: number | null;
 }
 
 // A bean listing pulled from loffeelabs (see netlify/functions/loffeelabs-beans.mts)

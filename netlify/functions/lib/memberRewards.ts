@@ -5,15 +5,17 @@ import { getDb } from './db';
 // array - see the create-reward-options migration. min_level/max_level
 // gate which rewards apply at a given unclaimedLevel; `active = false`
 // retires one without deleting it, so a customer's past pick still
-// resolves to a real label. Most rewards are still hand-fulfilled by
-// admin (extra grams) - discount_percent and is_mystery_pool are the two
-// exceptions with their own automated behavior: discount_percent makes
-// orders.mts auto-apply/consume the reward at checkout; is_mystery_pool
-// gives the customer a wheel to spin (see member-level-mystery-draw.mts)
-// that picks a specific coffee for admin to pack, instead of a flat
-// physical reward with no further interaction. Both default to "off"
-// (NULL / false) so every pre-existing reward keeps its old manual-only
-// behavior unless the admin opts it in.
+// resolves to a real label. discount_percent, is_mystery_pool, and
+// extra_grams_amount are the three auto-applying exceptions: discount_percent
+// makes orders.mts auto-apply/consume the reward at checkout;
+// is_mystery_pool gives the customer a wheel to spin (see
+// member-level-mystery-draw.mts) that picks a specific coffee for admin to
+// pack; extra_grams_amount lets the customer pick which beans line in
+// their cart gets that many bonus grams added for free at checkout (see
+// orders.mts), instead of a flat physical reward with no further
+// interaction. All three default to "off" (NULL / false) so every
+// pre-existing reward keeps its old manual-only behavior unless the admin
+// opts it in.
 export interface RewardOptionRow {
   id: number;
   reward_key: string;
@@ -25,6 +27,7 @@ export interface RewardOptionRow {
   sort_order: number;
   discount_percent: number | null;
   is_mystery_pool: boolean;
+  extra_grams_amount: number | null;
 }
 
 export async function listRewardOptions(db: ReturnType<typeof getDb>): Promise<RewardOptionRow[]> {

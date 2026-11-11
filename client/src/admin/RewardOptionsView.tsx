@@ -18,6 +18,7 @@ export function RewardOptionsView() {
   const [newMaxLevel, setNewMaxLevel] = useState('');
   const [newDiscountPercent, setNewDiscountPercent] = useState('');
   const [newIsMysteryPool, setNewIsMysteryPool] = useState(false);
+  const [newExtraGramsAmount, setNewExtraGramsAmount] = useState('');
   const [creating, setCreating] = useState(false);
 
   useEffect(() => {
@@ -64,9 +65,10 @@ export function RewardOptionsView() {
         maxLevel: newMaxLevel.trim() ? Number(newMaxLevel) : null,
         discountPercent: newDiscountPercent.trim() ? Number(newDiscountPercent) : null,
         isMysteryPool: newIsMysteryPool,
+        extraGramsAmount: newExtraGramsAmount.trim() ? Number(newExtraGramsAmount) : null,
       });
       setOptions(prev => [...(prev ?? []), created]);
-      setNewKey(''); setNewLabel(''); setNewDesc(''); setNewMinLevel('2'); setNewMaxLevel(''); setNewDiscountPercent(''); setNewIsMysteryPool(false);
+      setNewKey(''); setNewLabel(''); setNewDesc(''); setNewMinLevel('2'); setNewMaxLevel(''); setNewDiscountPercent(''); setNewIsMysteryPool(false); setNewExtraGramsAmount('');
       showToast('已新增技能');
     } catch (err) {
       showToast(err instanceof Error ? err.message : '新增失敗');
@@ -84,7 +86,7 @@ export function RewardOptionsView() {
           {options && <div style={{ font: "700 10px 'Space Mono'", color: '#9a8a76' }}>{options.length} 項</div>}
         </div>
         <div style={{ font: "400 11px 'Iansui'", color: '#b0a08c', marginBottom: 20 }}>
-          客戶升等（Lv.2 以上）時可以選一個技能，這裡設定有哪些技能、各自從第幾級到第幾級出現（上限留空代表沒有上限）。停用的技能不會再被提供選擇，但已經選過的人歷史紀錄還是看得到；已經有人選過的技能無法直接刪除，只能停用。設定了「折扣 %」的技能，客戶下次結帳時系統會自動打折並標記兌換（只打在豆子部分）；開啟「神秘豆轉盤」的技能，客戶選了之後可以自己轉轉盤抽豆子（依等級加權，等級越高抽到稀有豆/競賽豆機率越高），抽到的結果會出現在「打包出貨」頁面；兩者都沒開的技能（多送豆子等）維持人工兌換。豆款要先在「豆款」頁面設定好神秘豆池（日常豆／稀有豆／競賽豆）轉盤才抽得出東西。
+          客戶升等（Lv.2 以上）時可以選一個技能，這裡設定有哪些技能、各自從第幾級到第幾級出現（上限留空代表沒有上限）。停用的技能不會再被提供選擇，但已經選過的人歷史紀錄還是看得到；已經有人選過的技能無法直接刪除，只能停用。設定了「折扣 %」的技能，客戶下次結帳時系統會自動打折並標記兌換（只打在豆子部分）；開啟「神秘豆轉盤」的技能，客戶選了之後可以自己轉轉盤抽豆子（依等級加權，等級越高抽到稀有豆/競賽豆機率越高），抽到的結果會出現在「打包出貨」頁面；設定了「多送克數」的技能，客戶結帳時可以自己選購物車裡哪一包豆子要多送這些克數（該豆款目前庫存不夠的話不能選那一包）；三者都沒開的技能維持人工兌換。豆款要先在「豆款」頁面設定好神秘豆池（日常豆／稀有豆／競賽豆）轉盤才抽得出東西。
         </div>
 
         {error && <div style={{ color: '#c8342b', font: "400 14px 'Iansui'" }}>載入失敗：{error}</div>}
@@ -160,6 +162,15 @@ export function RewardOptionsView() {
                         }}
                       >{o.isMysteryPool ? '✓ 開啟轉盤' : '開啟轉盤'}</div>
                     </div>
+                    <div>
+                      {label('多送克數（留空＝人工兌換）')}
+                      <input
+                        type="number" value={o.extraGramsAmount ?? ''} placeholder="人工兌換"
+                        onChange={(e) => patchOption(o.id, { extraGramsAmount: e.target.value ? Number(e.target.value) : null })}
+                        onBlur={(e) => save(o.id, { extraGramsAmount: e.target.value ? Number(e.target.value) : null })}
+                        style={{ ...inputStyle, width: 120 }}
+                      />
+                    </div>
                     <div style={{ flex: 1 }} />
                     <div
                       onClick={() => toggleActive(o)}
@@ -222,6 +233,10 @@ export function RewardOptionsView() {
                       border: '1px solid ' + (newIsMysteryPool ? '#5a4a9e' : '#e2dac9'),
                     }}
                   >{newIsMysteryPool ? '✓ 開啟轉盤' : '開啟轉盤'}</div>
+                </div>
+                <div>
+                  {label('多送克數（留空＝人工兌換）')}
+                  <input type="number" value={newExtraGramsAmount} onChange={(e) => setNewExtraGramsAmount(e.target.value)} placeholder="例如 10" style={{ ...inputStyle, width: 120 }} />
                 </div>
                 <div style={{ flex: 1 }} />
                 <div

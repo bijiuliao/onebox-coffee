@@ -8,7 +8,7 @@ function toJson(r: RewardOptionRow) {
   return {
     id: r.id, key: r.reward_key, label: r.label, desc: r.description,
     minLevel: r.min_level, maxLevel: r.max_level, active: r.active, sortOrder: r.sort_order,
-    discountPercent: r.discount_percent, isMysteryPool: r.is_mystery_pool,
+    discountPercent: r.discount_percent, isMysteryPool: r.is_mystery_pool, extraGramsAmount: r.extra_grams_amount,
   };
 }
 
@@ -37,6 +37,7 @@ export default async (req: Request) => {
   const maxLevel = body.maxLevel === null || body.maxLevel === undefined ? null : Number(body.maxLevel);
   const discountPercent = body.discountPercent === null || body.discountPercent === undefined ? null : Number(body.discountPercent);
   const isMysteryPool = body.isMysteryPool === true;
+  const extraGramsAmount = body.extraGramsAmount === null || body.extraGramsAmount === undefined ? null : Number(body.extraGramsAmount);
 
   if (!/^[a-z0-9_]+$/.test(key)) return json({ error: 'key 只能用小寫英數字和底線' }, 400);
   if (!label) return json({ error: 'label is required' }, 400);
@@ -47,11 +48,14 @@ export default async (req: Request) => {
   if (discountPercent !== null && (!Number.isInteger(discountPercent) || discountPercent < 1 || discountPercent > 100)) {
     return json({ error: 'discountPercent 必須是 1-100 之間的整數，或 null' }, 400);
   }
+  if (extraGramsAmount !== null && (!Number.isInteger(extraGramsAmount) || extraGramsAmount < 1)) {
+    return json({ error: 'extraGramsAmount 必須是正整數，或 null' }, 400);
+  }
 
   try {
     const [created] = (await db.sql`
-      INSERT INTO reward_options (reward_key, label, description, min_level, max_level, sort_order, discount_percent, is_mystery_pool)
-      VALUES (${key}, ${label}, ${desc}, ${minLevel}, ${maxLevel}, COALESCE((SELECT MAX(sort_order) + 1 FROM reward_options), 0), ${discountPercent}, ${isMysteryPool})
+      INSERT INTO reward_options (reward_key, label, description, min_level, max_level, sort_order, discount_percent, is_mystery_pool, extra_grams_amount)
+      VALUES (${key}, ${label}, ${desc}, ${minLevel}, ${maxLevel}, COALESCE((SELECT MAX(sort_order) + 1 FROM reward_options), 0), ${discountPercent}, ${isMysteryPool}, ${extraGramsAmount})
       RETURNING *
     `) as RewardOptionRow[];
     return json(toJson(created), 201);

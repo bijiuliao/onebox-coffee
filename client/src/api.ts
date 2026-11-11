@@ -66,6 +66,11 @@ export const api = {
     // this order, if any - the customer picks from the named list the cart
     // shows them; null/omitted means no discount.
     discountRewardId?: number | null;
+    // Which unredeemed extra-grams-type reward to use, and which beans
+    // line (by index into items[]) its bonus grams land on - both must be
+    // set together for the bonus to apply.
+    extraGramsRewardId?: number | null;
+    extraGramsLineIndex?: number | null;
     lat?: number;
     lng?: number;
   }) =>
@@ -107,6 +112,7 @@ export const api = {
   getLeaderboard: () => fetch('/api/leaderboard').then(res => json<LeaderboardEntry[]>(res)),
   getMemberLevel: (email: string) => fetch(`/api/member-level?email=${encodeURIComponent(email)}`).then(res => json<MemberLevel>(res)),
   getMemberDiscounts: (email: string) => fetch(`/api/member-discount?email=${encodeURIComponent(email)}`).then(res => json<{ rewards: { id: number; label: string; discountPercent: number }[] }>(res)),
+  getMemberExtraGrams: (email: string) => fetch(`/api/member-extra-grams?email=${encodeURIComponent(email)}`).then(res => json<{ rewards: { id: number; label: string; grams: number }[] }>(res)),
   claimMemberReward: (email: string, level: number, rewardKey: string) =>
     fetch('/api/member-level/claim', {
       method: 'POST',
@@ -132,13 +138,13 @@ export const api = {
       body: JSON.stringify({ redeemed }),
     }).then(res => json<{ id: number; redeemedAt: string | null }>(res)),
   listRewardOptions: () => fetch('/api/admin/reward-options').then(res => json<RewardOption[]>(res)),
-  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null; discountPercent: number | null; isMysteryPool: boolean }) =>
+  createRewardOption: (patch: { key: string; label: string; desc: string; minLevel: number; maxLevel: number | null; discountPercent: number | null; isMysteryPool: boolean; extraGramsAmount: number | null }) =>
     fetch('/api/admin/reward-options', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(patch),
     }).then(res => json<RewardOption>(res)),
-  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder' | 'discountPercent' | 'isMysteryPool'>>) =>
+  updateRewardOption: (id: number, patch: Partial<Pick<RewardOption, 'label' | 'desc' | 'minLevel' | 'maxLevel' | 'active' | 'sortOrder' | 'discountPercent' | 'isMysteryPool' | 'extraGramsAmount'>>) =>
     fetch(`/api/admin/reward-options/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
