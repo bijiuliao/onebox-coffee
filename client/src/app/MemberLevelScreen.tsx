@@ -178,6 +178,13 @@ export function MemberLevelScreen() {
   const [wheelRotation, setWheelRotation] = useState<Record<number, number>>({});
   const [craftingTier, setCraftingTier] = useState<MysteryTier | null>(null);
   const [craftResult, setCraftResult] = useState<{ tier: MysteryTier; coffeeName: string; success: boolean } | null>(null);
+  // Set the moment a spin's wheel-stop animation finishes, so the customer
+  // gets an explicit "you got X" reveal naming the actual coffee - the
+  // wheel itself only has 4 tier-colored slices, so landing on e.g. 日常豆
+  // alone never says *which* everyday-tier coffee it actually was. Reset
+  // on every fresh spin and cleared by navigating away (component remount),
+  // so it only shows once, right after that spin - not forever afterward.
+  const [drawResult, setDrawResult] = useState<{ rewardId: number; tier: MysteryTier; coffeeName: string } | null>(null);
 
   const search = async () => {
     const em = email.trim();
@@ -226,6 +233,7 @@ export function MemberLevelScreen() {
     const em = email.trim();
     if (!result || spinningId !== null) return;
     setSpinningId(rewardId);
+    setDrawResult(null);
     setError(null);
     try {
       const draw = await api.drawMysteryBean(em, rewardId);
@@ -237,6 +245,7 @@ export function MemberLevelScreen() {
         } finally {
           setSpinningId(null);
           setOpenWheelFor(null);
+          setDrawResult({ rewardId, tier: draw.tier, coffeeName: draw.coffeeName });
         }
       }, 3400);
     } catch (err) {
@@ -410,9 +419,22 @@ export function MemberLevelScreen() {
                       )}
                     </div>
 
-                    {r.isMysteryPool && r.mysteryCoffeeName && (
+                    {r.isMysteryPool && r.mysteryCoffeeName && !(drawResult?.rewardId === r.id) && (
                       <div style={{ marginTop: 8, font: "600 12px 'Iansui'", color: r.isMysteryMerged ? '#9a8a76' : '#5a4a9e' }}>
                         {t('memberLevel.mysteryResult', { name: r.mysteryCoffeeName })}
+                      </div>
+                    )}
+
+                    {drawResult?.rewardId === r.id && (
+                      <div style={{
+                        marginTop: 10, textAlign: 'center', padding: '16px 14px', borderRadius: 12,
+                        background: 'linear-gradient(150deg,#2e2a4a,#5a4a9e)',
+                        animation: 'craftBurst .6s cubic-bezier(.17,.67,.2,1) both',
+                      }}>
+                        <div style={{ fontSize: 22 }}>✨</div>
+                        <div style={{ font: "600 13px 'Iansui'", color: '#faf8f3', marginTop: 4 }}>
+                          {t('memberLevel.drawResult', { tier: t(MYSTERY_TIER_LABEL_KEY[drawResult.tier]), name: drawResult.coffeeName })}
+                        </div>
                       </div>
                     )}
 

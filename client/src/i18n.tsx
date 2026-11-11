@@ -200,6 +200,7 @@ const DICT: Record<string, { zh: string; en: string }> = {
   'memberLevel.spinWheel': { zh: '轉轉盤', en: 'Spin' },
   'memberLevel.spinning': { zh: '轉動中…', en: 'Spinning…' },
   'memberLevel.mysteryResult': { zh: '🎉 抽到：{name}', en: '🎉 You got: {name}' },
+  'memberLevel.drawResult': { zh: '✨ 恭喜！{tier} 轉盤抽到了「{name}」', en: '✨ Congrats! The {tier} wheel landed on "{name}"' },
   'memberLevel.mysteryFailed': { zh: '抽豆失敗，請稍後再試', en: 'Something went wrong — please try again' },
   'memberLevel.mysteryPendingShip': { zh: '待出貨', en: 'Pending shipment' },
   'memberLevel.mysteryMerged': { zh: '已合成消耗', en: 'Used in a craft' },
