@@ -3,9 +3,31 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { json } from './lib/coffees';
 import { requireAdmin } from './lib/auth';
 
-const FETCH_TIMEOUT_MS = 15000;
+const FETCH_TIMEOUT_MS = 20000;
 const MAX_HTML_CHARS = 500_000;
 const MAX_TEXT_CHARS_FOR_PROMPT = 20_000;
+// Below this many characters of extracted text, a page is almost certainly
+// a JS-rendered shell or a bot-challenge interstitial rather than real
+// product content - not literally empty, so the plain "no text at all"
+// check wouldn't catch it, but too thin for Gemini to extract anything
+// real from either.
+const MIN_USABLE_TEXT_CHARS = 120;
+// Content types that are unambiguously not a webpage - everything else
+// (including a missing/unexpected content-type some CDNs send for real
+// HTML) is allowed through, since blocking by allow-list was rejecting
+// legitimate pages more often than it caught actual non-HTML responses.
+const NON_HTML_CONTENT_TYPES = ['image/', 'video/', 'audio/', 'font/', 'application/pdf', 'application/zip', 'application/octet-stream'];
+// Common phrases from bot-protection interstitials (Cloudflare, Akamai,
+// Incapsula, PerimeterX, generic "enable JS" gates) - when the fetched
+// text matches one of these, the request technically succeeded but what
+// came back is a challenge page, not the product page, so it gets a
+// specific, actionable error instead of being silently fed to Gemini.
+const BOT_CHALLENGE_MARKERS = [
+  'just a moment', 'checking your browser', 'enable javascript and cookies',
+  'attention required', 'cf-browser-verification', 'verify you are a human',
+  'ddos protection by', 'incapsula', 'perimeterx', 'are you a robot',
+  '請驗證您是否為真人', '請開啟 javascript', '請啟用 javascript',
+];
 
 const EXTRACTION_SCHEMA = {
   type: Type.OBJECT,
@@ -62,13 +84,22 @@ export default async (req: Request) => {
     const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
     const res = await fetch(url, {
       signal: controller.signal,
-      headers: { 'user-agent': 'Mozilla/5.0 (compatible; oneboxCoffeeBot/1.0; +https://onebox.coffee)' },
+      // Mimics an ordinary browser request (not a self-identifying bot UA)
+      // - this is a single on-demand fetch of a page an admin is actively
+      // importing, not mass crawling, and most storefronts' bot-protection
+      // only gates on exactly this kind of fingerprint (UA, Accept,
+      // Accept-Language) rather than anything deeper.
+      headers: {
+        'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+        accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'accept-language': 'zh-TW,zh;q=0.9,en;q=0.8',
+      },
     }).finally(() => clearTimeout(timer));
 
     if (!res.ok) return json({ error: `無法讀取這個網址（伺服器回應 ${res.status}）` }, 400);
 
     const contentType = res.headers.get('content-type') || '';
-    if (!contentType.includes('text/html') && !contentType.includes('text/plain')) {
+    if (NON_HTML_CONTENT_TYPES.some(t => contentType.includes(t))) {
       return json({ error: '這個網址看起來不是網頁內容' }, 400);
     }
     html = (await res.text()).slice(0, MAX_HTML_CHARS);
@@ -78,7 +109,13 @@ export default async (req: Request) => {
   }
 
   const pageText = htmlToText(html).slice(0, MAX_TEXT_CHARS_FOR_PROMPT);
-  if (!pageText) return json({ error: '這個網頁沒有可讀取的文字內容' }, 400);
+  const lowerPageText = pageText.toLowerCase();
+  if (BOT_CHALLENGE_MARKERS.some(m => lowerPageText.includes(m))) {
+    return json({ error: '這個網站有防機器人驗證，自動抓取被擋下來了，請改用手動輸入' }, 400);
+  }
+  if (pageText.length < MIN_USABLE_TEXT_CHARS) {
+    return json({ error: '這個網頁幾乎沒有抓到文字內容（可能整頁都是用 JavaScript 動態產生的），請改用手動輸入' }, 400);
+  }
 
   const client = new GoogleGenAI({ apiKey });
   let extracted: Record<string, unknown>;
