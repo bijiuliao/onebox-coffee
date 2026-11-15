@@ -172,7 +172,12 @@ export function MemberLevelScreen() {
   const [result, setResult] = useState<MemberLevel | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searching, setSearching] = useState(false);
-  const [claiming, setClaiming] = useState(false);
+  // Which reward key is currently being claimed, or null - tracked by key
+  // (not just a boolean) so the UI can call out the one the customer
+  // actually tapped rather than just dimming every option equally, which
+  // otherwise looks indistinguishable from "stuck/crashed" when the claim
+  // call is slow (e.g. a cold-started database can take several seconds).
+  const [claimingKey, setClaimingKey] = useState<string | null>(null);
   const [openWheelFor, setOpenWheelFor] = useState<number | null>(null);
   const [spinningId, setSpinningId] = useState<number | null>(null);
   const [wheelRotation, setWheelRotation] = useState<Record<number, number>>({});
@@ -211,8 +216,9 @@ export function MemberLevelScreen() {
   // customer claims them one at a time rather than all in one screen.
   const claim = async (rewardKey: string) => {
     const em = email.trim();
-    if (!result?.unclaimedLevel || claiming) return;
-    setClaiming(true);
+    if (!result?.unclaimedLevel || claimingKey) return;
+    setClaimingKey(rewardKey);
+    setError(null);
     try {
       await api.claimMemberReward(em, result.unclaimedLevel, rewardKey);
       const refreshed = await api.getMemberLevel(em);
@@ -220,7 +226,7 @@ export function MemberLevelScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : t('memberLevel.claimFailed'));
     } finally {
-      setClaiming(false);
+      setClaimingKey(null);
     }
   };
 
@@ -373,17 +379,27 @@ export function MemberLevelScreen() {
               {t('memberLevel.levelUpHeading', { level: result.unclaimedLevel })}
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 16, textAlign: 'left' }}>
-              {result.availableRewards.map(r => (
+              {result.availableRewards.map(r => {
+                const isClaimingThis = claimingKey === r.key;
+                const blocked = claimingKey !== null && !isClaimingThis;
+                return (
                 <div
                   key={r.key}
                   onClick={() => claim(r.key)}
                   className="press"
                   style={{
-                    cursor: claiming ? 'default' : 'pointer', opacity: claiming ? .5 : 1,
-                    background: 'rgba(255,255,255,.08)', border: '1px solid rgba(255,255,255,.15)', borderRadius: 14, padding: '13px 16px',
+                    cursor: claimingKey ? 'default' : 'pointer', opacity: blocked ? .4 : 1,
+                    background: isClaimingThis ? 'rgba(201,138,46,.18)' : 'rgba(255,255,255,.08)',
+                    border: '1px solid ' + (isClaimingThis ? 'rgba(201,138,46,.5)' : 'rgba(255,255,255,.15)'),
+                    borderRadius: 14, padding: '13px 16px',
                   }}
                 >
-                  <div style={{ font: "600 14px 'Iansui'", color: '#faf8f3' }}>{r.label}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ font: "600 14px 'Iansui'", color: '#faf8f3' }}>{r.label}</div>
+                    {isClaimingThis && (
+                      <span style={{ font: "600 11px 'Iansui'", color: '#c98a2e' }}>⏳ {t('memberLevel.claiming')}</span>
+                    )}
+                  </div>
                   <div style={{ font: "400 11px 'Iansui'", color: 'rgba(250,248,243,.7)', marginTop: 3 }}>{r.desc}</div>
                   {r.isDiscount && (
                     <div style={{ font: "400 10px 'Iansui'", color: '#c98a2e', marginTop: 4 }}>{t('memberLevel.discountHint')}</div>
@@ -392,7 +408,8 @@ export function MemberLevelScreen() {
                     <div style={{ font: "400 10px 'Iansui'", color: '#9d8fd9', marginTop: 4 }}>{t('memberLevel.mysteryHint')}</div>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
