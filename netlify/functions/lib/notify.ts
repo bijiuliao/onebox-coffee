@@ -87,7 +87,7 @@ export async function notifyNewBeanLaunch(coffees: CoffeeForLaunchNotify[], reci
       method: 'POST',
       headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'onebox coffee <news@oneboxcoffee.app>',
+        from: 'onebox coffee <order@oneboxcoffee.app>',
         to: [to],
         subject,
         html,

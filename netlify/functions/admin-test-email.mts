@@ -19,10 +19,10 @@ export default async (req: Request) => {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'onebox coffee <news@oneboxcoffee.app>',
+      from: 'onebox coffee <order@oneboxcoffee.app>',
       to: [to],
       subject: '☕ 測試信：oneboxcoffee.app 寄信設定',
-      html: '<p style="font-family:sans-serif;color:#1a1714">這是一封測試信，確認 <b>news@oneboxcoffee.app</b> 已經可以正常寄信給你。</p>',
+      html: '<p style="font-family:sans-serif;color:#1a1714">這是一封測試信，確認 <b>order@oneboxcoffee.app</b> 已經可以正常寄信給你。</p>',
     }),
   });
 
