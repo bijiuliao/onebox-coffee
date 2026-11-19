@@ -43,15 +43,19 @@ export function PackingView() {
     api.listCustomers().then(setCustomers, err => setError(err.message));
   }, []);
 
-  // Every mystery-pool reward that's been drawn (a coffee was picked) but
-  // not yet handed to the customer - this is deliberately separate from
-  // the beans-order queue below: a mystery draw isn't an order line, it's
-  // a member_rewards row, so it needs its own small checklist here.
+  // Every mystery-pool reward that's been drawn (a coffee was picked), not
+  // yet handed to the customer, AND the customer has explicitly decided to
+  // keep (not feed into a craft) - this is deliberately separate from the
+  // beans-order queue below: a mystery draw isn't an order line, it's a
+  // member_rewards row, so it needs its own small checklist here. A drawn
+  // bean the customer hasn't decided on yet, or has marked as crafting
+  // material, must NOT show up here - it isn't actually waiting to ship
+  // (see member-level-mystery-decide.mts), so packing it would be wrong.
   const pendingMysteryDraws = useMemo(() => {
     const out: { id: number; email: string; name: string; coffeeName: string; tier: string; drawnAt: string }[] = [];
     for (const c of customers ?? []) {
       for (const r of c.rewards) {
-        if (r.isMysteryPool && r.mysteryCoffeeName && !r.redeemedAt) {
+        if (r.isMysteryPool && r.mysteryCoffeeName && !r.redeemedAt && r.mysteryDecision === 'keep') {
           out.push({ id: r.id, email: c.email, name: c.name, coffeeName: r.mysteryCoffeeName, tier: r.mysteryTier ?? 'daily', drawnAt: r.mysteryDrawnAt ?? '' });
         }
       }

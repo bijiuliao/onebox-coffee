@@ -170,7 +170,14 @@ export function CustomerDetailView() {
                           )}
                         </div>
                         {r.isMysteryPool && r.mysteryCoffeeName && (
-                          <div style={{ font: "500 12px 'Iansui'", color: '#5a4a9e', marginTop: 2 }}>抽到：{r.mysteryCoffeeName}</div>
+                          <div style={{ font: "500 12px 'Iansui'", color: '#5a4a9e', marginTop: 2 }}>
+                            抽到：{r.mysteryCoffeeName}
+                            {!r.redeemedAt && !r.isMysteryMerged && (
+                              <span style={{ color: r.mysteryDecision === 'craft' ? '#8a5ca8' : r.mysteryDecision === 'keep' ? '#3d6b4f' : '#b5742e' }}>
+                                {' '}· {r.mysteryDecision === 'craft' ? '客人選擇：送去合成' : r.mysteryDecision === 'keep' ? '客人選擇：保留出貨' : '客人還沒選擇'}
+                              </span>
+                            )}
+                          </div>
                         )}
                         <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatDate(r.chosenAt)}</div>
                       </div>

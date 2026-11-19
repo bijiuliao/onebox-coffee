@@ -190,6 +190,9 @@ export function MemberLevelScreen() {
   // on every fresh spin and cleared by navigating away (component remount),
   // so it only shows once, right after that spin - not forever afterward.
   const [drawResult, setDrawResult] = useState<{ rewardId: number; tier: MysteryTier; coffeeName: string } | null>(null);
+  // Which reward is currently having its keep/craft decision saved, or
+  // null - guards against double-submits the same way claimingKey does.
+  const [decidingId, setDecidingId] = useState<number | null>(null);
 
   const search = async () => {
     const em = email.trim();
@@ -260,6 +263,28 @@ export function MemberLevelScreen() {
     }
   };
 
+  // Locks in whether a drawn mystery bean is a keeper (admin ships it) or
+  // material for crafting - this is the actual information admin needs
+  // from PackingView, which otherwise can't tell those two apart. Freely
+  // switchable afterward too (not just right after the draw), as long as
+  // it hasn't actually been shipped or merged yet - see
+  // member-level-mystery-decide.mts.
+  const decide = async (rewardId: number, decision: 'keep' | 'craft') => {
+    const em = email.trim();
+    if (!result || decidingId !== null) return;
+    setDecidingId(rewardId);
+    setError(null);
+    try {
+      await api.setMysteryDecision(em, rewardId, decision);
+      const refreshed = await api.getMemberLevel(em);
+      setResult(refreshed);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('memberLevel.mysteryDecideFailed'));
+    } finally {
+      setDecidingId(null);
+    }
+  };
+
   // Combines 3 of the customer's own same-tier, still-undelivered mystery
   // draws into 1 - the server locks in success/fail and the resulting
   // coffee immediately (see member-level-mystery-craft.mts), same
@@ -300,14 +325,15 @@ export function MemberLevelScreen() {
   const levelStep = result ? currentLevelStep(result.beansSpent) : 500;
   const progressPct = result ? Math.max(0, Math.min(100, ((levelStep - result.toNextLevel) / levelStep) * 100)) : 0;
 
-  // Every drawn-but-not-yet-shipped-or-merged mystery bean, grouped by
-  // tier - the pool of "material" crafting can spend. redeemedAt already
-  // covers both "admin shipped it" and "merging consumed it" (see
-  // member-level-mystery-craft.mts), so a plain !redeemedAt check is
-  // exactly "still sitting around, available".
+  // Every drawn-but-not-yet-shipped-or-merged mystery bean the customer has
+  // explicitly earmarked for crafting (mysteryDecision === 'craft'),
+  // grouped by tier - the pool of "material" crafting can actually spend.
+  // A bean they've decided to keep (or haven't decided on yet) never
+  // counts here, even though it's also unredeemed - it's not up for grabs
+  // until they say so (see member-level-mystery-decide.mts).
   const pendingMysteryByTier: Partial<Record<MysteryTier, number>> = {};
   for (const r of result?.rewards ?? []) {
-    if (r.isMysteryPool && r.mysteryCoffeeName && !r.redeemedAt && r.mysteryTier) {
+    if (r.isMysteryPool && r.mysteryCoffeeName && !r.redeemedAt && r.mysteryTier && r.mysteryDecision === 'craft') {
       pendingMysteryByTier[r.mysteryTier] = (pendingMysteryByTier[r.mysteryTier] ?? 0) + 1;
     }
   }
@@ -420,6 +446,13 @@ export function MemberLevelScreen() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {result.rewards.map(r => {
                 const undrawnMystery = r.isMysteryPool && !r.mysteryCoffeeName;
+                // Drawn, not yet shipped/merged, but the customer hasn't
+                // said whether to keep it or feed it into a craft yet -
+                // this is exactly the gap admin had no visibility into
+                // before: a reward in this state must not show as "待出
+                // 貨" (nor count as craft material) until they choose.
+                const undecidedMystery = r.isMysteryPool && !!r.mysteryCoffeeName && !r.redeemedAt && r.mysteryDecision === null;
+                const canSwitchDecision = r.isMysteryPool && !!r.mysteryCoffeeName && !r.redeemedAt && r.mysteryDecision !== null;
                 return (
                   <div key={r.id} style={{ background: '#fff', border: '1px solid #ece5d6', borderRadius: 12, padding: '11px 16px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
@@ -427,12 +460,17 @@ export function MemberLevelScreen() {
                         <div style={{ font: "600 13px 'Iansui'", color: '#1a1714' }}>Lv.{r.level} · {r.rewardLabel}</div>
                         <div style={{ font: "400 11px 'Space Mono'", color: '#9a8a76', marginTop: 2 }}>{formatTime(r.chosenAt)}</div>
                       </div>
-                      {!undrawnMystery && (
+                      {!undrawnMystery && !undecidedMystery && (
                         <span style={{
                           font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0,
                           background: r.isMysteryMerged ? '#f1ece2' : r.redeemedAt ? '#e3f0e5' : '#f1e9db',
                           color: r.isMysteryMerged ? '#8a7a68' : r.redeemedAt ? '#3f7a4a' : '#8a7a68',
-                        }}>{r.isMysteryMerged ? t('memberLevel.mysteryMerged') : r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : r.isMysteryPool ? t('memberLevel.mysteryPendingShip') : t('memberLevel.pending'))}</span>
+                        }}>{r.isMysteryMerged ? t('memberLevel.mysteryMerged') : r.redeemedAt ? t('memberLevel.redeemed') : (r.isDiscount ? t('memberLevel.autoApply') : r.isMysteryPool ? (r.mysteryDecision === 'craft' ? t('memberLevel.mysteryCraftMaterial') : t('memberLevel.mysteryPendingShip')) : t('memberLevel.pending'))}</span>
+                      )}
+                      {undecidedMystery && (
+                        <span style={{ font: "600 11px 'Iansui'", padding: '3px 9px', borderRadius: 10, flexShrink: 0, background: '#ece4f7', color: '#5a4a9e' }}>
+                          {t('memberLevel.mysteryUndecided')}
+                        </span>
                       )}
                     </div>
 
@@ -452,6 +490,44 @@ export function MemberLevelScreen() {
                         <div style={{ font: "600 13px 'Iansui'", color: '#faf8f3', marginTop: 4 }}>
                           {t('memberLevel.drawResult', { tier: t(MYSTERY_TIER_LABEL_KEY[drawResult.tier]), name: drawResult.coffeeName })}
                         </div>
+                      </div>
+                    )}
+
+                    {undecidedMystery && (
+                      <div style={{ marginTop: 10 }}>
+                        <div style={{ font: "500 11px 'Iansui'", color: '#8a7a68', marginBottom: 6 }}>{t('memberLevel.mysteryDecideHeading')}</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                          <div
+                            onClick={() => decide(r.id, 'keep')}
+                            className="press"
+                            style={{
+                              flex: 1, cursor: decidingId === null ? 'pointer' : 'default', opacity: decidingId !== null && decidingId !== r.id ? .5 : 1,
+                              textAlign: 'center', padding: 11, borderRadius: 10, background: '#3d6b4f', color: '#faf8f3', font: "600 12px 'Iansui'",
+                            }}
+                          >
+                            {decidingId === r.id ? t('memberLevel.deciding') : `🎒 ${t('memberLevel.mysteryKeepBtn')}`}
+                          </div>
+                          <div
+                            onClick={() => decide(r.id, 'craft')}
+                            className="press"
+                            style={{
+                              flex: 1, cursor: decidingId === null ? 'pointer' : 'default', opacity: decidingId !== null && decidingId !== r.id ? .5 : 1,
+                              textAlign: 'center', padding: 11, borderRadius: 10, background: '#8a5ca8', color: '#faf8f3', font: "600 12px 'Iansui'",
+                            }}
+                          >
+                            {decidingId === r.id ? t('memberLevel.deciding') : `🔮 ${t('memberLevel.mysteryCraftBtn')}`}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {canSwitchDecision && (
+                      <div
+                        onClick={() => decidingId === null && decide(r.id, r.mysteryDecision === 'craft' ? 'keep' : 'craft')}
+                        className="press"
+                        style={{ marginTop: 6, cursor: decidingId === null ? 'pointer' : 'default', font: "500 11px 'Iansui'", color: '#9a8a76', textDecoration: 'underline', display: 'inline-block' }}
+                      >
+                        {decidingId === r.id ? t('memberLevel.deciding') : (r.mysteryDecision === 'craft' ? t('memberLevel.mysterySwitchToKeep') : t('memberLevel.mysterySwitchToCraft'))}
                       </div>
                     )}
 

@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, MysteryTier, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
+import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, MysteryDecision, MysteryTier, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -131,6 +131,12 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, tier }),
     }).then(res => json<{ success: boolean; tier: MysteryTier; coffeeId: string; coffeeName: string }>(res)),
+  setMysteryDecision: (email: string, rewardId: number, decision: 'keep' | 'craft') =>
+    fetch('/api/member-level/mystery-decide', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, rewardId, decision }),
+    }).then(res => json<{ ok: boolean; rewardId: number; decision: MysteryDecision }>(res)),
   setMemberRewardRedeemed: (id: number, redeemed: boolean) =>
     fetch(`/api/admin/member-rewards/${id}`, {
       method: 'PATCH',

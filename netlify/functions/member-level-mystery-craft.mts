@@ -10,15 +10,18 @@ function isMysteryTier(v: unknown): v is MysteryTier {
 // Combines 3 of a customer's own same-tier, still-undelivered mystery-pool
 // draws into 1 - a flat 50/50 shot at the next tier up (see
 // lib/mysteryDraw.ts), re-rolled within the same tier on a miss. Only ever
-// touches drawn-but-unredeemed rows (mystery_coffee_id set, redeemed_at
-// still null) - once admin has marked one shipped it's a real bag already
-// handed over and can't be fed back in. The 3 oldest-drawn rows of that
-// tier are locked (FOR UPDATE) and consumed: one survives with its
-// coffee/tier re-rolled to the outcome, the other two are marked
-// mystery_merged + redeemed_at so they stop counting as pending anywhere
-// (PackingView, future crafts) without ever triggering the
-// ship-time stock deduction those two beans were never actually handed
-// out for. member_rewards rows are never deleted, so a customer's
+// touches rows the customer has explicitly marked mystery_decision='craft'
+// (see member-level-mystery-decide.mts) - a drawn-but-undecided or
+// decided-to-keep row is never silently swept in as material, since admin
+// relies on that flag to know which drawn beans are actually waiting to
+// ship. The 3 oldest-drawn rows of that tier are locked (FOR UPDATE) and
+// consumed: one survives with its coffee/tier re-rolled to the outcome
+// (and its decision reset to undecided, since it's effectively a brand
+// new bean the customer hasn't chosen keep-or-craft for yet), the other
+// two are marked mystery_merged + redeemed_at so they stop counting as
+// pending anywhere (PackingView, future crafts) without ever triggering
+// the ship-time stock deduction those two beans were never actually
+// handed out for. member_rewards rows are never deleted, so a customer's
 // level-up claim history (and the one-reward-per-level guarantee) stays
 // intact no matter how many times they craft.
 export default async (req: Request) => {
@@ -40,7 +43,8 @@ export default async (req: Request) => {
 
     const { rows: materialRows } = await client.query<{ id: number }>(
       `SELECT id FROM member_rewards
-       WHERE customer_email = $1 AND mystery_tier = $2 AND mystery_coffee_id IS NOT NULL AND redeemed_at IS NULL
+       WHERE customer_email = $1 AND mystery_tier = $2 AND mystery_coffee_id IS NOT NULL
+         AND redeemed_at IS NULL AND mystery_decision = 'craft'
        ORDER BY mystery_drawn_at ASC
        LIMIT 3
        FOR UPDATE`,
@@ -68,7 +72,7 @@ export default async (req: Request) => {
 
     const [survivorId, ...consumedIds] = materialRows.map((r: { id: number }) => r.id);
     await client.query(
-      'UPDATE member_rewards SET mystery_coffee_id = $1, mystery_tier = $2, mystery_drawn_at = now() WHERE id = $3',
+      'UPDATE member_rewards SET mystery_coffee_id = $1, mystery_tier = $2, mystery_drawn_at = now(), mystery_decision = NULL WHERE id = $3',
       [picked.id, picked.tier, survivorId],
     );
     await client.query(

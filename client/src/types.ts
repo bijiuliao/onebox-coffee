@@ -3,6 +3,10 @@ export type Size = '標準' | '大杯';
 export type OrderType = '自取' | '外送';
 export type ItemKind = 'drip' | 'beans' | 'special';
 export type MysteryTier = 'daily' | 'rare' | 'competition' | 'rare_competition';
+// null = not decided yet; 'keep' = admin should ship it; 'craft' = the
+// customer wants it saved as crafting material instead (see
+// member-level-mystery-decide.mts).
+export type MysteryDecision = 'keep' | 'craft' | null;
 
 export interface BagOption {
   label: string;
@@ -163,6 +167,13 @@ export interface MemberRewardChoice {
   // panel) rather than ever being shipped - distinguishes "merged into a
   // craft" from "handed out" even though both set redeemedAt.
   isMysteryMerged: boolean;
+  // Which way the customer has decided to use a drawn-but-unshipped
+  // mystery bean - null (needs a choice) until they pick "keep" (admin
+  // should ship it) or "craft" (save as crafting material instead); see
+  // member-level-mystery-decide.mts. Lets PackingView's shipping queue
+  // show only beans actually waiting to ship, not ones that might still
+  // get fed into a craft attempt.
+  mysteryDecision: MysteryDecision;
 }
 
 // The /api/customers list's own (slightly leaner) reward shape - no
@@ -180,6 +191,7 @@ export interface CustomerRewardChoice {
   mysteryCoffeeName: string | null;
   mysteryDrawnAt: string | null;
   isMysteryMerged: boolean;
+  mysteryDecision: MysteryDecision;
 }
 
 // The reward(s) currently offered for an unclaimed level-up, filtered

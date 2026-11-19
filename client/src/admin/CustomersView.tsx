@@ -149,7 +149,13 @@ export function CustomersView() {
                       >
                         Lv.{r.level} · {r.rewardLabel}
                         {r.isDiscount && !r.redeemedAt ? '（自動套用）' : ''}
-                        {r.isMysteryPool && r.isMysteryMerged ? '（已合成消耗）' : r.isMysteryPool ? (r.mysteryCoffeeName ? `（抽到：${r.mysteryCoffeeName}）` : '（還沒轉盤）') : ''}
+                        {r.isMysteryPool && r.isMysteryMerged
+                          ? '（已合成消耗）'
+                          : r.isMysteryPool
+                            ? (r.mysteryCoffeeName
+                              ? `（抽到：${r.mysteryCoffeeName}${!r.redeemedAt ? ` · ${r.mysteryDecision === 'craft' ? '送去合成' : r.mysteryDecision === 'keep' ? '保留出貨' : '待選擇'}` : ''}）`
+                              : '（還沒轉盤）')
+                            : ''}
                       </span>
                     ))}
                   </div>
