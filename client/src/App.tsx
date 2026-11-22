@@ -23,6 +23,7 @@ import { CustomerDetailView } from './admin/CustomerDetailView';
 import { StockView } from './admin/StockView';
 import { StockDetailView } from './admin/StockDetailView';
 import { NotifyBeansView } from './admin/NotifyBeansView';
+import { RecipesView } from './admin/RecipesView';
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
               <Route path="/admin/rewards" element={<RewardOptionsView />} />
               <Route path="/admin/reviews" element={<ReviewsAdminView />} />
               <Route path="/admin/notify-beans" element={<NotifyBeansView />} />
+              <Route path="/admin/recipes" element={<RecipesView />} />
             </Routes>
           </BrowserRouter>
         </CartProvider>

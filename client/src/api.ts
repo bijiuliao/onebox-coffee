@@ -1,4 +1,4 @@
-import type { AdminReview, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, MysteryDecision, MysteryTier, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
+import type { AdminReview, BrewKind, BrewRecipe, Coffee, Customer, DeliveryQuote, ItemKind, LeaderboardEntry, LoffeelabsBeansResponse, MemberLevel, MysteryDecision, MysteryTier, Order, OrderType, ReviewSummary, RewardOption, Settings, Special } from './types';
 
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) {
@@ -158,6 +158,22 @@ export const api = {
     }).then(res => json<RewardOption>(res)),
   deleteRewardOption: (id: number) =>
     fetch(`/api/admin/reward-options/${id}`, { method: 'DELETE' }).then(res => json<{ id: number; deleted: boolean }>(res)),
+  listBrewRecipes: (kind?: BrewKind) =>
+    fetch(`/api/admin/brew-recipes${kind ? `?kind=${kind}` : ''}`).then(res => json<BrewRecipe[]>(res)),
+  createBrewRecipe: (recipe: Partial<Omit<BrewRecipe, 'id' | 'createdAt' | 'updatedAt'>> & { kind: BrewKind }) =>
+    fetch('/api/admin/brew-recipes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(recipe),
+    }).then(res => json<BrewRecipe>(res)),
+  updateBrewRecipe: (id: number, patch: Partial<Omit<BrewRecipe, 'id' | 'createdAt' | 'updatedAt'>>) =>
+    fetch(`/api/admin/brew-recipes/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    }).then(res => json<BrewRecipe>(res)),
+  deleteBrewRecipe: (id: number) =>
+    fetch(`/api/admin/brew-recipes/${id}`, { method: 'DELETE' }).then(res => json<{ id: number; deleted: boolean }>(res)),
   getDeliveryQuote: (lat: number, lng: number) =>
     fetch('/api/delivery-quote', {
       method: 'POST',

@@ -313,3 +313,69 @@ export interface AdminReview {
   flavorTags: string[];
   createdAt: string;
 }
+
+// Admin brewing log (see netlify/functions/lib/brewRecipes.ts) - how a bean
+// was actually brewed. params' shape depends on kind; see the *Params
+// interfaces below. Every numeric field is optional so a half-filled log
+// entry is still valid.
+export type BrewKind = 'espresso' | 'pourover' | 'special';
+
+export interface EspressoParams {
+  dose?: number | null;        // 粉量 g
+  yield?: number | null;       // 萃取液重 g
+  time?: number | null;        // 萃取秒數
+  temp?: number | null;        // 水溫 °C
+  grind?: string;              // 研磨刻度
+  preinfusion?: number | null; // 預浸秒數
+  pressure?: number | null;    // bar
+  equipment?: string;          // 機器 / 磨豆機 / 粉碗
+}
+
+export interface PourStep {
+  at: string;     // 開始時間 e.g. "0:00"
+  water: number | null; // 這段注水 g
+  note?: string;
+}
+
+export interface PouroverParams {
+  dose?: number | null;  // 粉量 g
+  water?: number | null; // 總水量 g
+  temp?: number | null;  // 水溫 °C
+  grind?: string;
+  dripper?: string;      // 濾杯
+  filter?: string;       // 濾紙
+  totalTime?: string;    // 總時間 e.g. "2:30"
+  pours?: PourStep[];
+}
+
+export interface Ingredient {
+  name: string;
+  amount: number | null;
+  unit: string;
+}
+
+export interface SpecialParams {
+  serve?: '熱' | '冰';
+  base?: 'espresso' | 'pourover' | 'other';
+  dose?: number | null;  // 粉量 g
+  yield?: number | null; // 咖啡液 g
+  time?: number | null;  // 萃取秒數
+  ingredients?: Ingredient[];
+  steps?: string[];
+  glass?: string;        // 杯型 / 份量
+}
+
+export interface BrewRecipe {
+  id: number;
+  kind: BrewKind;
+  coffeeId: string | null;
+  specialId: string | null;
+  title: string;
+  params: EspressoParams & PouroverParams & SpecialParams;
+  notes: string;
+  rating: number | null;
+  favorite: boolean;
+  brewedOn: string; // YYYY-MM-DD
+  createdAt: string;
+  updatedAt: string;
+}
