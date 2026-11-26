@@ -312,6 +312,12 @@ export interface AdminReview {
   rating: number;
   flavorTags: string[];
   createdAt: string;
+  // 'email' = from the 30-day feedback email (tied to an order, so the
+  // customer is known); 'page' = anonymous rating on the product page.
+  source: 'email' | 'page';
+  orderId: number | null;
+  customerName: string | null;
+  customerEmail: string | null;
 }
 
 // Admin brewing log (see netlify/functions/lib/brewRecipes.ts) - how a bean
