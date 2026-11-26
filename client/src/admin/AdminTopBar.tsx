@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { useToast } from '../toast';
 
-export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'packing' | 'reviews' | 'customers' | 'stock' | 'notify-beans' | 'rewards' }) {
+export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders' | 'packing' | 'reviews' | 'customers' | 'stock' | 'notify-beans' | 'rewards' | 'recipes' }) {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const [sending, setSending] = useState(false);
@@ -49,6 +49,7 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
     color: isActive ? '#faf8f3' : '#8a7a68',
     borderBottom: isActive ? '2px solid #c98a2e' : '2px solid transparent',
     paddingBottom: 4,
+    whiteSpace: 'nowrap' as const,
   });
 
   return (
@@ -74,9 +75,10 @@ export function AdminTopBar({ active }: { active: 'beans' | 'specials' | 'orders
           >{dripEnabled ? '● 手沖供應中' : '○ 手沖已暫停'}</div>
         )}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 22 }}>
         <div onClick={() => navigate('/admin')} className="press" style={navStyle(active === 'beans')}>豆款管理</div>
         <div onClick={() => navigate('/admin/specials')} className="press" style={navStyle(active === 'specials')}>特調管理</div>
+        <div onClick={() => navigate('/admin/recipes')} className="press" style={navStyle(active === 'recipes')}>沖煮食譜</div>
         <div onClick={() => navigate('/admin/orders')} className="press" style={navStyle(active === 'orders')}>訂單 ORDERS</div>
         <div onClick={() => navigate('/admin/packing')} className="press" style={navStyle(active === 'packing')}>打包出貨 PACKING</div>
         <div onClick={() => navigate('/admin/stock')} className="press" style={navStyle(active === 'stock')}>庫存 STOCK</div>

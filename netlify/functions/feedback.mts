@@ -43,22 +43,30 @@ export default async (req: Request) => {
 
   const db = getDb();
   const [row] = (await db.sql`
-    SELECT oft.coffee_id, oft.redeemed_at, c.name AS coffee_name
+    SELECT oft.coffee_id, oft.order_id, oft.redeemed_at, c.name AS coffee_name
     FROM order_feedback_tokens oft
     JOIN coffees c ON c.id = oft.coffee_id
     WHERE oft.token = ${token}
-  `) as { coffee_id: string; redeemed_at: string | null; coffee_name: string }[];
+  `) as { coffee_id: string; order_id: number; redeemed_at: string | null; coffee_name: string }[];
 
   if (!row) return page('找不到這筆回饋', '<p>這個連結可能已經失效了，謝謝你願意給回饋！</p>');
-  if (row.redeemed_at) {
-    return page('已經評分過了', `<p>你已經對「${escapeHtml(row.coffee_name)}」評過分囉，謝謝你的回饋！</p>`);
-  }
+  const alreadyRated = page('已經評分過了', `<p>你已經對「${escapeHtml(row.coffee_name)}」評過分囉，謝謝你的回饋！</p>`);
+  if (row.redeemed_at) return alreadyRated;
 
+  // Claim the token first (only succeeds once), so a double-tap on the email
+  // link can't record two ratings.
+  const claimed = (await db.sql`
+    UPDATE order_feedback_tokens SET redeemed_at = now()
+    WHERE token = ${token} AND redeemed_at IS NULL
+    RETURNING token
+  `) as { token: string }[];
+  if (claimed.length === 0) return alreadyRated;
+
+  // order_id lets the admin reviews page show which customer this came from.
   await db.pool.query(
-    `INSERT INTO coffee_reviews (coffee_id, rating, flavor_tags, client_ip) VALUES ($1, $2, $3, $4)`,
-    [row.coffee_id, rating, JSON.stringify([]), 'email-feedback'],
+    `INSERT INTO coffee_reviews (coffee_id, rating, flavor_tags, client_ip, order_id) VALUES ($1, $2, $3, $4, $5)`,
+    [row.coffee_id, rating, JSON.stringify([]), 'email-feedback', row.order_id],
   );
-  await db.sql`UPDATE order_feedback_tokens SET redeemed_at = now() WHERE token = ${token}`;
 
   const stars = '★'.repeat(rating) + '☆'.repeat(5 - rating);
   return page('感謝回饋', `<div class="stars">${stars}</div><p>謝謝你對「${escapeHtml(row.coffee_name)}」的評分！</p>`);
